@@ -156,6 +156,10 @@
         <translation>Комментарий</translation>
     </message>
     <message>
+        <source>Change mark style</source>
+        <translation>Цвет и толщина метки</translation>
+    </message>
+    <message>
         <source>Delete mark</source>
         <translation>Удаление метки</translation>
     </message>
@@ -203,6 +207,53 @@
     <message>
         <source>Cancelled</source>
         <translation>Отменено</translation>
+    </message>
+</context>
+<context>
+    <name>mp::PenPicker</name>
+    <message>
+        <source>%1 px</source>
+        <translation>%1 px</translation>
+    </message>
+    <message>
+        <source>Mark color</source>
+        <translation>Цвет метки</translation>
+    </message>
+    <message>
+        <source>Line width and style</source>
+        <translation>Толщина и тип линии</translation>
+    </message>
+    <message>
+        <source>Color</source>
+        <translation>Цвет</translation>
+    </message>
+    <message>
+        <source>Accent color from settings</source>
+        <translation>Акцентный цвет из настроек</translation>
+    </message>
+    <message>
+        <source>Other color…</source>
+        <translation>Другой цвет…</translation>
+    </message>
+    <message>
+        <source>Width</source>
+        <translation>Толщина</translation>
+    </message>
+    <message>
+        <source>Line</source>
+        <translation>Линия</translation>
+    </message>
+    <message>
+        <source>Solid</source>
+        <translation>Сплошная</translation>
+    </message>
+    <message>
+        <source>Dashed</source>
+        <translation>Штрихи</translation>
+    </message>
+    <message>
+        <source>Dotted</source>
+        <translation>Точки</translation>
     </message>
 </context>
 <context>

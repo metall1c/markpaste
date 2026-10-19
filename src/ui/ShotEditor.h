@@ -11,6 +11,8 @@ class QPushButton;
 
 namespace mp {
 
+class PenPicker;
+
 // Окно редактирования снимка (ТЗ разд. 4, шаги 3–4). Один снимок за раз;
 // переключение между снимками — из ленты.
 class ShotEditor : public QWidget
@@ -24,11 +26,14 @@ public:
     void showShot(const QUuid &shotId, bool fresh = false);
     bool isFreshShot() const { return m_fresh; }
     QUuid shotId() const { return m_canvas->shotId(); }
-    void setStyle(const RenderStyle &style) { m_canvas->setStyle(style); }
+    void setStyle(const RenderStyle &style);
+    // Перо новых меток (сохраняется в настройках между запусками)
+    void setPen(const MarkPen &pen);
 
 signals:
     void newShotRequested();
     void doneRequested();
+    void penChanged(const mp::MarkPen &pen);
 
 protected:
     void closeEvent(QCloseEvent *) override;
@@ -39,6 +44,7 @@ private:
     void updateTools();
     void updateComments();
     void cancelShot();
+    void updatePenDefaults(MarkShape shape);
 
     CaptureSetModel *m_model;
     ShotCanvas *m_canvas;
@@ -48,6 +54,7 @@ private:
     QToolButton *m_blurTool;
     QToolButton *m_cropTool;
     QPushButton *m_applyCrop;
+    PenPicker *m_penPicker;
     QToolButton *m_undo;
     QToolButton *m_redo;
     QLabel *m_hint;

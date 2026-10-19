@@ -91,7 +91,12 @@ void AppController::start()
 
     m_editor = new ShotEditor(&m_model);
     m_editor->setStyle(m_settings.renderStyle());
+    m_editor->setPen(m_settings.markPen);
     m_editor->setWindowIcon(appIcon());
+    connect(m_editor, &ShotEditor::penChanged, this, [this](const MarkPen &pen) {
+        m_settings.markPen = pen;
+        m_settings.save();
+    });
     connect(m_editor, &ShotEditor::newShotRequested, this, &AppController::capture);
     connect(m_editor, &ShotEditor::doneRequested, m_editor, &QWidget::hide);
 

@@ -33,6 +33,10 @@ public:
     void setTool(Tool tool);
     Tool tool() const { return m_tool; }
     void setStyle(const RenderStyle &style);
+    const RenderStyle &style() const { return m_style; }
+    // Перо новых меток. Если выделена метка, перо применяется и к ней (одна правка в истории).
+    void setPen(const MarkPen &pen);
+    MarkPen pen() const { return m_pen; }
 
     bool hasPendingCrop() const { return !m_crop.isEmpty(); }
     void applyCrop();
@@ -46,6 +50,8 @@ public:
 
 signals:
     void toolChanged(mp::ShotCanvas::Tool tool);
+    // Выделена метка: панель пера показывает её цвет и толщину
+    void markSelected(const mp::MarkPen &pen, mp::MarkShape shape);
     void cropPendingChanged(bool pending);
     void finishRequested();
 
@@ -84,12 +90,14 @@ private:
     QPoint clampedSource(const QPointF &widgetPos) const;
     std::optional<MarkShape> creatingShape() const;   // форма, которую рисует текущий инструмент
     void openComment(const QUuid &markId);
+    void selectMark(const QUuid &markId);
     void updateCursor(const QPointF &widgetPos);
 
     CaptureSetModel *m_model;
     QUuid m_shotId;
     Tool m_tool = Tool::Mark;
     RenderStyle m_style;
+    MarkPen m_pen;
 
     // Кэш исходника с размытием: пересчитывается только при смене кадра или размытий
     QImage m_image;

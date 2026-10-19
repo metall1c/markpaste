@@ -1,5 +1,7 @@
 #include "ShotEditor.h"
 
+#include "PenPicker.h"
+
 #include <QButtonGroup>
 #include <QCloseEvent>
 #include <QGuiApplication>
@@ -51,6 +53,7 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     m_markTool->setChecked(true);
     m_applyCrop = new QPushButton(tr("Apply crop"));
     m_applyCrop->setVisible(false);
+    m_penPicker = new PenPicker;
 
     m_undo = toolButton(tr("↶"), tr("Undo (Ctrl+Z)"), false);
     m_redo = toolButton(tr("↷"), tr("Redo (Ctrl+Shift+Z)"), false);
@@ -68,6 +71,8 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     bar->addWidget(m_blurTool);
     bar->addWidget(m_cropTool);
     bar->addWidget(m_applyCrop);
+    bar->addSpacing(12);
+    bar->addWidget(m_penPicker);
     bar->addSpacing(12);
     bar->addWidget(m_undo);
     bar->addWidget(m_redo);
@@ -111,6 +116,22 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     connect(m_applyCrop, &QPushButton::clicked, m_canvas, &ShotCanvas::applyCrop);
     connect(m_canvas, &ShotCanvas::toolChanged, this, &ShotEditor::updateTools);
     connect(m_canvas, &ShotCanvas::cropPendingChanged, this, &ShotEditor::updateTools);
+
+    // Перо: выбор в панели — для новых меток и для выделенной; выделение метки
+    // показывает в панели её перо.
+    connect(m_penPicker, &PenPicker::penChanged, this, [this](const MarkPen &pen) {
+        m_canvas->setPen(pen);
+        emit penChanged(pen);
+    });
+    connect(m_canvas, &ShotCanvas::markSelected, this, [this](const MarkPen &pen, MarkShape shape) {
+        updatePenDefaults(shape);
+        m_penPicker->setPen(pen);
+    });
+    connect(m_canvas, &ShotCanvas::toolChanged, this, [this](ShotCanvas::Tool tool) {
+        updatePenDefaults(tool == ShotCanvas::Tool::Arrow ? MarkShape::Arrow
+                          : tool == ShotCanvas::Tool::Pen ? MarkShape::Freehand
+                                                          : MarkShape::Rect);
+    });
 
     QUndoStack *undo = model->undoStack();
     connect(m_undo, &QToolButton::clicked, undo, &QUndoStack::undo);
@@ -197,10 +218,28 @@ void ShotEditor::updateComments()
     }
 }
 
+void ShotEditor::setStyle(const RenderStyle &style)
+{
+    m_canvas->setStyle(style);
+    updatePenDefaults(MarkShape::Rect);
+}
+
+void ShotEditor::setPen(const MarkPen &pen)
+{
+    m_penPicker->setPen(pen);
+    m_canvas->setPen(pen);
+}
+
+void ShotEditor::updatePenDefaults(MarkShape shape)
+{
+    m_penPicker->setDefaults(m_canvas->style().accent, defaultMarkWidth(shape, m_canvas->style()));
+}
+
 void ShotEditor::showShot(const QUuid &shotId, bool fresh)
 {
     m_fresh = fresh;
     m_canvas->setShot(shotId);
+    m_canvas->setTool(ShotCanvas::Tool::Mark);   // каждый снимок начинается с рамки
     updateTitle();
     updateComments();
     updateTools();   // подсказка про Esc зависит от того, свежий ли снимок

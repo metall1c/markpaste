@@ -156,6 +156,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Change mark style</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Delete mark</source>
         <translation type="unfinished"></translation>
     </message>
@@ -202,6 +206,53 @@
     </message>
     <message>
         <source>Cancelled</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>mp::PenPicker</name>
+    <message>
+        <source>%1 px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mark color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Line width and style</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Accent color from settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Other color…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Width</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Line</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Solid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Dashed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Dotted</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

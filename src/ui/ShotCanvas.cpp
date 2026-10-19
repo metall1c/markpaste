@@ -93,6 +93,22 @@ void ShotCanvas::setStyle(const RenderStyle &style)
     update();
 }
 
+void ShotCanvas::setPen(const MarkPen &pen)
+{
+    m_pen = pen;
+    if (const Mark *m = markOf(m_selected))
+        m_model->setMarkPen(m_shotId, m->id, pen);
+}
+
+void ShotCanvas::selectMark(const QUuid &markId)
+{
+    m_selected = Hit{true, markId, HNone};
+    if (const Mark *m = markOf(m_selected)) {
+        m_pen = m->pen;   // следующая метка — тем же пером, что видно в панели
+        emit markSelected(m->pen, m->shape);
+    }
+}
+
 void ShotCanvas::refreshImage()
 {
     const Shot *s = shot();
@@ -190,8 +206,7 @@ bool ShotCanvas::hitsMark(const Mark &mark, const QPointF &pos) const
     pts.reserve(mark.points.size());
     for (const QPoint &p : mark.points)
         pts.append(t.map(QPointF(p) + QPointF(0.5, 0.5)));
-    const qreal width = mark.shape == MarkShape::Arrow ? m_style.arrowWidth : m_style.frameWidth;
-    return distanceToPolyline(pos, pts) <= width / 2 + kLineHitSlop;
+    return distanceToPolyline(pos, pts) <= markWidth(mark, m_style) / 2 + kLineHitSlop;
 }
 
 int ShotCanvas::handleAt(const QRect &sourceRect, const QPointF &pos) const
@@ -257,10 +272,10 @@ void ShotCanvas::paintEvent(QPaintEvent *)
     Shot preview = *s;
     const auto shape = creatingShape();
     if (m_drag == Drag::Create && shape && *shape != MarkShape::Rect && m_livePoints.size() >= 2) {
-        preview.marks.append(Mark{QUuid(), boundsOf(m_livePoints), {}, *shape, m_livePoints});
+        preview.marks.append(Mark{QUuid(), boundsOf(m_livePoints), {}, *shape, m_livePoints, m_pen});
     } else if (m_drag != Drag::None && !m_live.isEmpty()) {
         if (m_drag == Drag::Create && shape == MarkShape::Rect)
-            preview.marks.append(Mark{QUuid(), m_live, {}});
+            preview.marks.append(Mark{QUuid(), m_live, {}, MarkShape::Rect, {}, m_pen});
         else if (m_dragTarget.isMark) {
             const int i = preview.markIndex(m_dragTarget.id);
             if (i >= 0) {
@@ -375,7 +390,10 @@ void ShotCanvas::mousePressEvent(QMouseEvent *e)
 
     const Hit h = hitTest(pos);
     if (h.valid()) {
-        m_selected = Hit{h.isMark, h.id, HNone};
+        if (h.isMark)
+            selectMark(h.id);
+        else
+            m_selected = Hit{false, h.id, HNone};
         m_dragTarget = h;
         m_dragOrigin = rectOf(h);
         m_live = m_dragOrigin;
@@ -476,7 +494,7 @@ void ShotCanvas::mouseReleaseEvent(QMouseEvent *e)
             return;
         }
         if (m_tool == Tool::Arrow || m_tool == Tool::Pen) {
-            const QUuid id = m_model->addLinearMark(m_shotId, *creatingShape(), livePoints);
+            const QUuid id = m_model->addLinearMark(m_shotId, *creatingShape(), livePoints, {}, m_pen);
             if (!id.isNull()) {
                 m_selected = Hit{true, id, HNone};
                 openComment(id);
@@ -485,7 +503,7 @@ void ShotCanvas::mouseReleaseEvent(QMouseEvent *e)
             m_crop = live;
             emit cropPendingChanged(true);
         } else if (m_tool == Tool::Mark) {
-            const QUuid id = m_model->addMark(m_shotId, live);
+            const QUuid id = m_model->addMark(m_shotId, live, {}, m_pen);
             if (!id.isNull()) {
                 m_selected = Hit{true, id, HNone};
                 openComment(id);
@@ -527,7 +545,7 @@ void ShotCanvas::openComment(const QUuid &markId)
 
 void ShotCanvas::editMark(const QUuid &markId)
 {
-    m_selected = Hit{true, markId, HNone};
+    selectMark(markId);
     update();
     openComment(markId);
 }

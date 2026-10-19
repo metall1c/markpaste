@@ -32,14 +32,15 @@ public:
     void clear();                                   // очистка набора — тоже отменяется
 
     // Метки
-    QUuid addMark(const QUuid &shotId, const QRect &rect, const QString &comment = {});
+    QUuid addMark(const QUuid &shotId, const QRect &rect, const QString &comment = {}, const MarkPen &pen = {});
     bool setMarkRect(const QUuid &shotId, const QUuid &markId, const QRect &rect);
     // Стрелка и карандаш (EDT-9). Точки обрезаются по видимой области, линия карандаша
     // упрощается; rect метки становится охватывающим прямоугольником.
     QUuid addLinearMark(const QUuid &shotId, MarkShape shape, const QList<QPoint> &points,
-                        const QString &comment = {});
+                        const QString &comment = {}, const MarkPen &pen = {});
     bool setMarkPoints(const QUuid &shotId, const QUuid &markId, const QList<QPoint> &points);
     bool setMarkComment(const QUuid &shotId, const QUuid &markId, const QString &comment);
+    bool setMarkPen(const QUuid &shotId, const QUuid &markId, const MarkPen &pen);
     bool removeMark(const QUuid &shotId, const QUuid &markId);
 
     // Размытие

@@ -132,7 +132,7 @@ void CaptureSetModel::clear()
     });
 }
 
-QUuid CaptureSetModel::addMark(const QUuid &shotId, const QRect &rect, const QString &comment)
+QUuid CaptureSetModel::addMark(const QUuid &shotId, const QRect &rect, const QString &comment, const MarkPen &pen)
 {
     const QUuid markId = QUuid::createUuid();
     const bool ok = apply(tr("Add mark"), [&](CaptureSet &s) {
@@ -143,7 +143,7 @@ QUuid CaptureSetModel::addMark(const QUuid &shotId, const QRect &rect, const QSt
         const QRect r = normalizedInside(rect, shot.visibleRect());
         if (r.isEmpty())
             return false;
-        shot.marks.append(Mark{markId, r, comment.left(kMaxCommentLength)});
+        shot.marks.append(Mark{markId, r, comment.left(kMaxCommentLength), MarkShape::Rect, {}, pen});
         return true;
     });
     return ok ? markId : QUuid();
@@ -166,17 +166,17 @@ bool CaptureSetModel::setMarkRect(const QUuid &shotId, const QUuid &markId, cons
 }
 
 QUuid CaptureSetModel::addLinearMark(const QUuid &shotId, MarkShape shape, const QList<QPoint> &points,
-                                     const QString &comment)
+                                     const QString &comment, const MarkPen &pen)
 {
     if (shape == MarkShape::Rect)
-        return addMark(shotId, boundsOf(points), comment);
+        return addMark(shotId, boundsOf(points), comment, pen);
     const QUuid markId = QUuid::createUuid();
     const bool ok = apply(shape == MarkShape::Arrow ? tr("Add arrow") : tr("Add drawing"), [&](CaptureSet &s) {
         const int i = s.shotIndex(shotId);
         if (i < 0)
             return false;
         Shot &shot = s.shots[i];
-        Mark m{markId, {}, comment.left(kMaxCommentLength), shape, points};
+        Mark m{markId, {}, comment.left(kMaxCommentLength), shape, points, pen};
         if (!fitMark(m, shot.visibleRect(), shot.devicePixelRatio))
             return false;
         shot.marks.append(m);
@@ -214,6 +214,20 @@ bool CaptureSetModel::setMarkComment(const QUuid &shotId, const QUuid &markId, c
         if (m < 0)
             return false;
         s.shots[i].marks[m].comment = comment.left(kMaxCommentLength);
+        return true;
+    });
+}
+
+bool CaptureSetModel::setMarkPen(const QUuid &shotId, const QUuid &markId, const MarkPen &pen)
+{
+    return apply(tr("Change mark style"), [&](CaptureSet &s) {
+        const int i = s.shotIndex(shotId);
+        if (i < 0)
+            return false;
+        const int m = s.shots[i].markIndex(markId);
+        if (m < 0)
+            return false;
+        s.shots[i].marks[m].pen = pen;
         return true;
     });
 }

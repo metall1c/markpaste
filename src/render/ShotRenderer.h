@@ -23,6 +23,11 @@ struct RenderStyle {
 // Фон значка: акцентный цвет, затемнённый до контраста ≥ 4.5:1 с белым текстом (NFR-9).
 // Рамка рисуется исходным акцентным цветом. См. docs/decisions/0003-badge-contrast.md.
 QColor badgeFillColor(const QColor &accent);
+
+// Фактические цвет и толщина метки (логические px): пустые поля MarkPen берутся из стиля.
+QColor markColor(const Mark &mark, const RenderStyle &style);
+qreal markWidth(const Mark &mark, const RenderStyle &style);
+qreal defaultMarkWidth(MarkShape shape, const RenderStyle &style);
 double contrastRatio(const QColor &a, const QColor &b);
 
 // Рисует рамки, стрелки, линии карандаша и значки меток. Painter уже переведён в координаты исходника (физические

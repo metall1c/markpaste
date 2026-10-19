@@ -18,6 +18,7 @@ add_library(markpaste_ui STATIC
     ui/CaptureOverlay.h ui/CaptureOverlay.cpp
     ui/CommentPopup.h ui/CommentPopup.cpp
     ui/ShotCanvas.h ui/ShotCanvas.cpp
+    ui/PenPicker.h ui/PenPicker.cpp
     ui/ShotEditor.h ui/ShotEditor.cpp
     ui/StripWindow.h ui/StripWindow.cpp
     ui/MoveGhost.h ui/MoveGhost.cpp

@@ -266,3 +266,20 @@ TEST(CaptureSetModel, CropClipsLinesNotTheirBounds)
     EXPECT_EQ(shot->marks[0].points, (QList<QPoint>{{70, 80}, {150, 80}}));
     EXPECT_EQ(shot->marks[0].shape, MarkShape::Arrow);
 }
+
+TEST(CaptureSetModel, MarkPenIsStoredAndUndoable)
+{
+    CaptureSetModel m;
+    const QUuid s = m.addShot(makeShot(200, 100));
+    const MarkPen blue{QColor(Qt::blue), 6, LineStyle::Dash};
+    const QUuid id = m.addMark(s, QRect(10, 10, 50, 40), {}, blue);
+    EXPECT_EQ(m.shot(s)->marks[0].pen, blue);
+    EXPECT_TRUE(m.setMarkPen(s, id, MarkPen{}));
+    EXPECT_EQ(m.shot(s)->marks[0].pen, MarkPen{});
+    EXPECT_FALSE(m.setMarkPen(s, id, MarkPen{}));   // без изменений — без записи в историю
+    m.undoStack()->undo();
+    EXPECT_EQ(m.shot(s)->marks[0].pen, blue);
+    // Пересечение при обрезке перо не теряет
+    m.setCrop(s, QRect(20, 0, 180, 100));
+    EXPECT_EQ(m.shot(s)->marks[0].pen, blue);
+}

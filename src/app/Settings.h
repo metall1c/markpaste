@@ -35,6 +35,7 @@ struct Settings {
 
     // Вид и картинки
     QColor accent = QColor(0xFF, 0x5A, 0x1F);
+    MarkPen markPen;                   // последнее перо редактора; пустые поля — по умолчанию
     int maxLongSide = 4096;
     int jpegThresholdMb = 5;
     int jpegQuality = 85;

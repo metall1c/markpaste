@@ -134,3 +134,34 @@ TEST(Renderer, SampleForVisualCheck)
     s.marks.append(Mark{QUuid::createUuid(), QRect(), {}, MarkShape::Arrow, {{300, 280}, {320, 270}}});
     EXPECT_TRUE(renderShot(s, 0).save(QString::fromLocal8Bit(path)));
 }
+
+TEST(Renderer, MarkPenColorWidthAndDash)
+{
+    Shot s = makeShot(200, 100);
+    // Сплошная синяя рамка толщиной 6: середина правой стороны — в 3 px от края
+    s.marks.append(Mark{QUuid::createUuid(), QRect(100, 10, 80, 80), {}, MarkShape::Rect, {},
+                        MarkPen{QColor(Qt::blue), 6, LineStyle::Solid}});
+    // Пунктирная линия карандаша по y = 50 от x = 10 до 90: есть и цветные, и нецветные пиксели
+    s.marks.append(Mark{QUuid::createUuid(), QRect(), {}, MarkShape::Freehand, {{10, 50}, {90, 50}},
+                        MarkPen{QColor(Qt::green), 4, LineStyle::Dash}});
+    const QImage out = renderShot(s, 0);
+    EXPECT_EQ(out.pixelColor(100 + 80 - 3, 50).rgb(), QColor(Qt::blue).rgb());
+    int colored = 0, other = 0;
+    for (int x = 30; x < 90; ++x)
+        (out.pixelColor(x, 50).rgb() == QColor(Qt::green).rgb() ? colored : other)++;
+    EXPECT_GT(colored, 20);
+    EXPECT_GT(other, 10);
+}
+
+TEST(Renderer, DefaultPenFollowsStyle)
+{
+    Mark rect{QUuid(), QRect(0, 0, 10, 10), {}};
+    Mark arrow{QUuid(), QRect(), {}, MarkShape::Arrow, {{0, 0}, {50, 0}}};
+    RenderStyle style;
+    style.accent = QColor(Qt::cyan);
+    EXPECT_EQ(markColor(rect, style), QColor(Qt::cyan));
+    EXPECT_EQ(markWidth(rect, style), style.frameWidth);
+    EXPECT_EQ(markWidth(arrow, style), style.arrowWidth);
+    arrow.pen.width = 9;
+    EXPECT_EQ(markWidth(arrow, style), 9);
+}

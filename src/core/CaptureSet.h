@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QByteArray>
+#include <QColor>
 #include <QList>
 #include <QPoint>
 #include <QRect>
@@ -19,12 +20,25 @@ inline constexpr int kMaxCommentLength = 500;   // EDT-5
 // Форма метки (EDT-9). Все формы нумеруются вместе: A1 может быть стрелкой, A2 — рамкой.
 enum class MarkShape { Rect, Arrow, Freehand };
 
+enum class LineStyle { Solid, Dash, Dot };
+
+// Цвет, толщина и тип линии метки. Пустые значения — из общего стиля (RenderStyle):
+// так метки без выбранного цвета перекрашиваются вместе с акцентом в настройках.
+struct MarkPen {
+    QColor color;                  // недействительный — акцентный цвет из настроек
+    qreal width = 0;               // логические px; 0 — толщина формы по умолчанию
+    LineStyle line = LineStyle::Solid;
+
+    bool operator==(const MarkPen &) const = default;
+};
+
 struct Mark {
     QUuid id;
     QRect rect;                    // рамка; у стрелки и карандаша — охватывающий прямоугольник points
     QString comment;
     MarkShape shape = MarkShape::Rect;
     QList<QPoint> points;          // стрелка: {хвост, острие}; карандаш: ломаная после упрощения
+    MarkPen pen;
 
     bool isLinear() const { return shape != MarkShape::Rect; }
     QPoint badgeAnchor() const { return isLinear() && !points.isEmpty() ? points.first() : rect.topLeft(); }

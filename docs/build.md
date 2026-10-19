@@ -27,10 +27,10 @@ cmake --build build --target dev-install-desktop   # обязательно, с�
 | --- | --- |
 | `build/src/app/markpaste` | Программа |
 | `build/tests/markpaste_core_tests` | Тесты ядра (GoogleTest): модель, текст, запекание, оркестратор вставки |
-| `build/tests/markpaste_ui_tests` | Тесты окон (GoogleTest + QtTest, offscreen): клавиши редактора (Ctrl+Enter, Esc), рисование стрелки и карандаша мышью, загрузка русского перевода. `QTest::keyClicks` не умеет кириллицу — вводить текст через `insertPlainText` |
+| `build/tests/markpaste_ui_tests` | Тесты окон (GoogleTest + QtTest, offscreen): клавиши редактора (Ctrl+Enter, Esc), рисование стрелки и карандаша мышью, панель пера, загрузка русского перевода. `QTest::keyClicks` не умеет кириллицу — вводить текст через `insertPlainText` |
 | `build/tools/pastetest/markpaste-pastetest` | Прототип вставки и диагностика платформы (`--check`, `--self-test`, `--capture kwin\|portal`, `--mode 1\|2`) |
 | `tools/dev/kwin-probe.py "команда" [фильтр]` | Отправляет команду работающей программе и каждые 250 мс читает у KWin геометрию её окон. Для замеров на живой сессии KDE. Отладочные команды сокета: `debug-move-strip <экран> <left\|right> <отступ>`, `debug-ghost <x> <y> <w> <h>` |
-| `build/tools/uipreview/markpaste-uipreview DIR` | Рисует ленту и редактор на тестовом наборе (рамки, стрелка, карандаш, размытие) без дисплея и сохраняет PNG в DIR |
+| `build/tools/uipreview/markpaste-uipreview DIR` | Рисует ленту, редактор на тестовом наборе (рамки, стрелка, карандаш разными перьями, размытие) и панели цвета и толщины без дисплея, сохраняет PNG в DIR |
 | `MARKPASTE_RENDER_SAMPLE=файл.png build/tests/markpaste_core_tests --gtest_filter='*Sample*'` | Запекает пример всех форм меток в PNG — для глазной проверки рендера |
 
 ## Подводные камни

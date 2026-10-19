@@ -1,4 +1,5 @@
 #include "TestUtil.h"
+#include "ui/PenPicker.h"
 #include "ui/ShotEditor.h"
 
 #include <QApplication>
@@ -176,4 +177,45 @@ TEST(ShotEditorUi, PenLoopIsHitOnlyByLine)
     const QList<QPoint> after = f.model.shot(f.shot)->marks[0].points;
     ASSERT_EQ(after.size(), before.size());
     EXPECT_EQ(after.first(), before.first() + QPoint(10, 10));
+}
+
+TEST(ShotEditorUi, PenAppliesToNewAndSelectedMarks)
+{
+    EditorFixture f;
+    f.editor.resize(900, 600);
+    QTest::qWait(20);
+    auto *picker = f.editor.findChild<PenPicker *>();
+    ASSERT_NE(picker, nullptr);
+    const MarkPen red{QColor(Qt::red), 5, LineStyle::Solid};
+    picker->setPen(red);
+    emit picker->penChanged(red);   // как выбор в панели
+
+    dragSource(f.canvas(), {{20, 20}, {120, 100}});
+    ASSERT_EQ(f.model.shot(f.shot)->marks.size(), 1);
+    EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen, red);   // новая метка — текущим пером
+
+    // Выделенная метка перекрашивается одной правкой
+    const MarkPen dotted{QColor(Qt::blue), 2, LineStyle::Dot};
+    emit picker->penChanged(dotted);
+    EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen, dotted);
+    f.model.undoStack()->undo();
+    EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen, red);
+}
+
+TEST(ShotEditorUi, SelectingMarkShowsItsPen)
+{
+    EditorFixture f;
+    const MarkPen green{QColor(Qt::green), 8, LineStyle::Dash};
+    const QUuid mark = f.model.addMark(f.shot, QRect(10, 10, 50, 40), {}, green);
+    f.canvas()->editMark(mark);
+    EXPECT_EQ(f.editor.findChild<PenPicker *>()->pen(), green);
+    EXPECT_EQ(f.canvas()->pen(), green);
+}
+
+TEST(ShotEditorUi, EachShotStartsWithMarkTool)
+{
+    EditorFixture f;
+    f.canvas()->setTool(ShotCanvas::Tool::Arrow);
+    f.editor.showShot(f.shot);
+    EXPECT_EQ(f.canvas()->tool(), ShotCanvas::Tool::Mark);
 }

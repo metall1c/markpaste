@@ -79,7 +79,7 @@ void pixelate(QImage &image, const QRect &rect, int block)
 
 // --- Метки ---
 
-static void drawBadge(QPainter &p, const QString &label, QPointF anchor, const QRectF &bounds,
+static void drawBadge(QPainter &p, const QString &label, QPointF anchor, const QRectF &bounds, const QColor &color,
                       const RenderStyle &style, qreal dpr)
 {
     const qreal d = style.badgeDiameter * dpr;
@@ -103,7 +103,7 @@ static void drawBadge(QPainter &p, const QString &label, QPointF anchor, const Q
     QPainterPath path;
     path.addRoundedRect(r, d / 2, d / 2);
     p.setPen(QPen(Qt::white, style.outlineWidth * dpr));
-    p.setBrush(badgeFillColor(style.accent));
+    p.setBrush(badgeFillColor(color));
     p.drawPath(path);
 
     p.setFont(font);
@@ -111,13 +111,48 @@ static void drawBadge(QPainter &p, const QString &label, QPointF anchor, const Q
     p.drawText(r, Qt::AlignCenter, label);
 }
 
-static void drawRectMark(QPainter &p, const Mark &m, const QColor &accent, qreal fw, qreal ow)
+qreal defaultMarkWidth(MarkShape shape, const RenderStyle &style)
+{
+    return shape == MarkShape::Arrow ? style.arrowWidth : style.frameWidth;
+}
+
+QColor markColor(const Mark &mark, const RenderStyle &style)
+{
+    return mark.pen.color.isValid() ? mark.pen.color : style.accent;
+}
+
+qreal markWidth(const Mark &mark, const RenderStyle &style)
+{
+    return mark.pen.width > 0 ? mark.pen.width : defaultMarkWidth(mark.shape, style);
+}
+
+// Перо линии метки. Штрих задаётся в абсолютных пикселях от толщины цветной линии w,
+// а не в долях толщины пера: у белой подложки перо шире, и при штрихе «в толщинах»
+// её штрихи разъехались бы с цветными.
+static QPen strokePen(const QColor &color, qreal penWidth, qreal w, LineStyle line, Qt::PenCapStyle solidCap,
+                      Qt::PenJoinStyle join)
+{
+    QPen pen(color, penWidth, Qt::SolidLine, solidCap, join);
+    if (line == LineStyle::Solid)
+        return pen;
+    if (line == LineStyle::Dash) {
+        pen.setCapStyle(Qt::FlatCap);
+        pen.setDashPattern({3 * w / penWidth, 2 * w / penWidth});
+    } else {
+        // Точка — штрих почти нулевой длины с круглым концом: круг диаметром в толщину пера
+        pen.setCapStyle(Qt::RoundCap);
+        pen.setDashPattern({0.001, 2 * w / penWidth});
+    }
+    return pen;
+}
+
+static void drawRectMark(QPainter &p, const Mark &m, const QColor &color, qreal fw, qreal ow)
 {
     const QRectF r = QRectF(m.rect).adjusted(fw / 2, fw / 2, -fw / 2, -fw / 2);
     p.setBrush(Qt::NoBrush);
-    p.setPen(QPen(Qt::white, fw + 2 * ow, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+    p.setPen(strokePen(Qt::white, fw + 2 * ow, fw, m.pen.line, Qt::SquareCap, Qt::MiterJoin));
     p.drawRect(r);
-    p.setPen(QPen(accent, fw, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+    p.setPen(strokePen(color, fw, fw, m.pen.line, Qt::SquareCap, Qt::MiterJoin));
     p.drawRect(r);
 }
 
@@ -148,13 +183,14 @@ static void drawArrowMark(QPainter &p, const Mark &m, const QColor &accent, qrea
     // Древко заходит в наконечник, чтобы между ними не было щели, но не торчит из острия
     const QPointF shaftEnd = base + dir * (headLength * 0.3);
 
-    p.setPen(QPen(Qt::white, w + 2 * ow, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    // Наконечник всегда сплошной: пунктирный треугольник не читается как остриё
+    p.setPen(strokePen(Qt::white, w + 2 * ow, w, m.pen.line, Qt::RoundCap, Qt::RoundJoin));
     p.drawLine(tail, shaftEnd);
     p.setPen(QPen(Qt::white, 2 * ow, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
     p.setBrush(Qt::white);
     p.drawPolygon(head);
 
-    p.setPen(QPen(accent, w, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.setPen(strokePen(accent, w, w, m.pen.line, Qt::RoundCap, Qt::RoundJoin));
     p.drawLine(tail, shaftEnd);
     p.setPen(Qt::NoPen);
     p.setBrush(accent);
@@ -186,38 +222,40 @@ static void drawFreehandMark(QPainter &p, const Mark &m, const QColor &accent, q
 {
     const QPainterPath path = smoothPath(m.points);
     p.setBrush(Qt::NoBrush);
-    p.setPen(QPen(Qt::white, fw + 2 * ow, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.setPen(strokePen(Qt::white, fw + 2 * ow, fw, m.pen.line, Qt::RoundCap, Qt::RoundJoin));
     p.drawPath(path);
-    p.setPen(QPen(accent, fw, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.setPen(strokePen(accent, fw, fw, m.pen.line, Qt::RoundCap, Qt::RoundJoin));
     p.drawPath(path);
 }
 
 void paintMarks(QPainter &p, const Shot &shot, int shotIndex, const RenderStyle &style, const QRectF &bounds)
 {
     const qreal dpr = shot.devicePixelRatio > 0 ? shot.devicePixelRatio : 1.0;
-    const qreal fw = style.frameWidth * dpr;
-    const qreal aw = style.arrowWidth * dpr;
     const qreal ow = style.outlineWidth * dpr;
     p.save();
     p.setRenderHint(QPainter::Antialiasing);
     p.setRenderHint(QPainter::TextAntialiasing);
     // Сначала все формы, потом все значки: значок не перекрывается чужой рамкой.
     for (const Mark &m : shot.marks) {
+        const QColor color = markColor(m, style);
+        const qreal w = markWidth(m, style) * dpr;
         switch (m.shape) {
         case MarkShape::Rect:
-            drawRectMark(p, m, style.accent, fw, ow);
+            drawRectMark(p, m, color, w, ow);
             break;
         case MarkShape::Arrow:
-            drawArrowMark(p, m, style.accent, aw, ow);
+            drawArrowMark(p, m, color, w, ow);
             break;
         case MarkShape::Freehand:
-            drawFreehandMark(p, m, style.accent, fw, ow);
+            drawFreehandMark(p, m, color, w, ow);
             break;
         }
     }
-    // Значок рамки — в её левом верхнем углу, стрелки — у хвоста, карандаша — у первой точки
+    // Значок рамки — в её левом верхнем углу, стрелки — у хвоста, карандаша — у первой точки.
+    // Цвет значка — цвет метки, затемнённый до читаемого контраста с белой цифрой.
     for (int i = 0; i < shot.marks.size(); ++i)
-        drawBadge(p, markLabel(shotIndex, i), shot.marks[i].badgeAnchor(), bounds, style, dpr);
+        drawBadge(p, markLabel(shotIndex, i), shot.marks[i].badgeAnchor(), bounds, markColor(shot.marks[i], style),
+                  style, dpr);
     p.restore();
 }
 
