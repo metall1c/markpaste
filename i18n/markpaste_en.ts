@@ -117,6 +117,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Check setup…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Quit</source>
         <translation type="unfinished"></translation>
     </message>
@@ -401,6 +405,156 @@ On Wayland the program only suggests a shortcut — the desktop assigns it and l
     </message>
     <message>
         <source>System</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>mp::SetupWizard</name>
+    <message>
+        <source>Markpaste setup</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Let&apos;s check that capture, hotkeys and paste work on this system. On Wayland the desktop may ask for permission — allow it once, and it will not ask again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>1. System</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The program runs under XWayland: global hotkeys and capture will not work. Start it without QT_QPA_PLATFORM=xcb.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>2. Screen capture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Method: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No capture method available.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Test capture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>3. Hotkeys</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Change in system settings…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>4. Paste into chats</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clipboard: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Ctrl+V emulation: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The test text will be pasted here</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Test paste</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Start Markpaste when I log in</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Settings…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Done</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Capture is not possible in this environment.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Automatic paste is not available here. The “Paste set” button will copy the set (files + text) — then press Ctrl+V in the chat yourself.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Capturing…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Capture failed: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>no image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>%n screen(s): %1 · %2 ms</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>the desktop may show its own dialog on each capture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Global hotkeys are not available here. Assign the commands “markpaste --capture” and “markpaste --paste” to keys in the system keyboard settings.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Capture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Paste set</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>not assigned</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 — works</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>press %1 to test</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pasting… do not switch windows</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Markpaste test %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Paste failed: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Ctrl+V reached the window — pasting a set will work.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Ctrl+V was sent, but the text did not appear. Click into the field and try again; if it still fails, use the “files + text” paste mode.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

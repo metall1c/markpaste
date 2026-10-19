@@ -2,6 +2,7 @@
 // и сохраняет PNG. Нужна, чтобы проверять вёрстку, не снимая настоящий экран.
 
 #include "core/CaptureSetModel.h"
+#include "ui/SetupWizard.h"
 #include "ui/ShotEditor.h"
 #include "ui/StripWindow.h"
 
@@ -97,5 +98,14 @@ int main(int argc, char **argv)
         menu->grab().save(out + QStringLiteral("/pen-menu-%1.png").arg(++n));
         menu->close();
     }
+
+    // Мастер первого запуска с платформой без реализаций: все предупреждения видны
+    Platform platform;
+    platform.environment = QStringLiteral("Wayland · KDE Plasma 6.7 (предпросмотр)");
+    platform.notes << QStringLiteral("Пример примечания платформы");
+    SetupWizard wizard(&platform, QStringLiteral("su._525.MarkpastePreview"));
+    wizard.show();
+    app.processEvents();
+    wizard.grab().save(out + QStringLiteral("/setup-wizard.png"));
     return 0;
 }

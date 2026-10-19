@@ -117,6 +117,10 @@
         <translation>Настройки</translation>
     </message>
     <message>
+        <source>Check setup…</source>
+        <translation>Проверка настройки…</translation>
+    </message>
+    <message>
         <source>Quit</source>
         <translation>Выход</translation>
     </message>
@@ -403,6 +407,157 @@ On Wayland the program only suggests a shortcut — the desktop assigns it and l
     <message>
         <source>System</source>
         <translation>Система</translation>
+    </message>
+</context>
+<context>
+    <name>mp::SetupWizard</name>
+    <message>
+        <source>Markpaste setup</source>
+        <translation>Настройка Markpaste</translation>
+    </message>
+    <message>
+        <source>Let&apos;s check that capture, hotkeys and paste work on this system. On Wayland the desktop may ask for permission — allow it once, and it will not ask again.</source>
+        <translation>Проверим, что захват, клавиши и вставка работают на этой системе. На Wayland окружение может спросить разрешение — разрешите один раз, больше оно не спросит.</translation>
+    </message>
+    <message>
+        <source>1. System</source>
+        <translation>1. Система</translation>
+    </message>
+    <message>
+        <source>The program runs under XWayland: global hotkeys and capture will not work. Start it without QT_QPA_PLATFORM=xcb.</source>
+        <translation>Программа запущена через XWayland: глобальные клавиши и захват работать не будут. Запустите её без QT_QPA_PLATFORM=xcb.</translation>
+    </message>
+    <message>
+        <source>2. Screen capture</source>
+        <translation>2. Захват экрана</translation>
+    </message>
+    <message>
+        <source>Method: %1</source>
+        <translation>Способ: %1</translation>
+    </message>
+    <message>
+        <source>No capture method available.</source>
+        <translation>Способа захвата нет.</translation>
+    </message>
+    <message>
+        <source>Test capture</source>
+        <translation>Проверить захват</translation>
+    </message>
+    <message>
+        <source>3. Hotkeys</source>
+        <translation>3. Горячие клавиши</translation>
+    </message>
+    <message>
+        <source>Change in system settings…</source>
+        <translation>Изменить в настройках системы…</translation>
+    </message>
+    <message>
+        <source>4. Paste into chats</source>
+        <translation>4. Вставка в чаты</translation>
+    </message>
+    <message>
+        <source>Clipboard: %1</source>
+        <translation>Буфер обмена: %1</translation>
+    </message>
+    <message>
+        <source>Ctrl+V emulation: %1</source>
+        <translation>Эмуляция Ctrl+V: %1</translation>
+    </message>
+    <message>
+        <source>The test text will be pasted here</source>
+        <translation>Сюда вставится проверочный текст</translation>
+    </message>
+    <message>
+        <source>Test paste</source>
+        <translation>Проверить вставку</translation>
+    </message>
+    <message>
+        <source>Start Markpaste when I log in</source>
+        <translation>Запускать Markpaste при входе в систему</translation>
+    </message>
+    <message>
+        <source>Settings…</source>
+        <translation>Настройки…</translation>
+    </message>
+    <message>
+        <source>Done</source>
+        <translation>Готово</translation>
+    </message>
+    <message>
+        <source>Capture is not possible in this environment.</source>
+        <translation>В этом окружении захват невозможен.</translation>
+    </message>
+    <message>
+        <source>Automatic paste is not available here. The “Paste set” button will copy the set (files + text) — then press Ctrl+V in the chat yourself.</source>
+        <translation>Автоматической вставки здесь нет. Кнопка «Вставить набор» скопирует набор (файлы + текст) — затем нажмите Ctrl+V в чате сами.</translation>
+    </message>
+    <message>
+        <source>Capturing…</source>
+        <translation>Снимаю…</translation>
+    </message>
+    <message>
+        <source>Capture failed: %1</source>
+        <translation>Не удалось снять экран: %1</translation>
+    </message>
+    <message>
+        <source>no image</source>
+        <translation>нет изображения</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n screen(s): %1 · %2 ms</source>
+        <translation>
+            <numerusform>%n экран: %1 · %2 мс</numerusform>
+            <numerusform>%n экрана: %1 · %2 мс</numerusform>
+            <numerusform>%n экранов: %1 · %2 мс</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>the desktop may show its own dialog on each capture</source>
+        <translation>окружение может показывать свой диалог при каждом снимке</translation>
+    </message>
+    <message>
+        <source>Global hotkeys are not available here. Assign the commands “markpaste --capture” and “markpaste --paste” to keys in the system keyboard settings.</source>
+        <translation>Глобальных клавиш здесь нет. Назначьте команды «markpaste --capture» и «markpaste --paste» на клавиши в настройках клавиатуры системы.</translation>
+    </message>
+    <message>
+        <source>Capture</source>
+        <translation>Снимок</translation>
+    </message>
+    <message>
+        <source>Paste set</source>
+        <translation>Вставка набора</translation>
+    </message>
+    <message>
+        <source>not assigned</source>
+        <translation>не назначена</translation>
+    </message>
+    <message>
+        <source>%1 — works</source>
+        <translation>%1 — работает</translation>
+    </message>
+    <message>
+        <source>press %1 to test</source>
+        <translation>нажмите %1 для проверки</translation>
+    </message>
+    <message>
+        <source>Pasting… do not switch windows</source>
+        <translation>Вставляю… не переключайте окна</translation>
+    </message>
+    <message>
+        <source>Markpaste test %1</source>
+        <translation>Проверка Markpaste %1</translation>
+    </message>
+    <message>
+        <source>Paste failed: %1</source>
+        <translation>Не удалось вставить: %1</translation>
+    </message>
+    <message>
+        <source>Ctrl+V reached the window — pasting a set will work.</source>
+        <translation>Ctrl+V дошло до окна — вставка набора будет работать.</translation>
+    </message>
+    <message>
+        <source>Ctrl+V was sent, but the text did not appear. Click into the field and try again; if it still fails, use the “files + text” paste mode.</source>
+        <translation>Ctrl+V отправлено, но текст не появился. Щёлкните в поле и повторите; если не помогло — используйте режим вставки «файлы + текст».</translation>
     </message>
 </context>
 <context>

@@ -19,6 +19,7 @@ add_library(markpaste_ui STATIC
     ui/CommentPopup.h ui/CommentPopup.cpp
     ui/ShotCanvas.h ui/ShotCanvas.cpp
     ui/PenPicker.h ui/PenPicker.cpp
+    ui/SetupWizard.h ui/SetupWizard.cpp
     ui/ShotEditor.h ui/ShotEditor.cpp
     ui/StripWindow.h ui/StripWindow.cpp
     ui/MoveGhost.h ui/MoveGhost.cpp

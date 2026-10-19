@@ -45,6 +45,7 @@ int main(int argc, char **argv)
         {QStringLiteral("copy"), QStringLiteral("Copy the set (files + text) to the clipboard")},
         {QStringLiteral("show"), QStringLiteral("Show the set strip")},
         {QStringLiteral("settings"), QStringLiteral("Open settings")},
+        {QStringLiteral("setup"), QStringLiteral("Open the setup check (capture, hotkeys, paste)")},
         {QStringLiteral("clear"), QStringLiteral("Clear the set")},
         {QStringLiteral("quit"), QStringLiteral("Quit the running instance")},
     };

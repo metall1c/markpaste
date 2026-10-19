@@ -14,6 +14,7 @@ class QMimeData;
 namespace mp {
 
 class CaptureSession;
+class SetupWizard;
 class ShotEditor;
 class StripWindow;
 
@@ -38,6 +39,7 @@ public slots:
     void clearSet();
     void showStrip();
     void showSettings();
+    void showSetupWizard();   // APP-4: при первом запуске и из меню трея
 
 private:
     void bindHotkeys();
@@ -57,6 +59,7 @@ private:
     StripWindow *m_strip = nullptr;
     ShotEditor *m_editor = nullptr;
     QPointer<CaptureSession> m_capture;
+    QPointer<SetupWizard> m_wizard;
     QSystemTrayIcon *m_tray = nullptr;
     QHash<Action, QString> m_boundTriggers;   // фактические сочетания от системы
     bool m_capturing = false;

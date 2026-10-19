@@ -6,6 +6,7 @@
 #include "platform/Autostart.h"
 #include "ui/CaptureOverlay.h"
 #include "ui/MoveGhost.h"
+#include "ui/SetupWizard.h"
 #include "ui/ShotEditor.h"
 #include "ui/StripWindow.h"
 
@@ -113,6 +114,11 @@ void AppController::start()
     if (m_platform.hotkeys) {
         connect(m_platform.hotkeys.get(), &IHotkeys::activated, this, [this](Action a, const ActivationContext &) {
             qCInfo(lcApp) << "hotkey activated" << int(a);
+            // Пока открыт мастер, клавиша только проверяется, а не запускает действие
+            if (m_wizard && m_wizard->isVisible()) {
+                m_wizard->hotkeyActivated(a);
+                return;
+            }
             switch (a) {
             case Action::Capture: capture(); break;
             case Action::PasteSet: paste(true); break;
@@ -146,6 +152,8 @@ void AppController::bindHotkeys()
                                             : it->status.error);
             m_boundTriggers.insert(it.key(), it->status.ok ? it->trigger : QString());
         }
+        if (m_wizard)
+            m_wizard->setTriggers(m_boundTriggers);
     });
 }
 
@@ -162,6 +170,8 @@ void AppController::handleCommand(const QString &command)
         clearSet();
     else if (command == u"settings")
         showSettings();
+    else if (command == u"setup")
+        showSetupWizard();
     else if (command == u"quit")
         QApplication::quit();
     else if (command.startsWith(u"debug-ghost ")) {
@@ -189,8 +199,15 @@ void AppController::handleCommand(const QString &command)
 void AppController::handleStartup(const QString &command)
 {
     // Обычный запуск (в том числе автозапуск): пустой набор — только значок в трее
+    QSettings s;
+    if (command == u"show" && !s.value(QStringLiteral("general/setupShown")).toBool()) {
+        // Первый запуск — мастер проверки вместо уведомления (APP-4)
+        s.setValue(QStringLiteral("general/setupShown"), true);
+        s.setValue(QStringLiteral("general/welcomeShown"), true);
+        showSetupWizard();
+        return;
+    }
     if (command == u"show" && m_tray && m_model.set().isEmpty()) {
-        QSettings s;
         if (!s.value(QStringLiteral("general/welcomeShown")).toBool()) {
             s.setValue(QStringLiteral("general/welcomeShown"), true);
             const QString key = m_boundTriggers.value(Action::Capture, m_settings.captureHotkey);
@@ -405,6 +422,20 @@ void AppController::showSettings()
         notify(tr("New hotkeys take effect after restart"));
 }
 
+void AppController::showSetupWizard()
+{
+    if (!m_wizard) {
+        m_wizard = new SetupWizard(&m_platform, QStringLiteral(MARKPASTE_APP_ID));
+        m_wizard->setAttribute(Qt::WA_DeleteOnClose);
+        m_wizard->setWindowIcon(appIcon());
+        m_wizard->setTriggers(m_boundTriggers);
+        connect(m_wizard, &SetupWizard::openSettingsRequested, this, &AppController::showSettings);
+    }
+    m_wizard->show();
+    m_wizard->raise();
+    m_wizard->activateWindow();
+}
+
 void AppController::setupTray()
 {
     if (!QSystemTrayIcon::isSystemTrayAvailable())
@@ -415,6 +446,7 @@ void AppController::setupTray()
     menu->addAction(tr("Capture"), this, &AppController::capture);
     menu->addAction(tr("Show set"), this, &AppController::showStrip);
     menu->addAction(tr("Settings"), this, &AppController::showSettings);
+    menu->addAction(tr("Check setup…"), this, &AppController::showSetupWizard);
     menu->addSeparator();
     menu->addAction(tr("Quit"), qApp, &QApplication::quit);
     m_tray->setContextMenu(menu);
