@@ -38,6 +38,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client)
     pkg_check_modules(XKBCOMMON REQUIRED IMPORTED_TARGET xkbcommon)   # раскладка виртуальной клавиатуры
+    # X11: глобальные клавиши (XGrabKey) и Ctrl+V (XTEST). Без них X11 — только захват и буфер.
+    pkg_check_modules(XCB QUIET IMPORTED_TARGET xcb xcb-xtest xcb-keysyms)
     pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
     pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
     find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)

@@ -11,6 +11,9 @@
 #include "platform/linux/portal/PortalRemoteDesktop.h"
 #include "platform/linux/wayland/DataControlClipboard.h"
 #include "platform/linux/wayland/WaylandConnection.h"
+#ifdef MARKPASTE_HAVE_X11
+#include "platform/linux/x11/X11Hotkeys.h"
+#endif
 
 #include <QBuffer>
 #include <QCommandLineParser>
@@ -21,6 +24,7 @@
 #include <QApplication>
 #include <QImage>
 #include <QPainter>
+#include <QProcess>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTextStream>
@@ -216,6 +220,57 @@ int runPortalClipboard(bool forgetToken)
     return 0;
 }
 
+// Глобальные клавиши X11: захватить Print и Ctrl+Alt+V, нажать их через xdotool (XTEST),
+// проверить activated/released. holdMs > 0 — держать захват (для проверки «занято»).
+int runX11Hotkeys(int holdMs)
+{
+#ifdef MARKPASTE_HAVE_X11
+    std::unique_ptr<X11Hotkeys> hk(X11Hotkeys::create());
+    if (!hk) {
+        say(QStringLiteral("FAIL: not running on X11 (QT_QPA_PLATFORM=xcb)"));
+        return 3;
+    }
+    QStringList events;
+    QObject::connect(hk.get(), &IHotkeys::activated, [&events](Action a, const ActivationContext &) {
+        events << QStringLiteral("activated %1").arg(int(a));
+    });
+    QObject::connect(hk.get(), &IHotkeys::released, [&events](Action a) { events << QStringLiteral("released %1").arg(int(a)); });
+    const auto bound = await(hk->bindAll({{Action::Capture, QStringLiteral("Print")},
+                                          {Action::PasteSet, QStringLiteral("Primary+Alt+V")}}));
+    bool allBound = true;
+    for (auto it = bound.cbegin(); it != bound.cend(); ++it) {
+        say(QStringLiteral("bind %1: %2").arg(int(it.key())).arg(it->status.ok ? it->trigger : QStringLiteral("FAILED: ") + it->status.error));
+        allBound = allBound && it->status.ok;
+    }
+    if (holdMs > 0) {
+        sleepMs(holdMs);
+        return allBound ? 0 : 4;
+    }
+    if (!allBound)
+        return 4;
+    for (const QString &k : {QStringLiteral("Print"), QStringLiteral("ctrl+alt+v"), QStringLiteral("v"),
+                             QStringLiteral("ctrl+v")}) {
+        QProcess::execute(QStringLiteral("xdotool"), {QStringLiteral("key"), k});
+        sleepMs(150);
+    }
+    // Удержание с автоповтором: одно срабатывание, одно отпускание
+    QProcess::execute(QStringLiteral("xdotool"), {QStringLiteral("keydown"), QStringLiteral("Print")});
+    sleepMs(900);
+    QProcess::execute(QStringLiteral("xdotool"), {QStringLiteral("keyup"), QStringLiteral("Print")});
+    sleepMs(150);
+    say(QStringLiteral("events: %1").arg(events.join(QStringLiteral(", "))));
+    const QStringList expected{QStringLiteral("activated 0"), QStringLiteral("released 0"), QStringLiteral("activated 1"),
+                               QStringLiteral("released 1"), QStringLiteral("activated 0"), QStringLiteral("released 0")};
+    const bool ok = events == expected;
+    say(ok ? QStringLiteral("PASS") : QStringLiteral("FAIL, expected: %1").arg(expected.join(QStringLiteral(", "))));
+    return ok ? 0 : 7;
+#else
+    Q_UNUSED(holdMs);
+    say(QStringLiteral("built without X11 support"));
+    return 3;
+#endif
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -254,11 +309,18 @@ int main(int argc, char **argv)
     QCommandLineOption portalClipboardOpt(QStringLiteral("portal-clipboard"),
                                           QStringLiteral("Check the Clipboard portal against data-control"));
     cli.addOption(portalClipboardOpt);
+    QCommandLineOption x11HotkeysOpt(QStringLiteral("x11-hotkeys"),
+                                     QStringLiteral("Check X11 global hotkeys (run under X11 with xdotool)"));
+    QCommandLineOption holdOpt(QStringLiteral("hold"), QStringLiteral("With --x11-hotkeys: only grab and hold, ms"),
+                               QStringLiteral("ms"), QStringLiteral("0"));
+    cli.addOptions({x11HotkeysOpt, holdOpt});
     cli.addOptions({captureOpt, outOpt, inProcessOpt, receiverOpt, selfTestOpt, checkOpt, modeOpt, delayOpt, settleOpt, countdownOpt, textOpt, noRestoreOpt, forgetOpt, onlyTextOpt});
     cli.process(app);
 
     if (cli.isSet(checkOpt))
         return runCheck();
+    if (cli.isSet(x11HotkeysOpt))
+        return runX11Hotkeys(cli.value(holdOpt).toInt());
     if (cli.isSet(portalClipboardOpt))
         return runPortalClipboard(cli.isSet(forgetOpt));
     if (cli.isSet(captureOpt)) {

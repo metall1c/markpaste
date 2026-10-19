@@ -59,4 +59,16 @@ if(MARKPASTE_LINUX)
     target_include_directories(markpaste_platform PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
     target_link_libraries(markpaste_platform PUBLIC Qt6::DBus Qt6::Concurrent PkgConfig::WAYLAND_CLIENT)
     target_link_libraries(markpaste_platform PRIVATE PkgConfig::XKBCOMMON)
+
+    if(XCB_FOUND)
+        target_sources(markpaste_platform PRIVATE
+            linux/x11/X11Keys.h linux/x11/X11Keys.cpp
+            linux/x11/X11Hotkeys.h linux/x11/X11Hotkeys.cpp
+            linux/x11/X11InputInjector.h linux/x11/X11InputInjector.cpp
+        )
+        target_link_libraries(markpaste_platform PRIVATE PkgConfig::XCB)
+        target_compile_definitions(markpaste_platform PUBLIC MARKPASTE_HAVE_X11)
+    else()
+        message(STATUS "xcb, xcb-xtest или xcb-keysyms не найдены: на X11 не будет глобальных клавиш и Ctrl+V")
+    endif()
 endif()

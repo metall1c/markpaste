@@ -19,6 +19,10 @@
 #include "linux/wayland/VirtualKeyboardInjector.h"
 #include "linux/wayland/WaylandConnection.h"
 #endif
+#ifdef MARKPASTE_HAVE_X11
+#include "linux/x11/X11Hotkeys.h"
+#include "linux/x11/X11InputInjector.h"
+#endif
 
 Q_LOGGING_CATEGORY(lcPlatform, "markpaste.platform")
 
@@ -119,7 +123,16 @@ Platform createPlatform(const QString &appId)
         p.environment = QStringLiteral("X11");
         p.capture = std::make_unique<QtScreenCapture>();
         p.clipboard = std::make_unique<QtClipboard>(true);   // в X11 владелец буфера может быть в фоне
-        p.notes << QStringLiteral("X11: global hotkeys and Ctrl+V emulation are not implemented yet.");
+#ifdef MARKPASTE_HAVE_X11
+        if (!p.runningUnderXWayland) {
+            p.hotkeys.reset(lx::X11Hotkeys::create());
+            p.injector.reset(lx::X11InputInjector::create());
+        }
+#endif
+        if (!p.hotkeys)
+            p.notes << QStringLiteral("X11: global hotkeys are not available in this build.");
+        if (!p.injector)
+            p.notes << QStringLiteral("X11: Ctrl+V emulation (XTEST) is not available.");
         if (p.runningUnderXWayland)
             p.notes << QStringLiteral("Running under XWayland: global hotkeys and capture will not work. "
                                       "Do not force QT_QPA_PLATFORM=xcb.");

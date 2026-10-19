@@ -4,6 +4,10 @@
 #include "platform/linux/portal/PortalRemoteDesktop.h"
 #include "platform/linux/wayland/DataControlClipboard.h"
 #include "platform/linux/wayland/VirtualKeyboardInjector.h"
+#include "platform/common/QtClipboard.h"
+#ifdef MARKPASTE_HAVE_X11
+#include "platform/linux/x11/X11InputInjector.h"
+#endif
 
 #include <QApplication>
 #include <QCoreApplication>
@@ -96,6 +100,8 @@ int runReceiver()
     receiver->report = [](const QString &line) { sout << line << Qt::endl; };
     window->show();
     receiver->setFocus();
+    // Без оконного менеджера (Xvfb) фокус сам не придёт — просим его
+    QTimer::singleShot(100, window, [window] { window->activateWindow(); });
     QTimer::singleShot(300, [] { sout << "READY" << Qt::endl; });
     QTimer::singleShot(60000, qApp, &QCoreApplication::quit);   // страховка, если родитель упал
     return qApp->exec();
@@ -131,7 +137,12 @@ int runSelfTest(const QList<QByteArray> &images, const QString &text, int settle
         lines.clear();
     }
 
-    std::unique_ptr<DataControlClipboard> clipboard(DataControlClipboard::create());
+    const bool x11 = QGuiApplication::platformName() == u"xcb";
+    std::unique_ptr<IClipboard> clipboard;
+    if (x11)
+        clipboard = std::make_unique<QtClipboard>(true);   // на X11 владелец буфера может быть в фоне
+    else
+        clipboard.reset(DataControlClipboard::create());
     if (!clipboard) {
         sout << "FAIL: ext-data-control-v1 unavailable" << Qt::endl;
         return 3;
@@ -141,6 +152,11 @@ int runSelfTest(const QList<QByteArray> &images, const QString &text, int settle
     QSettings settings;
     std::unique_ptr<IInputInjector> injectorPtr;
     bool hadToken = false;
+#ifdef MARKPASTE_HAVE_X11
+    if (x11)
+        injectorPtr.reset(X11InputInjector::create());
+    else
+#endif
     if (qEnvironmentVariable("MARKPASTE_INPUT") != u"portal")
         injectorPtr.reset(VirtualKeyboardInjector::create());
     if (!injectorPtr) {

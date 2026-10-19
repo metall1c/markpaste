@@ -2,6 +2,7 @@
 
 #include <QClipboard>
 #include <QGuiApplication>
+#include <QImage>
 #include <QMimeData>
 
 namespace mp {
@@ -16,6 +17,15 @@ QFuture<Status> QtClipboard::write(const ClipboardPayload &payload, ClipboardFla
     auto *md = new QMimeData;
     for (const ClipboardEntry &e : payload.entries)
         md->setData(e.mimeType, e.data);
+    // Картинка ещё и как QImage: так Qt отдаёт её и в других форматах (image/bmp…), а
+    // получатель в нашем же процессе видит hasImage(). Иначе — только сырые байты PNG.
+    for (const ClipboardEntry &e : payload.entries)
+        if (e.mimeType.startsWith(QStringLiteral("image/"))) {
+            const QImage image = QImage::fromData(e.data);
+            if (!image.isNull())
+                md->setImageData(image);
+            break;
+        }
     if (flags & ClipboardFlag::ExcludeFromHistory)
         md->setData(QStringLiteral("x-kde-passwordManagerHint"), QByteArrayLiteral("secret"));
     QGuiApplication::clipboard()->setMimeData(md);

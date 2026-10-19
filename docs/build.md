@@ -58,6 +58,20 @@ WAYLAND_DISPLAY=wayland-1 QT_QPA_PLATFORM=wayland ./build/tools/pastetest/markpa
 - `pastetest --portal-clipboard` — проверка портала Clipboard: пишет через портал и читает обратно через data-control, затем показывает, что осталось в буфере после закрытия сессии. Первый раз KDE спрашивает разрешение.
 - Переменные для проверки запасных путей на KDE: `MARKPASTE_CLIPBOARD=portal` (буфер через портал), `MARKPASTE_INPUT=portal` (Ctrl+V только через RemoteDesktop).
 
+## Проверка X11 без X11-сессии
+
+```bash
+Xvfb :97 -screen 0 1280x800x24 -nolisten tcp &
+export DISPLAY=:97 QT_QPA_PLATFORM=xcb WAYLAND_DISPLAY= XDG_SESSION_TYPE=x11
+./build/tools/pastetest/markpaste-pastetest --x11-hotkeys   # нажимает через xdotool
+./build/tools/pastetest/markpaste-pastetest --self-test
+```
+
+- Нужны `xorg-x11-server-Xvfb`, `xdotool`, для сборки — `libxcb-devel xcb-util-keysyms-devel` (xcb-xtest входит в libxcb).
+- Чтобы запустить саму программу рядом с работающей копией, нужны свои `XDG_RUNTIME_DIR` (сокет единственного экземпляра) и `XDG_CONFIG_HOME`. Путь сокета не длиннее 108 байт (`sun_path`), иначе «the socket cannot be created» — каталог в `/run/user/$UID/` подходит, длинный путь во временном каталоге — нет.
+- Группу `general` настройки Qt хранят в INI как `[%General]` (`[General]` — корень): при ручной правке файла это важно.
+- Останавливать тестовые серверы — по PID (`pgrep -x Xvfb`), не `pkill -f`: шаблон совпадает с командной строкой самой оболочки.
+
 ## Что получается
 
 | Файл | Что это |
