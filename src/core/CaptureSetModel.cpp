@@ -1,5 +1,7 @@
 #include "CaptureSetModel.h"
 
+#include "Geometry.h"
+
 #include <QUndoCommand>
 
 namespace mp {
@@ -56,6 +58,34 @@ void CaptureSetModel::resetWithoutHistory(const CaptureSet &set)
 QRect CaptureSetModel::normalizedInside(const QRect &rect, const QRect &bounds)
 {
     return rect.normalized().intersected(bounds);
+}
+
+bool CaptureSetModel::fitMark(Mark &mark, const QRect &bounds, qreal dpr)
+{
+    switch (mark.shape) {
+    case MarkShape::Rect:
+        mark.points.clear();
+        mark.rect = normalizedInside(mark.rect, bounds);
+        return !mark.rect.isEmpty();
+    case MarkShape::Arrow: {
+        if (mark.points.size() != 2)
+            return false;
+        mark.points = clipPolyline(mark.points, bounds);
+        if (mark.points.size() != 2)
+            return false;
+        break;
+    }
+    case MarkShape::Freehand: {
+        // Допуск упрощения — полпикселя экрана: глазу не видно, а точек в разы меньше
+        const qreal eps = 0.5 * (dpr > 0 ? dpr : 1.0);
+        mark.points = simplifyPolyline(clipPolyline(mark.points, bounds), eps);
+        if (mark.points.size() < 2)
+            return false;
+        break;
+    }
+    }
+    mark.rect = boundsOf(mark.points);
+    return true;
 }
 
 QUuid CaptureSetModel::addShot(Shot shot)
@@ -128,9 +158,48 @@ bool CaptureSetModel::setMarkRect(const QUuid &shotId, const QUuid &markId, cons
         Shot &shot = s.shots[i];
         const int m = shot.markIndex(markId);
         const QRect r = normalizedInside(rect, shot.visibleRect());
-        if (m < 0 || r.isEmpty())
+        if (m < 0 || r.isEmpty() || shot.marks[m].isLinear())
             return false;
         shot.marks[m].rect = r;
+        return true;
+    });
+}
+
+QUuid CaptureSetModel::addLinearMark(const QUuid &shotId, MarkShape shape, const QList<QPoint> &points,
+                                     const QString &comment)
+{
+    if (shape == MarkShape::Rect)
+        return addMark(shotId, boundsOf(points), comment);
+    const QUuid markId = QUuid::createUuid();
+    const bool ok = apply(shape == MarkShape::Arrow ? tr("Add arrow") : tr("Add drawing"), [&](CaptureSet &s) {
+        const int i = s.shotIndex(shotId);
+        if (i < 0)
+            return false;
+        Shot &shot = s.shots[i];
+        Mark m{markId, {}, comment.left(kMaxCommentLength), shape, points};
+        if (!fitMark(m, shot.visibleRect(), shot.devicePixelRatio))
+            return false;
+        shot.marks.append(m);
+        return true;
+    });
+    return ok ? markId : QUuid();
+}
+
+bool CaptureSetModel::setMarkPoints(const QUuid &shotId, const QUuid &markId, const QList<QPoint> &points)
+{
+    return apply(tr("Move mark"), [&](CaptureSet &s) {
+        const int i = s.shotIndex(shotId);
+        if (i < 0)
+            return false;
+        Shot &shot = s.shots[i];
+        const int m = shot.markIndex(markId);
+        if (m < 0 || !shot.marks[m].isLinear())
+            return false;
+        Mark mark = shot.marks[m];
+        mark.points = points;
+        if (!fitMark(mark, shot.visibleRect(), shot.devicePixelRatio))
+            return false;
+        shot.marks[m] = mark;
         return true;
     });
 }
@@ -217,8 +286,8 @@ int CaptureSetModel::marksOutsideCrop(const QUuid &shotId, const QRect &crop) co
         return 0;
     const QRect c = normalizedInside(crop, s->sourceRect());
     int n = 0;
-    for (const Mark &m : s->marks)
-        if (!m.rect.intersects(c))
+    for (Mark m : s->marks)
+        if (!fitMark(m, c, s->devicePixelRatio))
             ++n;
     return n;
 }
@@ -236,11 +305,9 @@ bool CaptureSetModel::setCrop(const QUuid &shotId, const QRect &crop)
         shot.crop = (c == shot.sourceRect()) ? QRect() : c;
 
         QList<Mark> marks;
-        for (Mark m : shot.marks) {
-            m.rect = m.rect.intersected(c);
-            if (!m.rect.isEmpty())
+        for (Mark m : shot.marks)
+            if (fitMark(m, c, shot.devicePixelRatio))
                 marks.append(m);
-        }
         shot.marks = marks;
 
         QList<Redaction> redactions;

@@ -27,10 +27,11 @@ cmake --build build --target dev-install-desktop   # обязательно, с�
 | --- | --- |
 | `build/src/app/markpaste` | Программа |
 | `build/tests/markpaste_core_tests` | Тесты ядра (GoogleTest): модель, текст, запекание, оркестратор вставки |
-| `build/tests/markpaste_ui_tests` | Тесты окон (GoogleTest + QtTest, offscreen): клавиши редактора (Ctrl+Enter, Esc) и загрузка русского перевода. `QTest::keyClicks` не умеет кириллицу — вводить текст через `insertPlainText` |
+| `build/tests/markpaste_ui_tests` | Тесты окон (GoogleTest + QtTest, offscreen): клавиши редактора (Ctrl+Enter, Esc), рисование стрелки и карандаша мышью, загрузка русского перевода. `QTest::keyClicks` не умеет кириллицу — вводить текст через `insertPlainText` |
 | `build/tools/pastetest/markpaste-pastetest` | Прототип вставки и диагностика платформы (`--check`, `--self-test`, `--capture kwin\|portal`, `--mode 1\|2`) |
 | `tools/dev/kwin-probe.py "команда" [фильтр]` | Отправляет команду работающей программе и каждые 250 мс читает у KWin геометрию её окон. Для замеров на живой сессии KDE. Отладочные команды сокета: `debug-move-strip <экран> <left\|right> <отступ>`, `debug-ghost <x> <y> <w> <h>` |
-| `build/tools/uipreview/markpaste-uipreview DIR` | Рисует ленту и редактор на тестовом наборе без дисплея и сохраняет PNG в DIR |
+| `build/tools/uipreview/markpaste-uipreview DIR` | Рисует ленту и редактор на тестовом наборе (рамки, стрелка, карандаш, размытие) без дисплея и сохраняет PNG в DIR |
+| `MARKPASTE_RENDER_SAMPLE=файл.png build/tests/markpaste_core_tests --gtest_filter='*Sample*'` | Запекает пример всех форм меток в PNG — для глазной проверки рендера |
 
 ## Подводные камни
 
@@ -40,5 +41,5 @@ cmake --build build --target dev-install-desktop   # обязательно, с�
   Без перенаправления лог — в `journalctl --user -f`.
 - **Управление запущенным экземпляром:** `markpaste --capture | --paste | --copy | --show | --settings | --clear | --quit`.
 - **`pkill -f build/src/app/markpaste` убивает и саму оболочку**, если путь есть в её командной строке. Используйте `pkill -x markpaste`.
-- **Переводы:** строки обновляются `cmake --build build --target update_translations` (lupdate), файлы — `i18n/*.ts`. `.qm` встраиваются в программу под `:/i18n`.
+- **Переводы:** строки обновляются `cmake --build build --target update_translations` (lupdate), файлы — `i18n/*.ts`. `.qm` встраиваются в программу под `:/i18n`. Каждый `.ts` подключать через `qt_add_translations` только к одной цели, иначе параллельные lupdate портят файл (docs/problems.md); тестам — `qt_add_lrelease`.
 - **API Qt не новее 6.4.** На Fedora стоит 6.11, поэтому компилятор не поймает новые вызовы. Защита — будущая сборка в CI на Ubuntu 24.04 (Qt 6.4.2). Уже используется только то, что есть в 6.4: `QFuture::then/unwrap`, `QPromise`, `qt_add_translations`.

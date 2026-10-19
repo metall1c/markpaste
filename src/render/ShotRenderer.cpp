@@ -89,7 +89,7 @@ static void drawBadge(QPainter &p, const QString &label, QPointF anchor, const Q
     const QFontMetricsF fm(font);
     const qreal w = std::max(d, fm.horizontalAdvance(label) + d * 0.5);
 
-    // Центр значка — в левом верхнем углу рамки, но значок целиком внутри снимка (EDT-3).
+    // Центр значка — в точке привязки метки, но значок целиком внутри снимка (EDT-3).
     QRectF r(anchor.x() - d / 2, anchor.y() - d / 2, w, d);
     if (r.right() > bounds.right())
         r.moveRight(bounds.right());
@@ -111,25 +111,113 @@ static void drawBadge(QPainter &p, const QString &label, QPointF anchor, const Q
     p.drawText(r, Qt::AlignCenter, label);
 }
 
+static void drawRectMark(QPainter &p, const Mark &m, const QColor &accent, qreal fw, qreal ow)
+{
+    const QRectF r = QRectF(m.rect).adjusted(fw / 2, fw / 2, -fw / 2, -fw / 2);
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(Qt::white, fw + 2 * ow, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+    p.drawRect(r);
+    p.setPen(QPen(accent, fw, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+    p.drawRect(r);
+}
+
+// Точки — центры пикселей: линия толщиной в 1 px через (x, y) закрашивает ровно этот пиксель.
+static QPointF pixelCenter(const QPoint &p)
+{
+    return QPointF(p) + QPointF(0.5, 0.5);
+}
+
+static void drawArrowMark(QPainter &p, const Mark &m, const QColor &accent, qreal w, qreal ow)
+{
+    if (m.points.size() != 2)
+        return;
+    const QPointF tail = pixelCenter(m.points[0]);
+    const QPointF tip = pixelCenter(m.points[1]);
+    const QLineF line(tail, tip);
+    const qreal length = line.length();
+    if (length <= 0)
+        return;
+    const QPointF dir = (tip - tail) / length;
+    const QPointF normal(-dir.y(), dir.x());
+
+    // Наконечник в 4 толщины древка; на короткой стрелке — не длиннее 2/3 её длины
+    const qreal headLength = std::min(4.0 * w, length * 2.0 / 3.0);
+    const qreal headHalf = headLength * 0.55;
+    const QPointF base = tip - dir * headLength;
+    const QPolygonF head{tip, base + normal * headHalf, base - normal * headHalf};
+    // Древко заходит в наконечник, чтобы между ними не было щели, но не торчит из острия
+    const QPointF shaftEnd = base + dir * (headLength * 0.3);
+
+    p.setPen(QPen(Qt::white, w + 2 * ow, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.drawLine(tail, shaftEnd);
+    p.setPen(QPen(Qt::white, 2 * ow, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+    p.setBrush(Qt::white);
+    p.drawPolygon(head);
+
+    p.setPen(QPen(accent, w, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.drawLine(tail, shaftEnd);
+    p.setPen(Qt::NoPen);
+    p.setBrush(accent);
+    p.drawPolygon(head);
+}
+
+// Сглаживание: кривая проходит через середины звеньев, вершины ломаной — контрольные точки.
+// После упрощения (simplifyPolyline) точек мало, и без сглаживания линия выглядит угловатой.
+static QPainterPath smoothPath(const QList<QPoint> &points)
+{
+    QPainterPath path;
+    if (points.isEmpty())
+        return path;
+    path.moveTo(pixelCenter(points[0]));
+    if (points.size() == 2) {
+        path.lineTo(pixelCenter(points[1]));
+        return path;
+    }
+    for (int i = 1; i + 1 < points.size(); ++i) {
+        const QPointF c = pixelCenter(points[i]);
+        const QPointF mid = (c + pixelCenter(points[i + 1])) / 2;
+        path.quadTo(c, mid);
+    }
+    path.lineTo(pixelCenter(points.last()));
+    return path;
+}
+
+static void drawFreehandMark(QPainter &p, const Mark &m, const QColor &accent, qreal fw, qreal ow)
+{
+    const QPainterPath path = smoothPath(m.points);
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(Qt::white, fw + 2 * ow, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.drawPath(path);
+    p.setPen(QPen(accent, fw, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.drawPath(path);
+}
+
 void paintMarks(QPainter &p, const Shot &shot, int shotIndex, const RenderStyle &style, const QRectF &bounds)
 {
     const qreal dpr = shot.devicePixelRatio > 0 ? shot.devicePixelRatio : 1.0;
     const qreal fw = style.frameWidth * dpr;
+    const qreal aw = style.arrowWidth * dpr;
     const qreal ow = style.outlineWidth * dpr;
     p.save();
     p.setRenderHint(QPainter::Antialiasing);
     p.setRenderHint(QPainter::TextAntialiasing);
-    // Сначала все рамки, потом все значки: значок не перекрывается чужой рамкой.
+    // Сначала все формы, потом все значки: значок не перекрывается чужой рамкой.
     for (const Mark &m : shot.marks) {
-        const QRectF r = QRectF(m.rect).adjusted(fw / 2, fw / 2, -fw / 2, -fw / 2);
-        p.setBrush(Qt::NoBrush);
-        p.setPen(QPen(Qt::white, fw + 2 * ow, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
-        p.drawRect(r);
-        p.setPen(QPen(style.accent, fw, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
-        p.drawRect(r);
+        switch (m.shape) {
+        case MarkShape::Rect:
+            drawRectMark(p, m, style.accent, fw, ow);
+            break;
+        case MarkShape::Arrow:
+            drawArrowMark(p, m, style.accent, aw, ow);
+            break;
+        case MarkShape::Freehand:
+            drawFreehandMark(p, m, style.accent, fw, ow);
+            break;
+        }
     }
+    // Значок рамки — в её левом верхнем углу, стрелки — у хвоста, карандаша — у первой точки
     for (int i = 0; i < shot.marks.size(); ++i)
-        drawBadge(p, markLabel(shotIndex, i), shot.marks[i].rect.topLeft(), bounds, style, dpr);
+        drawBadge(p, markLabel(shotIndex, i), shot.marks[i].badgeAnchor(), bounds, style, dpr);
     p.restore();
 }
 

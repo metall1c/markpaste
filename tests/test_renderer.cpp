@@ -96,3 +96,41 @@ TEST(Renderer, ComposeVertical)
     EXPECT_EQ(out.width(), 100 + 32);
     EXPECT_EQ(out.height(), 16 + (28 + 50 + 16) + (28 + 30 + 16));
 }
+
+TEST(Renderer, RenderDrawsArrowAndFreehand)
+{
+    Shot s = makeShot(200, 100);
+    s.marks.append(Mark{QUuid::createUuid(), QRect(), {}, MarkShape::Arrow, {{20, 80}, {180, 80}}});
+    s.marks.append(Mark{QUuid::createUuid(), QRect(), {}, MarkShape::Freehand, {{20, 20}, {100, 20}, {180, 20}}});
+    RenderStyle style;
+    const QImage out = renderShot(s, 0, style);
+    EXPECT_EQ(out.pixelColor(100, 80).rgb(), style.accent.rgb());   // древко
+    EXPECT_EQ(out.pixelColor(176, 80).rgb(), style.accent.rgb());   // наконечник у острия
+    EXPECT_EQ(out.pixelColor(167, 85).rgb(), style.accent.rgb());   // наконечник шире древка
+    EXPECT_EQ(out.pixelColor(100, 20).rgb(), style.accent.rgb());   // линия карандаша
+    // Вдали от линий — исходные пиксели
+    const QImage src = noiseImage(200, 100);
+    EXPECT_EQ(out.pixel(100, 50), src.pixel(100, 50));
+}
+
+// Для глазной проверки: MARKPASTE_RENDER_SAMPLE=путь.png сохраняет пример всех форм.
+TEST(Renderer, SampleForVisualCheck)
+{
+    const QByteArray path = qgetenv("MARKPASTE_RENDER_SAMPLE");
+    if (path.isEmpty())
+        GTEST_SKIP();
+    QImage bg(600, 300, QImage::Format_ARGB32);
+    bg.fill(QColor(0xF4, 0xF4, 0xF4));
+    Shot s;
+    s.sourcePng = toPng(bg);
+    s.sourceSize = bg.size();
+    s.devicePixelRatio = 1.0;
+    s.marks.append(Mark{QUuid::createUuid(), QRect(), {}, MarkShape::Arrow, {{40, 250}, {200, 120}}});
+    s.marks.append(Mark{QUuid::createUuid(), QRect(240, 40, 140, 90), {}});
+    QList<QPoint> loop;
+    for (int a = 0; a <= 380; a += 8)
+        loop.append(QPoint(500 + int(70 * std::cos(a * M_PI / 180)), 200 + int(50 * std::sin(a * M_PI / 180))));
+    s.marks.append(Mark{QUuid::createUuid(), QRect(), {}, MarkShape::Freehand, loop});
+    s.marks.append(Mark{QUuid::createUuid(), QRect(), {}, MarkShape::Arrow, {{300, 280}, {320, 270}}});
+    EXPECT_TRUE(renderShot(s, 0).save(QString::fromLocal8Bit(path)));
+}

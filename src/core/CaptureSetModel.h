@@ -34,6 +34,11 @@ public:
     // Метки
     QUuid addMark(const QUuid &shotId, const QRect &rect, const QString &comment = {});
     bool setMarkRect(const QUuid &shotId, const QUuid &markId, const QRect &rect);
+    // Стрелка и карандаш (EDT-9). Точки обрезаются по видимой области, линия карандаша
+    // упрощается; rect метки становится охватывающим прямоугольником.
+    QUuid addLinearMark(const QUuid &shotId, MarkShape shape, const QList<QPoint> &points,
+                        const QString &comment = {});
+    bool setMarkPoints(const QUuid &shotId, const QUuid &markId, const QList<QPoint> &points);
     bool setMarkComment(const QUuid &shotId, const QUuid &markId, const QString &comment);
     bool removeMark(const QUuid &shotId, const QUuid &markId);
 
@@ -43,7 +48,7 @@ public:
     bool removeRedaction(const QUuid &shotId, const QUuid &redactionId);
 
     // Обрезка (EDT-7): метки и размытия вне новой области удаляются, частично
-    // попавшие — обрезаются по ней. Сколько удалится — заранее говорит marksOutsideCrop.
+    // попавшие — обрезаются по ней (стрелка и карандаш — по линии, а не по рамке). Сколько удалится — заранее говорит marksOutsideCrop.
     bool setCrop(const QUuid &shotId, const QRect &crop);
     int marksOutsideCrop(const QUuid &shotId, const QRect &crop) const;
 
@@ -60,6 +65,8 @@ private:
     void setState(const CaptureSet &set);
 
     static QRect normalizedInside(const QRect &rect, const QRect &bounds);
+    // Вписывает метку любой формы в bounds. false — от метки ничего не осталось.
+    static bool fitMark(Mark &mark, const QRect &bounds, qreal dpr);
 
     CaptureSet m_set;
     QUndoStack m_undo;

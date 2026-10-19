@@ -43,6 +43,8 @@ private:
     CaptureSetModel *m_model;
     ShotCanvas *m_canvas;
     QToolButton *m_markTool;
+    QToolButton *m_arrowTool;
+    QToolButton *m_penTool;
     QToolButton *m_blurTool;
     QToolButton *m_cropTool;
     QPushButton *m_applyCrop;

@@ -1,6 +1,7 @@
 # Ядро: модель, текст сообщения, запекание. Без кода под конкретную ОС (NFR-11).
 add_library(markpaste_core STATIC
     core/CaptureSet.h core/CaptureSet.cpp
+    core/Geometry.h core/Geometry.cpp
     core/CaptureSetModel.h core/CaptureSetModel.cpp
     core/MessageBuilder.h core/MessageBuilder.cpp
     render/ShotRenderer.h render/ShotRenderer.cpp

@@ -37,11 +37,15 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
 
     m_canvas = new ShotCanvas(model);
 
-    m_markTool = toolButton(tr("▭ Mark"), tr("Mark an area and comment it (M)"), true);
+    m_markTool = toolButton(tr("▭ Mark"), tr("Mark an area and comment it (R)"), true);
+    m_arrowTool = toolButton(tr("➚ Arrow"), tr("Point with an arrow and comment it (A)"), true);
+    m_penTool = toolButton(tr("✎ Pen"), tr("Draw freehand — circle or underline — and comment it (P)"), true);
     m_blurTool = toolButton(tr("▦ Blur"), tr("Pixelate passwords and personal data (B)"), true);
     m_cropTool = toolButton(tr("⛶ Crop"), tr("Crop the shot (C)"), true);
     auto *group = new QButtonGroup(this);
     group->addButton(m_markTool);
+    group->addButton(m_arrowTool);
+    group->addButton(m_penTool);
     group->addButton(m_blurTool);
     group->addButton(m_cropTool);
     m_markTool->setChecked(true);
@@ -59,6 +63,8 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     auto *bar = new QHBoxLayout;
     bar->setContentsMargins(8, 6, 8, 6);
     bar->addWidget(m_markTool);
+    bar->addWidget(m_arrowTool);
+    bar->addWidget(m_penTool);
     bar->addWidget(m_blurTool);
     bar->addWidget(m_cropTool);
     bar->addWidget(m_applyCrop);
@@ -98,6 +104,8 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     layout->addWidget(m_hint);
 
     connect(m_markTool, &QToolButton::clicked, this, [this] { m_canvas->setTool(ShotCanvas::Tool::Mark); });
+    connect(m_arrowTool, &QToolButton::clicked, this, [this] { m_canvas->setTool(ShotCanvas::Tool::Arrow); });
+    connect(m_penTool, &QToolButton::clicked, this, [this] { m_canvas->setTool(ShotCanvas::Tool::Pen); });
     connect(m_blurTool, &QToolButton::clicked, this, [this] { m_canvas->setTool(ShotCanvas::Tool::Blur); });
     connect(m_cropTool, &QToolButton::clicked, this, [this] { m_canvas->setTool(ShotCanvas::Tool::Crop); });
     connect(m_applyCrop, &QPushButton::clicked, m_canvas, &ShotCanvas::applyCrop);
@@ -122,9 +130,12 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
         auto *redoKey = new QShortcut(seq, this);
         connect(redoKey, &QShortcut::activated, undo, &QUndoStack::redo);
     }
-    // Однобуквенные клавиши инструментов не должны срабатывать в поле комментария
-    for (auto [key, tool] : {std::pair{Qt::Key_M, ShotCanvas::Tool::Mark}, std::pair{Qt::Key_B, ShotCanvas::Tool::Blur},
-                             std::pair{Qt::Key_C, ShotCanvas::Tool::Crop}}) {
+    // Однобуквенные клавиши инструментов не должны срабатывать в поле комментария.
+    // M — прежняя клавиша рамки, оставлена рядом с R.
+    using Tool = ShotCanvas::Tool;
+    for (auto [key, tool] : {std::pair{Qt::Key_R, Tool::Mark}, std::pair{Qt::Key_M, Tool::Mark},
+                             std::pair{Qt::Key_A, Tool::Arrow}, std::pair{Qt::Key_P, Tool::Pen},
+                             std::pair{Qt::Key_B, Tool::Blur}, std::pair{Qt::Key_C, Tool::Crop}}) {
         auto *sc = new QShortcut(QKeySequence(key), m_canvas, nullptr, nullptr, Qt::WidgetShortcut);
         connect(sc, &QShortcut::activated, this, [this, tool] { m_canvas->setTool(tool); });
     }
@@ -216,6 +227,8 @@ void ShotEditor::updateTools()
 {
     const auto tool = m_canvas->tool();
     m_markTool->setChecked(tool == ShotCanvas::Tool::Mark);
+    m_arrowTool->setChecked(tool == ShotCanvas::Tool::Arrow);
+    m_penTool->setChecked(tool == ShotCanvas::Tool::Pen);
     m_blurTool->setChecked(tool == ShotCanvas::Tool::Blur);
     m_cropTool->setChecked(tool == ShotCanvas::Tool::Crop);
     m_applyCrop->setVisible(tool == ShotCanvas::Tool::Crop && m_canvas->hasPendingCrop());
@@ -223,6 +236,12 @@ void ShotEditor::updateTools()
     case ShotCanvas::Tool::Mark:
         m_hint->setText(m_fresh ? tr("Drag to mark · Double-click — edit comment · Ctrl+Z — undo · Ctrl+Enter — done · Esc — discard the shot")
                         : tr("Drag to mark · Double-click — edit comment · Delete — remove · Ctrl+Z — undo · Ctrl+Enter or Esc — close"));
+        break;
+    case ShotCanvas::Tool::Arrow:
+        m_hint->setText(tr("Drag from the tail to the tip · Drag an end to adjust · Double-click — edit comment"));
+        break;
+    case ShotCanvas::Tool::Pen:
+        m_hint->setText(tr("Draw around or under the spot · Double-click a line — edit comment"));
         break;
     case ShotCanvas::Tool::Blur:
         m_hint->setText(tr("Drag over passwords, card numbers, names — the chat gets a pixelated copy"));

@@ -13,7 +13,8 @@ namespace mp {
 // Размеры — в логических пикселях, при запекании умножаются на devicePixelRatio снимка.
 struct RenderStyle {
     QColor accent = QColor(0xFF, 0x5A, 0x1F);   // ТЗ разд. 10
-    qreal frameWidth = 3.0;
+    qreal frameWidth = 3.0;                    // рамка и линия карандаша
+    qreal arrowWidth = 4.0;                    // древко стрелки; наконечник — от него
     qreal outlineWidth = 1.0;
     qreal badgeDiameter = 28.0;
     int pixelBlock = 12;                       // EDT-6
@@ -24,7 +25,7 @@ struct RenderStyle {
 QColor badgeFillColor(const QColor &accent);
 double contrastRatio(const QColor &a, const QColor &b);
 
-// Рисует рамки и значки меток. Painter уже переведён в координаты исходника (физические
+// Рисует рамки, стрелки, линии карандаша и значки меток. Painter уже переведён в координаты исходника (физические
 // пиксели). Общая функция для запекания и редактора: на экране видно ровно то, что уйдёт в чат.
 void paintMarks(QPainter &p, const Shot &shot, int shotIndex, const RenderStyle &style, const QRectF &bounds);
 

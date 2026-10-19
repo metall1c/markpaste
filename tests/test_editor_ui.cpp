@@ -121,4 +121,59 @@ TEST(Translations, RussianLoadsForEditor)
     ASSERT_TRUE(tr.load(QStringLiteral(":/i18n/markpaste_ru.qm")));
     EXPECT_EQ(tr.translate("mp::ShotEditor", "Done"), QStringLiteral("Готово"));
     EXPECT_EQ(tr.translate("mp::StripWindow", "Paste set"), QStringLiteral("Вставить набор"));
+    EXPECT_EQ(tr.translate("mp::ShotEditor", "➚ Arrow"), QStringLiteral("➚ Стрелка"));
+}
+
+namespace {
+// Перетаскивание в координатах исходника. Окно редактора крупнее снимка, масштаб 1:1.
+void dragSource(ShotCanvas *c, const QList<QPoint> &path)
+{
+    // Смещение снимка в окне: точка исходника (0,0) лежит в центре минус половина снимка
+    const QPoint origin((c->width() - 400) / 2, (c->height() - 300) / 2);
+    QTest::mousePress(c, Qt::LeftButton, {}, origin + path.first());
+    for (const QPoint &p : path.mid(1)) {
+        QMouseEvent move(QEvent::MouseMove, QPointF(origin + p), c->mapToGlobal(QPointF(origin + p)),
+                         Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(c, &move);
+    }
+    QTest::mouseRelease(c, Qt::LeftButton, {}, origin + path.last());
+}
+} // namespace
+
+TEST(ShotEditorUi, ArrowToolCreatesArrowMark)
+{
+    EditorFixture f;
+    f.editor.resize(900, 600);
+    QTest::qWait(20);
+    QTest::keyClick(f.canvas(), Qt::Key_A);
+    ASSERT_EQ(f.canvas()->tool(), ShotCanvas::Tool::Arrow);
+    dragSource(f.canvas(), {{50, 50}, {100, 80}, {150, 100}});
+    const Shot *s = f.model.shot(f.shot);
+    ASSERT_EQ(s->marks.size(), 1);
+    EXPECT_EQ(s->marks[0].shape, MarkShape::Arrow);
+    EXPECT_EQ(s->marks[0].points, (QList<QPoint>{{50, 50}, {150, 100}}));
+}
+
+TEST(ShotEditorUi, PenLoopIsHitOnlyByLine)
+{
+    EditorFixture f;
+    f.editor.resize(900, 600);
+    QTest::qWait(20);
+    QTest::keyClick(f.canvas(), Qt::Key_P);
+    dragSource(f.canvas(), {{100, 100}, {200, 100}, {200, 200}, {100, 200}, {100, 105}});
+    ASSERT_EQ(f.model.shot(f.shot)->marks.size(), 1);
+    EXPECT_EQ(f.model.shot(f.shot)->marks[0].shape, MarkShape::Freehand);
+    f.canvas()->commitComment();
+
+    // Внутри обвода рисуется новая линия, а не тащится старая
+    dragSource(f.canvas(), {{130, 150}, {170, 150}});
+    ASSERT_EQ(f.model.shot(f.shot)->marks.size(), 2);
+    f.canvas()->commitComment();
+
+    // За линию — перетаскивается весь рисунок
+    const QList<QPoint> before = f.model.shot(f.shot)->marks[0].points;
+    dragSource(f.canvas(), {{150, 100}, {160, 110}});
+    const QList<QPoint> after = f.model.shot(f.shot)->marks[0].points;
+    ASSERT_EQ(after.size(), before.size());
+    EXPECT_EQ(after.first(), before.first() + QPoint(10, 10));
 }

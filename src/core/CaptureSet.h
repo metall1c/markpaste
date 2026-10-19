@@ -2,6 +2,7 @@
 
 #include <QByteArray>
 #include <QList>
+#include <QPoint>
 #include <QRect>
 #include <QSize>
 #include <QString>
@@ -15,10 +16,18 @@ inline constexpr int kMaxCommentLength = 500;   // EDT-5
 // Все прямоугольники — в физических пикселях исходного снимка (NFR-7, CAP-6),
 // а не относительно обрезки: обрезка хранится отдельно и отменяется без копии кадра.
 
+// Форма метки (EDT-9). Все формы нумеруются вместе: A1 может быть стрелкой, A2 — рамкой.
+enum class MarkShape { Rect, Arrow, Freehand };
+
 struct Mark {
     QUuid id;
-    QRect rect;
+    QRect rect;                    // рамка; у стрелки и карандаша — охватывающий прямоугольник points
     QString comment;
+    MarkShape shape = MarkShape::Rect;
+    QList<QPoint> points;          // стрелка: {хвост, острие}; карандаш: ломаная после упрощения
+
+    bool isLinear() const { return shape != MarkShape::Rect; }
+    QPoint badgeAnchor() const { return isLinear() && !points.isEmpty() ? points.first() : rect.topLeft(); }
 
     bool operator==(const Mark &) const = default;
 };

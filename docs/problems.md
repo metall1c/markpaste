@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-10-19 · `update_translations` портит `markpaste_ru.ts`
+
+- **Окружение:** Fedora 44, Qt 6.11, CMake + Ninja.
+- **Симптом:** `cmake --build build --target update_translations` падает: `Unexpected characters … at i18n/markpaste_ru.ts:436`. В файле появляются номера строк (`<location …>`), хотя для программы задано `-locations none`.
+- **Причина:** `markpaste_ru.ts` был подключён через `qt_add_translations` дважды — у программы и у `markpaste_ui_tests`. У каждой цели своя цель lupdate, Ninja запускает их параллельно, и два lupdate пишут один файл одновременно. У тестовой цели к тому же нет `-locations none`.
+- **Решение:** тестам нужен только `.qm`, поэтому в `tests/CMakeLists.txt` — `qt_add_lrelease` + `qt_add_resources` вместо `qt_add_translations`. Теперь lupdate один.
+- **Статус:** решено.
+
 ## 2026-10-19 · После переименования интерфейс стал английским
 
 - **Окружение:** Fedora 44 KDE, `LANG=ru_RU.UTF-8`.

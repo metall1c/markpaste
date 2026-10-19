@@ -11,6 +11,9 @@
 #include <QIcon>
 #include <QPainter>
 #include <QTranslator>
+#include <QtMath>
+
+#include <cmath>
 
 using namespace mp;
 
@@ -57,6 +60,12 @@ int main(int argc, char **argv)
     model.addMark(ida, QRect(36, 86, 268, 62), QStringLiteral("Кнопку «Купить» ярче"));
     model.addMark(ida, QRect(36, 166, 160, 34), QStringLiteral("Цену крупнее"));
     model.addRedaction(ida, QRect(200, 166, 200, 34));
+    model.addLinearMark(ida, MarkShape::Arrow, {{620, 330}, {480, 230}}, QStringLiteral("Сюда — отзывы"));
+    QList<QPoint> loop;
+    for (int deg = 0; deg <= 370; deg += 10)
+        loop.append(QPoint(700 + int(110 * std::cos(qDegreesToRadians(double(deg)))),
+                           420 + int(45 * std::sin(qDegreesToRadians(double(deg))))));
+    model.addLinearMark(ida, MarkShape::Freehand, loop, QStringLiteral("Убрать этот блок"));
     Shot b;
     b.sourcePng = fakeScreen(700, 400, QColor(230, 240, 255), QStringLiteral("Корзина"));
     b.sourceSize = QSize(700, 400);

@@ -144,6 +144,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Add arrow</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add drawing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Edit comment</source>
         <translation type="unfinished"></translation>
     </message>
@@ -362,10 +370,6 @@ On Wayland the program only suggests a shortcut — the desktop assigns it and l
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Mark an area and comment it (M)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>▦ Blur</source>
         <translation type="unfinished"></translation>
     </message>
@@ -447,6 +451,14 @@ Drag over the shot to add one.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Drag from the tail to the tip · Drag an end to adjust · Double-click — edit comment</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Draw around or under the spot · Double-click a line — edit comment</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Cancel shot</source>
         <translation type="unfinished"></translation>
     </message>
@@ -456,6 +468,26 @@ Drag over the shot to add one.</source>
     </message>
     <message>
         <source>Drag over passwords, card numbers, names — the chat gets a pixelated copy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mark an area and comment it (R)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>➚ Arrow</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Point with an arrow and comment it (A)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>✎ Pen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Draw freehand — circle or underline — and comment it (P)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

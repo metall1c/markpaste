@@ -1,4 +1,5 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
 <TS version="2.1" language="ru_RU">
 <context>
     <name>DragHandle</name>
@@ -141,6 +142,14 @@
     <message>
         <source>Move mark</source>
         <translation>Перемещение метки</translation>
+    </message>
+    <message>
+        <source>Add arrow</source>
+        <translation>Стрелка</translation>
+    </message>
+    <message>
+        <source>Add drawing</source>
+        <translation>Рисунок карандашом</translation>
     </message>
     <message>
         <source>Edit comment</source>
@@ -363,10 +372,6 @@ On Wayland the program only suggests a shortcut — the desktop assigns it and l
         <translation>▭ Метка</translation>
     </message>
     <message>
-        <source>Mark an area and comment it (M)</source>
-        <translation>Отметить область и подписать (M)</translation>
-    </message>
-    <message>
         <source>▦ Blur</source>
         <translation>▦ Размыть</translation>
     </message>
@@ -449,6 +454,14 @@ Drag over the shot to add one.</source>
         <translation>Обведите, чтобы отметить · Двойной клик — комментарий · Delete — удалить · Ctrl+Z — отменить · Ctrl+Enter или Esc — закрыть</translation>
     </message>
     <message>
+        <source>Drag from the tail to the tip · Drag an end to adjust · Double-click — edit comment</source>
+        <translation>Тяните от хвоста к острию · Конец стрелки можно перетащить · Двойной клик — комментарий</translation>
+    </message>
+    <message>
+        <source>Draw around or under the spot · Double-click a line — edit comment</source>
+        <translation>Обведите или подчеркните нужное · Двойной клик по линии — комментарий</translation>
+    </message>
+    <message>
         <source>Cancel shot</source>
         <translation>Отмена снимка</translation>
     </message>
@@ -459,6 +472,26 @@ Drag over the shot to add one.</source>
     <message>
         <source>Drag over passwords, card numbers, names — the chat gets a pixelated copy</source>
         <translation>Проведите по паролям, номерам карт, именам — в чат уйдёт размытая копия</translation>
+    </message>
+    <message>
+        <source>Mark an area and comment it (R)</source>
+        <translation>Отметить область и подписать (R)</translation>
+    </message>
+    <message>
+        <source>➚ Arrow</source>
+        <translation>➚ Стрелка</translation>
+    </message>
+    <message>
+        <source>Point with an arrow and comment it (A)</source>
+        <translation>Указать стрелкой и подписать (A)</translation>
+    </message>
+    <message>
+        <source>✎ Pen</source>
+        <translation>✎ Карандаш</translation>
+    </message>
+    <message>
+        <source>Draw freehand — circle or underline — and comment it (P)</source>
+        <translation>Нарисовать от руки — обвести или подчеркнуть — и подписать (P)</translation>
     </message>
     <message>
         <source>Drag the area to keep · Enter — apply · Esc — cancel</source>

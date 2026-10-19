@@ -7,11 +7,13 @@
 #include <QUuid>
 #include <QWidget>
 
+#include <optional>
+
 namespace mp {
 
 class CommentPopup;
 
-// Холст редактора снимка: метки, размытие, обрезка (ТЗ 5.2).
+// Холст редактора снимка: метки (рамка, стрелка, карандаш), размытие, обрезка (ТЗ 5.2).
 //
 // Координаты меток — физические пиксели исходника. Холст хранит одно преобразование
 // «исходник → окно» (toWidget) и рисует метки той же функцией, что и запекание
@@ -22,7 +24,7 @@ class ShotCanvas : public QWidget
 {
     Q_OBJECT
 public:
-    enum class Tool { Mark, Blur, Crop };
+    enum class Tool { Mark, Arrow, Pen, Blur, Crop };
 
     explicit ShotCanvas(CaptureSetModel *model, QWidget *parent = nullptr);
 
@@ -63,7 +65,9 @@ private:
         bool isMark = false;
         QUuid id;
         int handle = HNone;
+        int point = -1;   // конец стрелки: 0 — хвост, 1 — острие
         bool valid() const { return !id.isNull(); }
+        bool resizes() const { return handle != HNone || point >= 0; }
     };
 
     const Shot *shot() const;
@@ -75,6 +79,10 @@ private:
     Hit hitTest(const QPointF &widgetPos) const;
     int handleAt(const QRect &sourceRect, const QPointF &widgetPos) const;
     QRect rectOf(const Hit &hit) const;
+    const Mark *markOf(const Hit &hit) const;
+    bool hitsMark(const Mark &mark, const QPointF &widgetPos) const;
+    QPoint clampedSource(const QPointF &widgetPos) const;
+    std::optional<MarkShape> creatingShape() const;   // форма, которую рисует текущий инструмент
     void openComment(const QUuid &markId);
     void updateCursor(const QPointF &widgetPos);
 
@@ -95,6 +103,8 @@ private:
     QPointF m_pressSource;
     QRect m_dragOrigin;
     QRect m_live;      // текущий прямоугольник перетаскивания, в координатах исходника
+    QList<QPoint> m_dragOriginPoints;   // то же для стрелки и карандаша
+    QList<QPoint> m_livePoints;
     QRect m_crop;      // ожидающая подтверждения обрезка
 
     CommentPopup *m_popup;
