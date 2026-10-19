@@ -19,7 +19,10 @@ class ShotEditor : public QWidget
 public:
     explicit ShotEditor(CaptureSetModel *model, QWidget *parent = nullptr);
 
-    void showShot(const QUuid &shotId);
+    // fresh — снимок только что снят: Esc его отменяет (удаляет из набора).
+    // Снимок, открытый из ленты для правки, Esc только закрывает.
+    void showShot(const QUuid &shotId, bool fresh = false);
+    bool isFreshShot() const { return m_fresh; }
     QUuid shotId() const { return m_canvas->shotId(); }
     void setStyle(const RenderStyle &style) { m_canvas->setStyle(style); }
 
@@ -29,11 +32,13 @@ signals:
 
 protected:
     void closeEvent(QCloseEvent *) override;
+    void keyPressEvent(QKeyEvent *) override;
 
 private:
     void updateTitle();
     void updateTools();
     void updateComments();
+    void cancelShot();
 
     CaptureSetModel *m_model;
     ShotCanvas *m_canvas;
@@ -45,6 +50,7 @@ private:
     QToolButton *m_redo;
     QLabel *m_hint;
     QListWidget *m_comments;
+    bool m_fresh = false;
 };
 
 } // namespace mp

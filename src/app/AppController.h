@@ -42,7 +42,7 @@ public slots:
 private:
     void bindHotkeys();
     void onCaptured(const QImage &image, qreal dpr);
-    void openEditor(const QUuid &shotId);
+    void openEditor(const QUuid &shotId, bool fresh = false);
     void hideOwnWindows();
     void restoreOwnWindows();
     void setupTray();

@@ -68,7 +68,7 @@ void AppController::start()
     m_strip = new StripWindow(&m_model);
     m_strip->setStyle(m_settings.renderStyle());
     m_strip->setDragProvider([this](const QList<QUuid> &shots) { return dragData(shots); });
-    connect(m_strip, &StripWindow::shotActivated, this, &AppController::openEditor);
+    connect(m_strip, &StripWindow::shotActivated, this, [this](const QUuid &id) { openEditor(id, false); });
     connect(m_strip, &StripWindow::newShotRequested, this, &AppController::capture);
     connect(m_strip, &StripWindow::pasteRequested, this, [this] { paste(false); });
     connect(m_strip, &StripWindow::copyRequested, this, &AppController::copySet);
@@ -285,13 +285,13 @@ void AppController::onCaptured(const QImage &image, qreal dpr)
             return;
         }
         showStrip();
-        openEditor(id);
+        openEditor(id, true);
     });
 }
 
-void AppController::openEditor(const QUuid &shotId)
+void AppController::openEditor(const QUuid &shotId, bool fresh)
 {
-    m_editor->showShot(shotId);
+    m_editor->showShot(shotId, fresh);
     m_strip->setCurrentShot(shotId);
 }
 

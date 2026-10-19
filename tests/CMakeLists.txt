@@ -20,3 +20,6 @@ add_executable(markpaste_ui_tests
 )
 target_link_libraries(markpaste_ui_tests PRIVATE markpaste_ui Qt6::Test GTest::gtest)
 gtest_discover_tests(markpaste_ui_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+qt_add_translations(markpaste_ui_tests
+    TS_FILES ${PROJECT_SOURCE_DIR}/i18n/markpaste_ru.ts
+    RESOURCE_PREFIX /i18n)

@@ -27,7 +27,7 @@ cmake --build build --target dev-install-desktop   # обязательно, с�
 | --- | --- |
 | `build/src/app/markpaste` | Программа |
 | `build/tests/markpaste_core_tests` | Тесты ядра (GoogleTest): модель, текст, запекание, оркестратор вставки |
-| `build/tests/markpaste_ui_tests` | Тесты окон (GoogleTest + QtTest, offscreen): клавиши редактора. `QTest::keyClicks` не умеет кириллицу — вводить текст через `insertPlainText` |
+| `build/tests/markpaste_ui_tests` | Тесты окон (GoogleTest + QtTest, offscreen): клавиши редактора (Ctrl+Enter, Esc) и загрузка русского перевода. `QTest::keyClicks` не умеет кириллицу — вводить текст через `insertPlainText` |
 | `build/tools/pastetest/markpaste-pastetest` | Прототип вставки и диагностика платформы (`--check`, `--self-test`, `--capture kwin\|portal`, `--mode 1\|2`) |
 | `tools/dev/kwin-probe.py "команда" [фильтр]` | Отправляет команду работающей программе и каждые 250 мс читает у KWin геометрию её окон. Для замеров на живой сессии KDE. Отладочные команды сокета: `debug-move-strip <экран> <left\|right> <отступ>`, `debug-ghost <x> <y> <w> <h>` |
 | `build/tools/uipreview/markpaste-uipreview DIR` | Рисует ленту и редактор на тестовом наборе без дисплея и сохраняет PNG в DIR |

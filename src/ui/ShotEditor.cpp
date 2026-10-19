@@ -4,7 +4,9 @@
 #include <QCloseEvent>
 #include <QGuiApplication>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QLabel>
+#include <QMessageBox>
 #include <QListWidget>
 #include <QPushButton>
 #include <QScreen>
@@ -133,6 +135,8 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     connect(newShot, &QPushButton::clicked, this, &ShotEditor::newShotRequested);
     auto finish = [this] {
         m_canvas->commitComment();
+        m_fresh = false;   // снимок принят
+        updateTools();
         emit doneRequested();
     };
     connect(done, &QPushButton::clicked, this, finish);
@@ -182,11 +186,13 @@ void ShotEditor::updateComments()
     }
 }
 
-void ShotEditor::showShot(const QUuid &shotId)
+void ShotEditor::showShot(const QUuid &shotId, bool fresh)
 {
+    m_fresh = fresh;
     m_canvas->setShot(shotId);
     updateTitle();
     updateComments();
+    updateTools();   // подсказка про Esc зависит от того, свежий ли снимок
 
     // Размер — по снимку, но не больше 85 % экрана
     const QSize hint = m_canvas->sizeHint() + QSize(240, 90);
@@ -215,7 +221,8 @@ void ShotEditor::updateTools()
     m_applyCrop->setVisible(tool == ShotCanvas::Tool::Crop && m_canvas->hasPendingCrop());
     switch (tool) {
     case ShotCanvas::Tool::Mark:
-        m_hint->setText(tr("Drag to mark · Double-click — edit comment · Delete — remove · Ctrl+Z — undo · Ctrl+Enter — done"));
+        m_hint->setText(m_fresh ? tr("Drag to mark · Double-click — edit comment · Ctrl+Z — undo · Ctrl+Enter — done · Esc — discard the shot")
+                        : tr("Drag to mark · Double-click — edit comment · Delete — remove · Ctrl+Z — undo · Ctrl+Enter or Esc — close"));
         break;
     case ShotCanvas::Tool::Blur:
         m_hint->setText(tr("Drag over passwords, card numbers, names — the chat gets a pixelated copy"));
@@ -224,6 +231,42 @@ void ShotEditor::updateTools()
         m_hint->setText(tr("Drag the area to keep · Enter — apply · Esc — cancel"));
         break;
     }
+}
+
+void ShotEditor::keyPressEvent(QKeyEvent *e)
+{
+    // Сюда Esc доходит, только если внутри окна нечего закрывать: поле комментария,
+    // рамку обрезки и выделение холст и поле обрабатывают сами.
+    if (e->key() == Qt::Key_Escape && e->modifiers() == Qt::NoModifier) {
+        cancelShot();
+        return;
+    }
+    QWidget::keyPressEvent(e);
+}
+
+void ShotEditor::cancelShot()
+{
+    const QUuid id = m_canvas->shotId();
+    const Shot *shot = m_model->shot(id);
+    if (!m_fresh || !shot) {
+        // Снимок из ленты — только закрыть, правки сохранены
+        m_canvas->commitComment();
+        emit doneRequested();
+        return;
+    }
+    // Свежий снимок: отменить. Если на нём уже есть работа — спросить.
+    if (!shot->marks.isEmpty() || !shot->redactions.isEmpty() || !shot->crop.isNull()) {
+        const int index = m_model->set().shotIndex(id);
+        const auto answer = QMessageBox::question(
+            this, tr("Cancel shot"),
+            tr("Discard shot %1 with its marks?").arg(shotLetter(index)),
+            QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Cancel);
+        if (answer != QMessageBox::Discard)
+            return;
+    }
+    m_fresh = false;
+    hide();
+    m_model->removeShot(id);
 }
 
 void ShotEditor::closeEvent(QCloseEvent *e)

@@ -42,7 +42,7 @@
     </message>
 </context>
 <context>
-    <name>ps::AppController</name>
+    <name>mp::AppController</name>
     <message>
         <source>Paste failed: %1</source>
         <translation>Не удалось вставить: %1</translation>
@@ -117,7 +117,7 @@
     </message>
 </context>
 <context>
-    <name>ps::CaptureSetModel</name>
+    <name>mp::CaptureSetModel</name>
     <message>
         <source>New shot</source>
         <translation>Новый снимок</translation>
@@ -168,21 +168,21 @@
     </message>
 </context>
 <context>
-    <name>ps::CommentPopup</name>
+    <name>mp::CommentPopup</name>
     <message>
         <source>Comment (Enter — save, Shift+Enter — new line)</source>
         <translation>Комментарий (Enter — сохранить, Shift+Enter — новая строка)</translation>
     </message>
 </context>
 <context>
-    <name>ps::OverlayWidget</name>
+    <name>mp::OverlayWidget</name>
     <message>
         <source>Drag to select an area · Click — whole screen · Esc — cancel</source>
         <translation>Обведите область · Клик — весь экран · Esc — отмена</translation>
     </message>
 </context>
 <context>
-    <name>ps::PasteOrchestrator</name>
+    <name>mp::PasteOrchestrator</name>
     <message>
         <source>The set is empty</source>
         <translation>Набор пуст</translation>
@@ -197,7 +197,7 @@
     </message>
 </context>
 <context>
-    <name>ps::SettingsDialog</name>
+    <name>mp::SettingsDialog</name>
     <message>
         <source>Markpaste settings</source>
         <translation>Настройки Markpaste</translation>
@@ -338,7 +338,7 @@ On Wayland the program only suggests a shortcut — the desktop assigns it and l
     </message>
 </context>
 <context>
-    <name>ps::ShotCanvas</name>
+    <name>mp::ShotCanvas</name>
     <message>
         <source>No shot selected</source>
         <translation>Снимок не выбран</translation>
@@ -357,7 +357,7 @@ On Wayland the program only suggests a shortcut — the desktop assigns it and l
     </message>
 </context>
 <context>
-    <name>ps::ShotEditor</name>
+    <name>mp::ShotEditor</name>
     <message>
         <source>▭ Mark</source>
         <translation>▭ Метка</translation>
@@ -441,8 +441,20 @@ Drag over the shot to add one.</source>
         <translation>Снимок %1 — Markpaste</translation>
     </message>
     <message>
-        <source>Drag to mark · Double-click — edit comment · Delete — remove · Ctrl+Z — undo · Ctrl+Enter — done</source>
-        <translation>Обведите, чтобы отметить · Двойной клик — комментарий · Delete — удалить · Ctrl+Z — отменить · Ctrl+Enter — готово</translation>
+        <source>Drag to mark · Double-click — edit comment · Ctrl+Z — undo · Ctrl+Enter — done · Esc — discard the shot</source>
+        <translation>Обведите, чтобы отметить · Двойной клик — комментарий · Ctrl+Z — отменить · Ctrl+Enter — готово · Esc — отменить снимок</translation>
+    </message>
+    <message>
+        <source>Drag to mark · Double-click — edit comment · Delete — remove · Ctrl+Z — undo · Ctrl+Enter or Esc — close</source>
+        <translation>Обведите, чтобы отметить · Двойной клик — комментарий · Delete — удалить · Ctrl+Z — отменить · Ctrl+Enter или Esc — закрыть</translation>
+    </message>
+    <message>
+        <source>Cancel shot</source>
+        <translation>Отмена снимка</translation>
+    </message>
+    <message>
+        <source>Discard shot %1 with its marks?</source>
+        <translation>Удалить снимок %1 вместе с метками?</translation>
     </message>
     <message>
         <source>Drag over passwords, card numbers, names — the chat gets a pixelated copy</source>
@@ -454,7 +466,7 @@ Drag over the shot to add one.</source>
     </message>
 </context>
 <context>
-    <name>ps::StripWindow</name>
+    <name>mp::StripWindow</name>
     <message>
         <source>Markpaste — set</source>
         <translation>Markpaste — набор</translation>
@@ -521,7 +533,7 @@ Drag over the shot to add one.</source>
     </message>
 </context>
 <context>
-    <name>ps::lx::PortalGlobalShortcuts</name>
+    <name>mp::lx::PortalGlobalShortcuts</name>
     <message>
         <source>Capture screen area</source>
         <translation>Снять область экрана</translation>

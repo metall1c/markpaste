@@ -43,7 +43,7 @@
     </message>
 </context>
 <context>
-    <name>ps::AppController</name>
+    <name>mp::AppController</name>
     <message>
         <source>Paste failed: %1</source>
         <translation type="unfinished"></translation>
@@ -118,7 +118,7 @@
     </message>
 </context>
 <context>
-    <name>ps::CaptureSetModel</name>
+    <name>mp::CaptureSetModel</name>
     <message>
         <source>New shot</source>
         <translation type="unfinished"></translation>
@@ -169,21 +169,21 @@
     </message>
 </context>
 <context>
-    <name>ps::CommentPopup</name>
+    <name>mp::CommentPopup</name>
     <message>
         <source>Comment (Enter — save, Shift+Enter — new line)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
-    <name>ps::OverlayWidget</name>
+    <name>mp::OverlayWidget</name>
     <message>
         <source>Drag to select an area · Click — whole screen · Esc — cancel</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
-    <name>ps::PasteOrchestrator</name>
+    <name>mp::PasteOrchestrator</name>
     <message>
         <source>The set is empty</source>
         <translation type="unfinished"></translation>
@@ -198,7 +198,7 @@
     </message>
 </context>
 <context>
-    <name>ps::SettingsDialog</name>
+    <name>mp::SettingsDialog</name>
     <message>
         <source>Markpaste settings</source>
         <translation type="unfinished"></translation>
@@ -338,7 +338,7 @@ On Wayland the program only suggests a shortcut — the desktop assigns it and l
     </message>
 </context>
 <context>
-    <name>ps::ShotCanvas</name>
+    <name>mp::ShotCanvas</name>
     <message>
         <source>No shot selected</source>
         <translation type="unfinished"></translation>
@@ -356,7 +356,7 @@ On Wayland the program only suggests a shortcut — the desktop assigns it and l
     </message>
 </context>
 <context>
-    <name>ps::ShotEditor</name>
+    <name>mp::ShotEditor</name>
     <message>
         <source>▭ Mark</source>
         <translation type="unfinished"></translation>
@@ -439,7 +439,19 @@ Drag over the shot to add one.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Drag to mark · Double-click — edit comment · Delete — remove · Ctrl+Z — undo · Ctrl+Enter — done</source>
+        <source>Drag to mark · Double-click — edit comment · Ctrl+Z — undo · Ctrl+Enter — done · Esc — discard the shot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Drag to mark · Double-click — edit comment · Delete — remove · Ctrl+Z — undo · Ctrl+Enter or Esc — close</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cancel shot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Discard shot %1 with its marks?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -452,7 +464,7 @@ Drag over the shot to add one.</source>
     </message>
 </context>
 <context>
-    <name>ps::StripWindow</name>
+    <name>mp::StripWindow</name>
     <message>
         <source>Markpaste — set</source>
         <translation type="unfinished"></translation>
@@ -517,7 +529,7 @@ Drag over the shot to add one.</source>
     </message>
 </context>
 <context>
-    <name>ps::lx::PortalGlobalShortcuts</name>
+    <name>mp::lx::PortalGlobalShortcuts</name>
     <message>
         <source>Capture screen area</source>
         <translation type="unfinished"></translation>
