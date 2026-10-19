@@ -6,6 +6,7 @@
 #include "core/CaptureSet.h"
 #include "platform/linux/kde/KWinScreenshot.h"
 #include "platform/linux/portal/PortalBus.h"
+#include "platform/linux/portal/PortalClipboard.h"
 #include "platform/linux/portal/PortalScreenshot.h"
 #include "platform/linux/portal/PortalRemoteDesktop.h"
 #include "platform/linux/wayland/DataControlClipboard.h"
@@ -138,6 +139,83 @@ int runCapture(const QString &backend, const QString &outDir)
     return r.status.ok ? 0 : 9;
 }
 
+QString textOf(const ClipboardPayload &p)
+{
+    const ClipboardEntry *e = p.find(QStringLiteral("text/plain;charset=utf-8"));
+    if (!e)
+        e = p.find(QStringLiteral("text/plain"));
+    return e ? QString::fromUtf8(e->data) : QStringLiteral("<no text: %1>").arg(p.mimeTypes().join(u','));
+}
+
+// Проверка портала Clipboard (запасной буфер для GNOME) на окружении, где есть и data-control:
+// пишем через портал, читаем обратно через data-control, и наоборот.
+int runPortalClipboard(bool forgetToken)
+{
+    PortalBus &bus = PortalBus::instance();
+    const Status reg = bus.registerApp(QStringLiteral(MARKPASTE_APP_ID));
+    if (!reg.ok)
+        say(QStringLiteral("warning: portal app registration failed: %1").arg(reg.error));
+    if (!PortalClipboard::isAvailable()) {
+        say(QStringLiteral("No Clipboard portal"));
+        return 3;
+    }
+    std::unique_ptr<DataControlClipboard> dc(DataControlClipboard::create());
+    if (!dc)
+        say(QStringLiteral("note: no data-control, cross-checks are skipped"));
+
+    QSettings settings;
+    PortalRemoteDesktop rd;
+    if (forgetToken)
+        settings.remove(QStringLiteral("portalClipboardRestoreToken"));
+    rd.setRestoreToken(settings.value(QStringLiteral("portalClipboardRestoreToken")).toString());
+    QObject::connect(&rd, &PortalRemoteDesktop::restoreTokenChanged, [&settings](const QString &t) {
+        settings.setValue(QStringLiteral("portalClipboardRestoreToken"), t);
+        settings.sync();
+    });
+    PortalClipboard portal(&rd);
+
+    if (dc) {
+        await(dc->write(ClipboardPayload::text(QStringLiteral("baseline from data-control")), ClipboardFlag::None));
+        say(QStringLiteral("1. data-control wrote the baseline"));
+    }
+    say(QStringLiteral("2. Starting RemoteDesktop session with clipboard (a dialog may appear)…"));
+    QElapsedTimer t;
+    t.start();
+    const Status begun = await(rd.begin());
+    if (!begun.ok) {
+        say(QStringLiteral("   failed: %1").arg(begun.error));
+        return 5;
+    }
+    say(QStringLiteral("   started in %1 ms, clipboard_enabled = %2").arg(t.elapsed()).arg(rd.clipboardEnabled()));
+    if (!rd.clipboardEnabled())
+        return 6;
+    sleepMs(300);   // SelectionOwnerChanged приходит после Start
+
+    t.restart();
+    const ClipboardPayload snap = await(portal.snapshot());
+    say(QStringLiteral("3. portal snapshot (%1 ms): \"%2\"").arg(t.elapsed()).arg(textOf(snap)));
+
+    t.restart();
+    const Status w = await(portal.write(ClipboardPayload::text(QStringLiteral("written by portal ✓")),
+                                        ClipboardFlag::ExcludeFromHistory));
+    say(QStringLiteral("4. portal write: %1 (%2 ms)").arg(w.ok ? QStringLiteral("ok") : w.error).arg(t.elapsed()));
+    sleepMs(200);
+    if (dc) {
+        t.restart();
+        const ClipboardPayload back = await(dc->snapshot());
+        say(QStringLiteral("5. data-control reads (%1 ms): \"%2\"").arg(t.elapsed()).arg(textOf(back)));
+    }
+
+    rd.end();
+    say(QStringLiteral("6. session closed"));
+    sleepMs(1000);
+    if (dc) {
+        const ClipboardPayload after = await(dc->snapshot());
+        say(QStringLiteral("7. after close, data-control reads: \"%1\"").arg(textOf(after)));
+    }
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char **argv)
@@ -173,11 +251,16 @@ int main(int argc, char **argv)
     QCommandLineOption captureOpt(QStringLiteral("capture"), QStringLiteral("Capture all screens: kwin or portal"),
                                   QStringLiteral("backend"));
     QCommandLineOption outOpt(QStringLiteral("out"), QStringLiteral("Directory for --capture PNGs"), QStringLiteral("dir"));
+    QCommandLineOption portalClipboardOpt(QStringLiteral("portal-clipboard"),
+                                          QStringLiteral("Check the Clipboard portal against data-control"));
+    cli.addOption(portalClipboardOpt);
     cli.addOptions({captureOpt, outOpt, inProcessOpt, receiverOpt, selfTestOpt, checkOpt, modeOpt, delayOpt, settleOpt, countdownOpt, textOpt, noRestoreOpt, forgetOpt, onlyTextOpt});
     cli.process(app);
 
     if (cli.isSet(checkOpt))
         return runCheck();
+    if (cli.isSet(portalClipboardOpt))
+        return runPortalClipboard(cli.isSet(forgetOpt));
     if (cli.isSet(captureOpt)) {
         PortalBus::instance().registerApp(QStringLiteral(MARKPASTE_APP_ID));
         return runCapture(cli.value(captureOpt), cli.value(outOpt));

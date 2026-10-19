@@ -37,6 +37,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(Qt6 6.4 REQUIRED COMPONENTS DBus)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client)
+    pkg_check_modules(XKBCOMMON REQUIRED IMPORTED_TARGET xkbcommon)   # раскладка виртуальной клавиатуры
     pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
     pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
     find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)

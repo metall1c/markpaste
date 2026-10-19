@@ -158,38 +158,48 @@ void PasteOrchestrator::runSequence(QList<Item> items)
     m_items = std::move(items);
     emit progress(0, int(m_items.size()));
 
-    auto openSession = [this] {
+    // Ждём отпускания сочетания: иначе зажатые Shift/Alt превратят наш Ctrl+V в другое
+    // сочетание (ТЗ разд. 10). Не дождались — идём по таймауту.
+    auto proceed = [this] {
+        auto go = [this] { after(m_options.timing.afterReleaseMs, [this] { step(); }); };
+        if (m_released)
+            return go();
+        m_onReleased = go;
+        after(m_options.timing.releaseTimeoutMs, [this] {
+            if (!m_released) {
+                qCInfo(lcPaste) << "hotkey release not reported, continuing by timeout";
+                hotkeyReleased();
+            }
+        });
+    };
+    auto openSession = [this](std::function<void()> next) {
         const quint64 gen = m_generation;
-        m_injector->begin().then(this, [this, gen](const Status &s) {
+        m_injector->begin().then(this, [this, gen, next](const Status &s) {
             if (gen != m_generation || !m_running)
                 return;
             if (!s.ok)
                 return finish(s);
             m_sessionOpen = true;
-            // Ждём отпускания сочетания: иначе зажатые Shift/Alt превратят наш Ctrl+V в другое
-            // сочетание (ТЗ разд. 10). Не дождались — идём по таймауту.
-            auto go = [this] { after(m_options.timing.afterReleaseMs, [this] { step(); }); };
-            if (m_released)
-                return go();
-            m_onReleased = go;
-            after(m_options.timing.releaseTimeoutMs, [this] {
-                if (!m_released) {
-                    qCInfo(lcPaste) << "hotkey release not reported, continuing by timeout";
-                    hotkeyReleased();
-                }
-            });
+            next();
+        });
+    };
+    auto saveClipboard = [this](std::function<void()> next) {
+        if (!m_options.restoreClipboard)
+            return next();
+        const quint64 gen = m_generation;
+        m_clipboard->snapshot().then(this, [this, gen, next](const ClipboardPayload &saved) {
+            if (gen != m_generation || !m_running)
+                return;
+            m_saved = saved;
+            next();
         });
     };
 
-    if (!m_options.restoreClipboard)
-        return openSession();
-    const quint64 gen = m_generation;
-    m_clipboard->snapshot().then(this, [this, gen, openSession](const ClipboardPayload &saved) {
-        if (gen != m_generation || !m_running)
-            return;
-        m_saved = saved;
-        openSession();
-    });
+    // Буфер через портал доступен только внутри сессии ввода: сначала сессия, потом буфер
+    if (m_clipboard->needsInputSession())
+        openSession([=] { saveClipboard(proceed); });
+    else
+        saveClipboard([=] { openSession(proceed); });
 }
 
 void PasteOrchestrator::hotkeyReleased()
@@ -207,8 +217,10 @@ void PasteOrchestrator::step()
     if (m_index >= m_items.size()) {
         // События клавиш доходят до композитора асинхронно: сессию закрываем не сразу,
         // иначе можно потерять «V отпущена» (docs/problems.md).
-        after(m_options.timing.afterTextMs, [this] {
-            if (m_sessionOpen) {
+        // Буфер через портал (needsInputSession) возвращаем до закрытия сессии, остальные — после.
+        const bool restoreInSession = m_clipboard->needsInputSession();
+        after(m_options.timing.afterTextMs, [this, restoreInSession] {
+            if (m_sessionOpen && !restoreInSession) {
                 m_injector->end();
                 m_sessionOpen = false;
             }
@@ -219,7 +231,7 @@ void PasteOrchestrator::step()
                 m_clipboard->write(m_saved, ClipboardFlag::None).then(this, [this, gen](const Status &) {
                     if (gen == m_generation) {
                         m_saved = {};
-                        finish(Status::success());
+                        finish(Status::success());   // закроет сессию, если она ещё открыта
                     }
                 });
             });
@@ -262,13 +274,14 @@ void PasteOrchestrator::finish(const Status &status)
 {
     if (!m_running)
         return;
+    // При ошибке или отмене всё равно возвращаем буфер, если успели его сохранить.
+    // Запись уходит раньше закрытия сессии: для портала Clipboard после неё писать уже нельзя.
+    if (!status.ok && !m_saved.isEmpty() && m_clipboard)
+        m_clipboard->write(m_saved, ClipboardFlag::None);
     if (m_sessionOpen && m_injector) {
         m_injector->end();
         m_sessionOpen = false;
     }
-    // При ошибке или отмене всё равно возвращаем буфер, если успели его сохранить.
-    if (!status.ok && !m_saved.isEmpty() && m_clipboard)
-        m_clipboard->write(m_saved, ClipboardFlag::None);
     m_saved = {};
     m_running = false;
     m_onReleased = nullptr;

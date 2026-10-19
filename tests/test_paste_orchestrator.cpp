@@ -154,6 +154,43 @@ TEST(PasteOrchestrator, SessionDeniedFailsAndRestores)
     EXPECT_EQ(QString::fromUtf8(cb.current.find(QStringLiteral("text/plain"))->data), QStringLiteral("keep me"));
 }
 
+TEST(PasteOrchestrator, SessionBoundClipboardIsUsedInsideSession)
+{
+    // Портал Clipboard: буфер сохраняется после открытия сессии и возвращается до её закрытия
+    FakeClipboard cb;
+    FakeInjector inj(&cb);
+    cb.sessionOpen = [&inj] { return inj.sessionOpen; };
+    inj.sessionOpen = true;   // чтобы положить исходное содержимое
+    cb.current = ClipboardPayload::text(QStringLiteral("keep me"));
+    inj.sessionOpen = false;
+    cb.log.clear();
+
+    PasteOrchestrator o(&cb, &inj);
+    o.start(threeShots(), fastOptions());
+    EXPECT_TRUE(runToEnd(o).ok);
+    EXPECT_EQ(inj.pasted.size(), 4);
+    ASSERT_GE(cb.log.size(), 4);
+    EXPECT_EQ(cb.log.mid(0, 2), (QStringList{QStringLiteral("begin"), QStringLiteral("snapshot")}));
+    EXPECT_EQ(cb.log.last(), QStringLiteral("end"));
+    EXPECT_EQ(cb.log[cb.log.size() - 2], QStringLiteral("write"));   // восстановление — до end
+    EXPECT_EQ(QString::fromUtf8(cb.current.find(QStringLiteral("text/plain"))->data), QStringLiteral("keep me"));
+}
+
+TEST(PasteOrchestrator, SessionBoundClipboardRestoresBeforeEndOnFailure)
+{
+    FakeClipboard cb;
+    FakeInjector inj(&cb);
+    cb.sessionOpen = [&inj] { return inj.sessionOpen; };
+    inj.sessionOpen = true;
+    cb.current = ClipboardPayload::text(QStringLiteral("keep me"));
+    inj.sessionOpen = false;
+    inj.failOnPaste = 1;
+    PasteOrchestrator o(&cb, &inj);
+    o.start(threeShots(), fastOptions());
+    EXPECT_FALSE(runToEnd(o).ok);
+    EXPECT_EQ(QString::fromUtf8(cb.current.find(QStringLiteral("text/plain"))->data), QStringLiteral("keep me"));
+}
+
 TEST(PasteOrchestrator, FailureMidwayClosesSessionAndRestores)
 {
     FakeClipboard cb;

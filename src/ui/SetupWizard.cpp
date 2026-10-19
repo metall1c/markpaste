@@ -14,6 +14,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
+#include <functional>
 #include <memory>
 
 namespace mp {
@@ -244,43 +245,60 @@ void SetupWizard::checkPaste()
     const QString expected = tr("Markpaste test %1").arg(QTime::currentTime().toString(QStringLiteral("HH:mm:ss")));
 
     // Цепочка как в режиме 1 (PasteOrchestrator): сохранить буфер → сессия ввода → записать →
-    // Ctrl+V → подождать → закрыть сессию → вернуть буфер.
-    clipboard->snapshot().then(this, [=, this](const ClipboardPayload &saved) {
-        auto restore = [=] {
-            if (!saved.isEmpty())
-                clipboard->write(saved, ClipboardFlag::ExcludeFromHistory);
-        };
+    // Ctrl+V → подождать → закрыть сессию → вернуть буфер. Для буфера через портал
+    // (needsInputSession) сессия открывается первой, а буфер возвращается до её закрытия.
+    const bool inSession = clipboard->needsInputSession();
+    auto saved = std::make_shared<ClipboardPayload>();
+    auto restoreAndEnd = [=] {
+        if (!saved->isEmpty() && inSession)
+            clipboard->write(*saved, ClipboardFlag::None);
+        injector->end();
+        if (!saved->isEmpty() && !inSession)
+            clipboard->write(*saved, ClipboardFlag::None);
+    };
+    auto paste = [=, this] {
+        // После диалога портала фокус мог уйти: возвращаем его полю
+        raise();
+        activateWindow();
+        m_pasteField->setFocus();
+        clipboard->write(ClipboardPayload::text(expected), ClipboardFlag::ExcludeFromHistory)
+            .then(this, [=, this](const Status &written) {
+                if (!written) {
+                    restoreAndEnd();
+                    finishPaste(written, expected);
+                    return;
+                }
+                QTimer::singleShot(80, this, [=, this] {
+                    injector->sendPaste().then(this, [=, this](const Status &sent) {
+                        // Закрывать сессию сразу нельзя: событие клавиши доходит до
+                        // композитора асинхронно (docs/problems.md)
+                        QTimer::singleShot(m_pasteWaitMs, this, [=, this] {
+                            restoreAndEnd();
+                            finishPaste(sent, expected);
+                        });
+                    });
+                });
+            });
+    };
+    auto save = [=, this](std::function<void()> next) {
+        clipboard->snapshot().then(this, [saved, next](const ClipboardPayload &p) {
+            *saved = p;
+            next();
+        });
+    };
+    auto begin = [=, this](std::function<void()> next) {
         injector->begin().then(this, [=, this](const Status &begun) {
             if (!begun) {
                 finishPaste(begun, expected);
                 return;
             }
-            // После диалога портала фокус мог уйти: возвращаем его полю
-            raise();
-            activateWindow();
-            m_pasteField->setFocus();
-            clipboard->write(ClipboardPayload::text(expected), ClipboardFlag::ExcludeFromHistory)
-                .then(this, [=, this](const Status &written) {
-                    if (!written) {
-                        injector->end();
-                        restore();
-                        finishPaste(written, expected);
-                        return;
-                    }
-                    QTimer::singleShot(80, this, [=, this] {
-                        injector->sendPaste().then(this, [=, this](const Status &sent) {
-                            // Закрывать сессию сразу нельзя: событие клавиши доходит до
-                            // композитора асинхронно (docs/problems.md)
-                            QTimer::singleShot(m_pasteWaitMs, this, [=, this] {
-                                injector->end();
-                                restore();
-                                finishPaste(sent, expected);
-                            });
-                        });
-                    });
-                });
+            next();
         });
-    });
+    };
+    if (inSession)
+        begin([=] { save(paste); });
+    else
+        save([=] { begin(paste); });
 }
 
 void SetupWizard::finishPaste(const Status &status, const QString &expected)

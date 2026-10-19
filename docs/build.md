@@ -19,7 +19,7 @@ cmake --build build --target dev-install-desktop   # обязательно, с�
 ./build/src/app/markpaste
 ```
 
-`spdlog-devel` и `python3-dbusmock` поставлены, но пока не используются: логи идут через `QLoggingCategory`, тестов порталов в CI ещё нет.
+`libxkbcommon-devel` нужен для раскладки virtual-keyboard-v1 (Sway, Hyprland). `spdlog-devel` и `python3-dbusmock` поставлены, но пока не используются: логи идут через `QLoggingCategory`, тестов порталов в CI ещё нет.
 
 ## Пакет .rpm (и .tar.gz)
 
@@ -41,6 +41,22 @@ sudo dnf install ./build-pkg/markpaste-0.1.0-1.fc44.x86_64.rpm
 - Проверка: `rpmlint build-pkg/*.rpm` — 0 ошибок, одно предупреждение (нет man-страницы); `desktop-file-validate`, `appstreamcli validate --no-net` — без замечаний.
 - **.deb** включается автоматически, если есть `dpkg-shlibdeps` (собирать на Ubuntu/Debian). На Fedora собирается только rpm и tar.gz. На Ubuntu 24.04 пока не проверено.
 - **Разработчику:** `~/.local/share/applications/su._525.Markpaste.desktop` от `dev-install-desktop` важнее системного из пакета (каталог пользователя ищется первым) и указывает на `build/`. Чтобы проверить установленный пакет, этот файл надо удалить.
+
+## Проверка под Sway без отдельной системы
+
+```bash
+sudo dnf install -y --setopt=install_weak_deps=False sway   # поставлен 2026-10-19, sway 1.11
+printf 'output HEADLESS-1 resolution 1280x800\n' > /tmp/sway-headless.conf
+WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WAYLAND_DISPLAY= sway -c /tmp/sway-headless.conf &
+# новый сокет — следующий свободный, обычно wayland-1
+WAYLAND_DISPLAY=wayland-1 QT_QPA_PLATFORM=wayland ./build/tools/pastetest/markpaste-pastetest --check
+WAYLAND_DISPLAY=wayland-1 QT_QPA_PLATFORM=wayland ./build/tools/pastetest/markpaste-pastetest --self-test
+```
+
+Порталы при этом остаются от KDE (общая сессионная шина), поэтому так проверяются только протоколы Wayland: data-control, virtual-keyboard, layer-shell.
+
+- `pastetest --portal-clipboard` — проверка портала Clipboard: пишет через портал и читает обратно через data-control, затем показывает, что осталось в буфере после закрытия сессии. Первый раз KDE спрашивает разрешение.
+- Переменные для проверки запасных путей на KDE: `MARKPASTE_CLIPBOARD=portal` (буфер через портал), `MARKPASTE_INPUT=portal` (Ctrl+V только через RemoteDesktop).
 
 ## Что получается
 

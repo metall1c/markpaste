@@ -40,17 +40,23 @@ if(MARKPASTE_LINUX)
 
     markpaste_wayland_protocol(markpaste_platform
         ${WAYLAND_PROTOCOLS_DIR}/staging/ext-data-control/ext-data-control-v1.xml)
+    # Нет в wayland-protocols: копия из wlroots (MIT), см. файл
+    markpaste_wayland_protocol(markpaste_platform
+        ${CMAKE_CURRENT_SOURCE_DIR}/linux/wayland/protocols/virtual-keyboard-unstable-v1.xml)
 
     target_sources(markpaste_platform PRIVATE
         linux/FdIo.h linux/FdIo.cpp
         linux/portal/PortalBus.h linux/portal/PortalBus.cpp
         linux/portal/PortalRemoteDesktop.h linux/portal/PortalRemoteDesktop.cpp
+        linux/portal/PortalClipboard.h linux/portal/PortalClipboard.cpp
         linux/portal/PortalScreenshot.h linux/portal/PortalScreenshot.cpp
         linux/portal/PortalGlobalShortcuts.h linux/portal/PortalGlobalShortcuts.cpp
         linux/kde/KWinScreenshot.h linux/kde/KWinScreenshot.cpp
         linux/wayland/WaylandConnection.h linux/wayland/WaylandConnection.cpp
         linux/wayland/DataControlClipboard.h linux/wayland/DataControlClipboard.cpp
+        linux/wayland/VirtualKeyboardInjector.h linux/wayland/VirtualKeyboardInjector.cpp
     )
     target_include_directories(markpaste_platform PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
     target_link_libraries(markpaste_platform PUBLIC Qt6::DBus Qt6::Concurrent PkgConfig::WAYLAND_CLIENT)
+    target_link_libraries(markpaste_platform PRIVATE PkgConfig::XKBCOMMON)
 endif()

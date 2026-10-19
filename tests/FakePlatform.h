@@ -3,6 +3,9 @@
 #include "platform/Interfaces.h"
 
 #include <QImage>
+#include <QStringList>
+
+#include <functional>
 
 namespace mp::test {
 
@@ -12,19 +15,32 @@ class FakeClipboard : public IClipboard
 {
 public:
     bool background = true;
+    // Как портал Clipboard: писать и читать можно только при открытой сессии ввода
+    std::function<bool()> sessionOpen;
+    QStringList log;   // "snapshot", "write" — порядок операций
     ClipboardPayload current;
     QList<ClipboardPayload> writes;
     Status nextWriteStatus;
 
     bool canWriteInBackground() const override { return background; }
+    bool needsInputSession() const override { return bool(sessionOpen); }
     QFuture<Status> write(const ClipboardPayload &p, ClipboardFlags) override
     {
+        log << QStringLiteral("write");
+        if (sessionOpen && !sessionOpen())
+            return readyFuture(Status::failure(QStringLiteral("no session")));
         writes << p;
         if (nextWriteStatus.ok)
             current = p;
         return readyFuture(nextWriteStatus);
     }
-    QFuture<ClipboardPayload> snapshot() override { return readyFuture(current); }
+    QFuture<ClipboardPayload> snapshot() override
+    {
+        log << QStringLiteral("snapshot");
+        if (sessionOpen && !sessionOpen())
+            return readyFuture(ClipboardPayload());
+        return readyFuture(current);
+    }
     QString name() const override { return QStringLiteral("fake"); }
 };
 
@@ -42,12 +58,14 @@ public:
     bool isAvailable() const override { return true; }
     QFuture<Status> begin() override
     {
+        clipboard->log << QStringLiteral("begin");
         ++begins;
         sessionOpen = beginStatus.ok;
         return readyFuture(beginStatus);
     }
     void end() override
     {
+        clipboard->log << QStringLiteral("end");
         ++ends;
         sessionOpen = false;
     }

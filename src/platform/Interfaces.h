@@ -50,6 +50,9 @@ class IClipboard : public QObject
 public:
     using QObject::QObject;
     virtual bool canWriteInBackground() const = 0;
+    // Писать и читать можно только при открытой сессии ввода (IInputInjector::begin…end):
+    // портал Clipboard работает внутри сессии RemoteDesktop.
+    virtual bool needsInputSession() const { return false; }
     virtual QFuture<Status> write(const ClipboardPayload &payload, ClipboardFlags flags) = 0;
     virtual QFuture<ClipboardPayload> snapshot() = 0;   // только текст и картинки (ТЗ разд. 10)
     virtual QString name() const = 0;

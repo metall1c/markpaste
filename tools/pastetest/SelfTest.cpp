@@ -3,6 +3,7 @@
 #include "core/CaptureSet.h"
 #include "platform/linux/portal/PortalRemoteDesktop.h"
 #include "platform/linux/wayland/DataControlClipboard.h"
+#include "platform/linux/wayland/VirtualKeyboardInjector.h"
 
 #include <QApplication>
 #include <QCoreApplication>
@@ -136,23 +137,34 @@ int runSelfTest(const QList<QByteArray> &images, const QString &text, int settle
         return 3;
     }
 
+    // Ctrl+V: virtual-keyboard-v1, если композитор его даёт (wlroots), иначе портал RemoteDesktop
     QSettings settings;
-    PortalRemoteDesktop injector;
-    injector.setRestoreToken(settings.value(QStringLiteral("remoteDesktopRestoreToken")).toString());
-    const bool hadToken = !injector.restoreToken().isEmpty();
-    QObject::connect(&injector, &PortalRemoteDesktop::restoreTokenChanged, [&settings](const QString &t) {
-        settings.setValue(QStringLiteral("remoteDesktopRestoreToken"), t);
-        settings.sync();
-    });
+    std::unique_ptr<IInputInjector> injectorPtr;
+    bool hadToken = false;
+    if (qEnvironmentVariable("MARKPASTE_INPUT") != u"portal")
+        injectorPtr.reset(VirtualKeyboardInjector::create());
+    if (!injectorPtr) {
+        auto rd = std::make_unique<PortalRemoteDesktop>();
+        rd->setRestoreToken(settings.value(QStringLiteral("remoteDesktopRestoreToken")).toString());
+        hadToken = !rd->restoreToken().isEmpty();
+        QObject::connect(rd.get(), &PortalRemoteDesktop::restoreTokenChanged, [&settings](const QString &t) {
+            settings.setValue(QStringLiteral("remoteDesktopRestoreToken"), t);
+            settings.sync();
+        });
+        injectorPtr = std::move(rd);
+    }
+    IInputInjector &injector = *injectorPtr;
 
     sout << "Receiver: " << (inProcess ? "same process" : "separate process") << Qt::endl;
-    sout << "Starting RemoteDesktop session (" << (hadToken ? "with restore token" : "no token, dialog expected")
-         << ")…" << Qt::endl;
+    sout << "Starting input session via " << injector.name();
+    if (qobject_cast<PortalRemoteDesktop *>(&injector))
+        sout << " (" << (hadToken ? "with restore token" : "no token, dialog expected") << ")";
+    sout << "…" << Qt::endl;
     QElapsedTimer t;
     t.start();
     const Status begun = await(injector.begin());
     if (!begun.ok) {
-        sout << "FAIL: RemoteDesktop: " << begun.error << Qt::endl;
+        sout << "FAIL: input session: " << begun.error << Qt::endl;
         return 5;
     }
     sout << "Session ready in " << t.elapsed() << " ms" << Qt::endl;

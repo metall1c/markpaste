@@ -11,10 +11,12 @@
 #ifdef Q_OS_LINUX
 #include "linux/kde/KWinScreenshot.h"
 #include "linux/portal/PortalBus.h"
+#include "linux/portal/PortalClipboard.h"
 #include "linux/portal/PortalGlobalShortcuts.h"
 #include "linux/portal/PortalRemoteDesktop.h"
 #include "linux/portal/PortalScreenshot.h"
 #include "linux/wayland/DataControlClipboard.h"
+#include "linux/wayland/VirtualKeyboardInjector.h"
 #include "linux/wayland/WaylandConnection.h"
 #endif
 
@@ -55,15 +57,6 @@ static void createLinuxWayland(Platform &p, const QString &appId)
     else
         p.notes << QStringLiteral("No GlobalShortcuts portal: bind a key to `markpaste --capture` in your desktop settings.");
 
-    // Буфер из фона
-    if (auto *dc = DataControlClipboard::create())
-        p.clipboard.reset(dc);
-    else {
-        p.clipboard = std::make_unique<QtClipboard>(false);
-        p.notes << QStringLiteral("Compositor has no ext-data-control-v1: sequential paste is unavailable, "
-                                  "use \"Copy set\" or drag-and-drop.");
-    }
-
     // Эмуляция Ctrl+V. Токен восстановления хранится в настройках, чтобы диалог был один раз.
     auto rd = std::make_unique<PortalRemoteDesktop>();
     if (rd->isAvailable()) {
@@ -73,10 +66,39 @@ static void createLinuxWayland(Platform &p, const QString &appId)
             QSettings s;
             s.setValue(QStringLiteral("platform/remoteDesktopRestoreToken"), token);
         });
-        p.injector = std::move(rd);
-    } else {
-        p.notes << QStringLiteral("No RemoteDesktop portal: sequential paste is unavailable.");
     }
+
+    // Буфер из фона: ext-data-control-v1 (KDE, Sway, Hyprland) → портал Clipboard внутри
+    // сессии RemoteDesktop (GNOME) → только с фокусом (QClipboard).
+    // MARKPASTE_CLIPBOARD=portal — принудительно портал, для проверки на KDE.
+    const bool forcePortal = qEnvironmentVariable("MARKPASTE_CLIPBOARD") == u"portal";
+    DataControlClipboard *dc = forcePortal ? nullptr : DataControlClipboard::create();
+    if (dc) {
+        p.clipboard.reset(dc);
+    } else if (rd->isAvailable() && PortalClipboard::isAvailable()) {
+        p.clipboard = std::make_unique<PortalClipboard>(rd.get());
+        if (!forcePortal)
+            p.notes << QStringLiteral("Compositor has no ext-data-control-v1: the clipboard goes through the portal "
+                                      "while pasting.");
+    } else {
+        p.clipboard = std::make_unique<QtClipboard>(false);
+        p.notes << QStringLiteral("Compositor has no ext-data-control-v1 and there is no Clipboard portal: "
+                                  "sequential paste is unavailable, use \"Copy set\" or drag-and-drop.");
+    }
+
+    // Ctrl+V: virtual-keyboard-v1 (wlroots: Sway, Hyprland — без диалога) → портал RemoteDesktop
+    // (KDE, GNOME). Буфер через портал живёт только в сессии RemoteDesktop, тогда — только портал.
+    // MARKPASTE_INPUT=portal — принудительно портал.
+    const bool clipboardNeedsPortal = p.clipboard->needsInputSession();
+    VirtualKeyboardInjector *vk = (clipboardNeedsPortal || qEnvironmentVariable("MARKPASTE_INPUT") == u"portal")
+        ? nullptr
+        : VirtualKeyboardInjector::create();
+    if (vk)
+        p.injector.reset(vk);
+    else if (rd->isAvailable())
+        p.injector = std::move(rd);
+    else
+        p.notes << QStringLiteral("No RemoteDesktop portal and no virtual-keyboard-v1: sequential paste is unavailable.");
 }
 #endif
 
