@@ -5,7 +5,7 @@
 #include <QPainter>
 #include <QPainterPath>
 
-namespace ps {
+namespace mp {
 
 static QPixmap drawIcon(int size)
 {
@@ -47,4 +47,4 @@ QIcon appIcon()
     return icon;
 }
 
-} // namespace ps
+} // namespace mp

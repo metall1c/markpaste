@@ -9,7 +9,7 @@ class QListWidget;
 class QToolButton;
 class QPushButton;
 
-namespace ps {
+namespace mp {
 
 // Окно редактирования снимка (ТЗ разд. 4, шаги 3–4). Один снимок за раз;
 // переключение между снимками — из ленты.
@@ -47,4 +47,4 @@ private:
     QListWidget *m_comments;
 };
 
-} // namespace ps
+} // namespace mp

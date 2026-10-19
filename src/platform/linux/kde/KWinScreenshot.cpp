@@ -17,9 +17,9 @@
 
 #include <memory>
 
-Q_LOGGING_CATEGORY(lcKWin, "pointshot.kwin")
+Q_LOGGING_CATEGORY(lcKWin, "markpaste.kwin")
 
-namespace ps::lx {
+namespace mp::lx {
 
 static const QString kService = QStringLiteral("org.kde.KWin");
 static const QString kPath = QStringLiteral("/org/kde/KWin/ScreenShot2");
@@ -146,4 +146,4 @@ QFuture<CaptureResult> KWinScreenshot::captureAllScreens()
     return pending->promise.future();
 }
 
-} // namespace ps::lx
+} // namespace mp::lx

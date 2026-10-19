@@ -57,11 +57,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Pointshot runs under XWayland: global hotkeys and capture will not work.</source>
+        <source>Markpaste runs under XWayland: global hotkeys and capture will not work.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Pointshot is in the tray. Press %1 to capture an area.</source>
+        <source>Markpaste is in the tray. Press %1 to capture an area.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -200,7 +200,7 @@
 <context>
     <name>ps::SettingsDialog</name>
     <message>
-        <source>Pointshot settings</source>
+        <source>Markpaste settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -435,7 +435,7 @@ Drag over the shot to add one.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Shot %1 — Pointshot</source>
+        <source>Shot %1 — Markpaste</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -454,7 +454,7 @@ Drag over the shot to add one.</source>
 <context>
     <name>ps::StripWindow</name>
     <message>
-        <source>Pointshot — set</source>
+        <source>Markpaste — set</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

@@ -20,7 +20,7 @@
 
 Q_DECLARE_LOGGING_CATEGORY(lcWayland)
 
-namespace ps::lx {
+namespace mp::lx {
 
 // Всё, что касается протокола. Живёт и вызывается только в потоке WaylandConnection.
 class DataControlDevice : public QObject
@@ -355,4 +355,4 @@ QStringList DataControlClipboard::currentMimeTypes() const
     return m_device->selectionMimes();
 }
 
-} // namespace ps::lx
+} // namespace mp::lx

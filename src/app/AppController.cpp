@@ -21,16 +21,16 @@
 #include <QUrl>
 #include <QtConcurrent>
 
-Q_LOGGING_CATEGORY(lcApp, "pointshot.app")
+Q_LOGGING_CATEGORY(lcApp, "markpaste.app")
 
-namespace ps {
+namespace mp {
 
 AppController::AppController(QObject *parent)
     : QObject(parent)
 {
-    qRegisterMetaType<ps::Status>();
-    qRegisterMetaType<ps::Action>();
-    qRegisterMetaType<ps::ActivationContext>();
+    qRegisterMetaType<mp::Status>();
+    qRegisterMetaType<mp::Action>();
+    qRegisterMetaType<mp::ActivationContext>();
 }
 
 AppController::~AppController()
@@ -43,7 +43,7 @@ AppController::~AppController()
 void AppController::start()
 {
     m_settings = Settings::load();
-    m_platform = createPlatform(QStringLiteral(POINTSHOT_APP_ID));
+    m_platform = createPlatform(QStringLiteral(MARKPASTE_APP_ID));
 
     m_paste = new PasteOrchestrator(m_platform.clipboard.get(), m_platform.injector.get(), this);
     connect(m_paste, &PasteOrchestrator::progress, this, [this](int done, int total) {
@@ -83,7 +83,7 @@ void AppController::start()
         QSettings s;
         if (!s.value(QStringLiteral("general/hideHintShown")).toBool()) {
             s.setValue(QStringLiteral("general/hideHintShown"), true);
-            m_tray->showMessage(QStringLiteral("Pointshot"), tr("The strip is in the tray. Click the tray icon to show it."),
+            m_tray->showMessage(QStringLiteral("Markpaste"), tr("The strip is in the tray. Click the tray icon to show it."),
                                 appIcon(), 5000);
         }
     });
@@ -123,7 +123,7 @@ void AppController::start()
 
     setupTray();
     if (m_platform.runningUnderXWayland)
-        notify(tr("Pointshot runs under XWayland: global hotkeys and capture will not work."));
+        notify(tr("Markpaste runs under XWayland: global hotkeys and capture will not work."));
 }
 
 void AppController::bindHotkeys()
@@ -188,8 +188,8 @@ void AppController::handleStartup(const QString &command)
         if (!s.value(QStringLiteral("general/welcomeShown")).toBool()) {
             s.setValue(QStringLiteral("general/welcomeShown"), true);
             const QString key = m_boundTriggers.value(Action::Capture, m_settings.captureHotkey);
-            m_tray->showMessage(QStringLiteral("Pointshot"),
-                                tr("Pointshot is in the tray. Press %1 to capture an area.").arg(key), appIcon(), 6000);
+            m_tray->showMessage(QStringLiteral("Markpaste"),
+                                tr("Markpaste is in the tray. Press %1 to capture an area.").arg(key), appIcon(), 6000);
         }
         return;
     }
@@ -400,7 +400,7 @@ void AppController::setupTray()
     if (!QSystemTrayIcon::isSystemTrayAvailable())
         return;   // GNOME без расширения: всё доступно и без трея (APP-1)
     m_tray = new QSystemTrayIcon(appIcon(), this);
-    m_tray->setToolTip(QStringLiteral("Pointshot"));
+    m_tray->setToolTip(QStringLiteral("Markpaste"));
     auto *menu = new QMenu;
     menu->addAction(tr("Capture"), this, &AppController::capture);
     menu->addAction(tr("Show set"), this, &AppController::showStrip);
@@ -426,11 +426,11 @@ void AppController::notify(const QString &text)
     if (m_strip && m_strip->isVisible())
         m_strip->showMessage(text, 6000);
     else if (m_tray)
-        m_tray->showMessage(QStringLiteral("Pointshot"), text, appIcon(), 5000);
+        m_tray->showMessage(QStringLiteral("Markpaste"), text, appIcon(), 5000);
     else {
         showStrip();
         m_strip->showMessage(text, 6000);
     }
 }
 
-} // namespace ps
+} // namespace mp

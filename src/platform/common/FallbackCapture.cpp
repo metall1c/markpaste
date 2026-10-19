@@ -2,9 +2,9 @@
 
 #include <QLoggingCategory>
 
-Q_LOGGING_CATEGORY(lcCapture, "pointshot.capture")
+Q_LOGGING_CATEGORY(lcCapture, "markpaste.capture")
 
-namespace ps {
+namespace mp {
 
 FallbackCapture::FallbackCapture(std::unique_ptr<ICapture> primary, std::unique_ptr<ICapture> secondary,
                                  QObject *parent)
@@ -38,4 +38,4 @@ QString FallbackCapture::name() const
     return (m_primaryFailed || !m_primary) ? m_secondary->name() : m_primary->name();
 }
 
-} // namespace ps
+} // namespace mp

@@ -18,14 +18,14 @@
 #include "linux/wayland/WaylandConnection.h"
 #endif
 
-Q_LOGGING_CATEGORY(lcPlatform, "pointshot.platform")
+Q_LOGGING_CATEGORY(lcPlatform, "markpaste.platform")
 
-namespace ps {
+namespace mp {
 
 #ifdef Q_OS_LINUX
 static void createLinuxWayland(Platform &p, const QString &appId)
 {
-    using namespace ps::lx;
+    using namespace mp::lx;
     const QString desktop = qEnvironmentVariable("XDG_CURRENT_DESKTOP");
     p.environment = QStringLiteral("Wayland · %1").arg(desktop.isEmpty() ? QStringLiteral("unknown") : desktop);
 
@@ -53,7 +53,7 @@ static void createLinuxWayland(Platform &p, const QString &appId)
     if (PortalGlobalShortcuts::isAvailable())
         p.hotkeys = std::make_unique<PortalGlobalShortcuts>();
     else
-        p.notes << QStringLiteral("No GlobalShortcuts portal: bind a key to `pointshot --capture` in your desktop settings.");
+        p.notes << QStringLiteral("No GlobalShortcuts portal: bind a key to `markpaste --capture` in your desktop settings.");
 
     // Буфер из фона
     if (auto *dc = DataControlClipboard::create())
@@ -120,4 +120,4 @@ Platform createPlatform(const QString &appId)
     return p;
 }
 
-} // namespace ps
+} // namespace mp

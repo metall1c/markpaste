@@ -23,7 +23,7 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-namespace ps {
+namespace mp {
 
 namespace {
 constexpr int kThumbWidth = 168;
@@ -273,7 +273,7 @@ private:
 StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
     : QWidget(parent), m_model(model)
 {
-    setWindowTitle(tr("Pointshot — set"));
+    setWindowTitle(tr("Markpaste — set"));
     setAttribute(Qt::WA_DeleteOnClose, false);
     setObjectName(QStringLiteral("Strip"));
     setStyleSheet(QStringLiteral("#Strip { background: palette(window); border: 1px solid palette(mid); border-radius: 10px; }"));
@@ -285,7 +285,7 @@ StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
     auto *header = new StripHeader(this);
     auto *headerLayout = new QHBoxLayout(header);
     headerLayout->setContentsMargins(0, 0, 0, 0);
-    auto *title = new QLabel(QStringLiteral("⠿ <b>Pointshot</b>"));
+    auto *title = new QLabel(QStringLiteral("⠿ <b>Markpaste</b>"));
     title->setAttribute(Qt::WA_TransparentForMouseEvents);   // тянем за весь заголовок
     auto *menuButton = headerButton(themedIcon({QStringLiteral("configure"), QStringLiteral("settings-configure")},
                                                HeaderGlyph::Gear, palette().color(QPalette::WindowText)),
@@ -597,4 +597,4 @@ void StripWindow::savePlacement() const
     s.setValue(QStringLiteral("strip/screen"), m_screenName);
 }
 
-} // namespace ps
+} // namespace mp

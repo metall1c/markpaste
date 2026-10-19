@@ -2,7 +2,7 @@
 
 #include "platform/Interfaces.h"
 
-namespace ps {
+namespace mp {
 
 // Буфер через QClipboard. Переносимый запасной вариант: на Wayland без data-control
 // Qt меняет буфер, только когда у нашего окна есть фокус клавиатуры, поэтому
@@ -22,4 +22,4 @@ private:
     bool m_background;
 };
 
-} // namespace ps
+} // namespace mp

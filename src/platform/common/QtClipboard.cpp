@@ -4,7 +4,7 @@
 #include <QGuiApplication>
 #include <QMimeData>
 
-namespace ps {
+namespace mp {
 
 QtClipboard::QtClipboard(bool backgroundWrites, QObject *parent)
     : IClipboard(parent), m_background(backgroundWrites)
@@ -39,4 +39,4 @@ QFuture<ClipboardPayload> QtClipboard::snapshot()
     return readyFuture(p);
 }
 
-} // namespace ps
+} // namespace mp

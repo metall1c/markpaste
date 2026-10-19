@@ -56,12 +56,12 @@
         <translation>Лента свёрнута в трей. Нажмите на значок, чтобы вернуть её.</translation>
     </message>
     <message>
-        <source>Pointshot runs under XWayland: global hotkeys and capture will not work.</source>
-        <translation>Pointshot запущен через XWayland: глобальные клавиши и захват работать не будут.</translation>
+        <source>Markpaste runs under XWayland: global hotkeys and capture will not work.</source>
+        <translation>Markpaste запущен через XWayland: глобальные клавиши и захват работать не будут.</translation>
     </message>
     <message>
-        <source>Pointshot is in the tray. Press %1 to capture an area.</source>
-        <translation>Pointshot работает в трее. Нажмите %1, чтобы снять область.</translation>
+        <source>Markpaste is in the tray. Press %1 to capture an area.</source>
+        <translation>Markpaste работает в трее. Нажмите %1, чтобы снять область.</translation>
     </message>
     <message>
         <source>Screen capture is not available on this system</source>
@@ -199,8 +199,8 @@
 <context>
     <name>ps::SettingsDialog</name>
     <message>
-        <source>Pointshot settings</source>
-        <translation>Настройки Pointshot</translation>
+        <source>Markpaste settings</source>
+        <translation>Настройки Markpaste</translation>
     </message>
     <message>
         <source>Capture:</source>
@@ -437,8 +437,8 @@ Drag over the shot to add one.</source>
         <translation>(без комментария)</translation>
     </message>
     <message>
-        <source>Shot %1 — Pointshot</source>
-        <translation>Снимок %1 — Pointshot</translation>
+        <source>Shot %1 — Markpaste</source>
+        <translation>Снимок %1 — Markpaste</translation>
     </message>
     <message>
         <source>Drag to mark · Double-click — edit comment · Delete — remove · Ctrl+Z — undo · Ctrl+Enter — done</source>
@@ -456,8 +456,8 @@ Drag over the shot to add one.</source>
 <context>
     <name>ps::StripWindow</name>
     <message>
-        <source>Pointshot — set</source>
-        <translation>Pointshot — набор</translation>
+        <source>Markpaste — set</source>
+        <translation>Markpaste — набор</translation>
     </message>
     <message>
         <source>Settings</source>

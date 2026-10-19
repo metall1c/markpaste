@@ -8,7 +8,7 @@
 #include <QObject>
 #include <QPointer>
 
-namespace ps {
+namespace mp {
 
 enum class PasteMode {
     Sequential = 1,     // режим 1: картинки по одной, потом текст, Ctrl+V за пользователя
@@ -69,7 +69,7 @@ public:
 
 signals:
     void progress(int done, int total);
-    void finished(ps::Status status, ps::PasteMode mode);
+    void finished(mp::Status status, mp::PasteMode mode);
 
 private:
     void runSequence(QList<Item> items);
@@ -91,4 +91,4 @@ private:
     quint64 m_generation = 0;   // защищает от отложенных колбэков прошлого запуска
 };
 
-} // namespace ps
+} // namespace mp

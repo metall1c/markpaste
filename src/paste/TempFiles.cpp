@@ -6,7 +6,7 @@
 #include <QSaveFile>
 #include <QStandardPaths>
 
-namespace ps {
+namespace mp {
 
 QString TempFiles::directory()
 {
@@ -15,9 +15,9 @@ QString TempFiles::directory()
         // RuntimeLocation на Linux — $XDG_RUNTIME_DIR; на других ОС может совпасть с домашним
         // каталогом или временным — тогда отдельная папка на процесс.
         if (!runtime.isEmpty() && runtime != QDir::homePath() && !qEnvironmentVariableIsEmpty("XDG_RUNTIME_DIR"))
-            return runtime + QStringLiteral("/pointshot");
+            return runtime + QStringLiteral("/markpaste");
         return QStandardPaths::writableLocation(QStandardPaths::TempLocation)
-             + QStringLiteral("/pointshot-%1").arg(QCoreApplication::applicationPid());
+             + QStringLiteral("/markpaste-%1").arg(QCoreApplication::applicationPid());
     }();
     return dir;
 }
@@ -41,4 +41,4 @@ void TempFiles::clear()
     QDir(directory()).removeRecursively();
 }
 
-} // namespace ps
+} // namespace mp

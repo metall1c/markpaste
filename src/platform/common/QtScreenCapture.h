@@ -2,7 +2,7 @@
 
 #include "platform/Interfaces.h"
 
-namespace ps {
+namespace mp {
 
 // Захват через QScreen::grabWindow(0). Работает на X11 и Windows (через GDI, без HDR),
 // на Wayland не работает. Временная реализация, пока нет WinCapture и X11Capture
@@ -17,4 +17,4 @@ public:
     QString name() const override { return QStringLiteral("QScreen::grabWindow"); }
 };
 
-} // namespace ps
+} // namespace mp

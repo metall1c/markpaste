@@ -12,7 +12,7 @@
 
 #include <memory>
 
-namespace ps::lx {
+namespace mp::lx {
 
 bool writeAllAndClose(int fd, const QByteArray &data, int timeoutMs)
 {
@@ -104,4 +104,4 @@ QFuture<QByteArray> readAllAsync(int fd, int timeoutMs, QObject *context, qint64
     return st->promise.future();
 }
 
-} // namespace ps::lx
+} // namespace mp::lx

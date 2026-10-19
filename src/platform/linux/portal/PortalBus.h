@@ -7,7 +7,7 @@
 #include <QObject>
 #include <QVariantMap>
 
-namespace ps::lx {
+namespace mp::lx {
 
 struct PortalResponse {
     // 0 — успех, 1 — пользователь отменил, 2 — другая ошибка (спецификация Request).
@@ -67,4 +67,4 @@ private:
     quint64 m_counter = 0;
 };
 
-} // namespace ps::lx
+} // namespace mp::lx

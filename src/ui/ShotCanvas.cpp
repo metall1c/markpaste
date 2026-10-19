@@ -9,7 +9,7 @@
 
 #include <cmath>
 
-namespace ps {
+namespace mp {
 
 namespace {
 constexpr int kMinSourceSize = 6;   // физические px: меньше — случайный клик, а не метка
@@ -490,4 +490,4 @@ void ShotCanvas::resizeEvent(QResizeEvent *)
         m_popup->commit();
 }
 
-} // namespace ps
+} // namespace mp

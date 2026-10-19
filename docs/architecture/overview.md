@@ -5,25 +5,25 @@
 ## Слои и цели CMake
 
 ```
-pointshot (app/)             контроллер, настройки, один экземпляр, трей
-  └ pointshot_ui (ui/)       оверлей, редактор, лента — без кода под ОС
-      ├ pointshot_core       core/ модель · render/ запекание · paste/ оркестратор вставки
-      │   └ pointshot_platform_api   PlatformTypes + 4 интерфейса
-      └ pointshot_platform   PlatformFactory, WindowRoles, Paths, реализации:
+markpaste (app/)             контроллер, настройки, один экземпляр, трей
+  └ markpaste_ui (ui/)       оверлей, редактор, лента — без кода под ОС
+      ├ markpaste_core       core/ модель · render/ запекание · paste/ оркестратор вставки
+      │   └ markpaste_platform_api   PlatformTypes + 4 интерфейса
+      └ markpaste_platform   PlatformFactory, WindowRoles, Paths, реализации:
             common/          QtClipboard, QtScreenCapture, FallbackCapture
             linux/portal/    PortalBus, RemoteDesktop, Screenshot, GlobalShortcuts
             linux/wayland/   WaylandConnection (свой поток), DataControlClipboard
             linux/kde/       KWinScreenshot
 ```
 
-Ядро видит только `pointshot_platform_api`. `#ifdef` под ОС — только в `src/platform/` (проверка: `grep -rn 'ifdef\|Q_OS_' src | grep -v ^src/platform/`).
+Ядро видит только `markpaste_platform_api`. `#ifdef` под ОС — только в `src/platform/` (проверка: `grep -rn 'ifdef\|Q_OS_' src | grep -v ^src/platform/`).
 
 ## Что выбирает PlatformFactory на KDE Wayland
 
 | Интерфейс | Реализация | Запасная |
 | --- | --- | --- |
 | ICapture | KWin ScreenShot2, каждый монитор в родных пикселях | портал Screenshot (`FallbackCapture` переключается навсегда после первой ошибки) |
-| IHotkeys | портал GlobalShortcuts | нет — тогда CLI `pointshot --capture` |
+| IHotkeys | портал GlobalShortcuts | нет — тогда CLI `markpaste --capture` |
 | IClipboard | ext-data-control-v1 | QClipboard (без записи из фона: режим 1 выключается) |
 | IInputInjector | портал RemoteDesktop | нет — режим 2 |
 
@@ -47,7 +47,7 @@ pointshot (app/)             контроллер, настройки, один 
 6. После последнего: ещё пауза (≥ 400 мс), только потом `end()`. События клавиш доходят до KWin асинхронно, и раннее закрытие сессии теряло «V отпущена» (docs/problems.md).
 7. Через 1 с вернуть буфер. При ошибке или отмене буфер возвращается сразу.
 
-Режим 2 (файлы + текст) — одна запись: `text/uri-list`, `x-special/gnome-copied-files`, текст с синонимами MIME, первая картинка `image/png`. Файлы лежат в `$XDG_RUNTIME_DIR/pointshot/` (0700), удаляются при очистке набора и при выходе.
+Режим 2 (файлы + текст) — одна запись: `text/uri-list`, `x-special/gnome-copied-files`, текст с синонимами MIME, первая картинка `image/png`. Файлы лежат в `$XDG_RUNTIME_DIR/markpaste/` (0700), удаляются при очистке набора и при выходе.
 
 ## Кнопка «Вставить набор» в ленте
 
@@ -60,9 +60,9 @@ pointshot (app/)             контроллер, настройки, один 
 ## Потоки
 
 - Главный: UI, модель, D-Bus-вызовы (ответы приходят из потока QtDBus через очередь).
-- `pointshot-wayland`: своё подключение к композитору и data-control (ADR 0002).
+- `markpaste-wayland`: своё подключение к композитору и data-control (ADR 0002).
 - Пул `QtConcurrent`: запекание, PNG, запись данных буфера в pipe, декодирование кадра портала.
 
 ## Один экземпляр
 
-`QLocalServer` на `$XDG_RUNTIME_DIR/io.github.pointshot.Pointshot.sock`. Новый процесс **сначала подключается** к сокету и передаёт команду. Только если никто не ответил — сносит старый сокет и слушает сам. Опираться на результат `listen()` нельзя (docs/problems.md).
+`QLocalServer` на `$XDG_RUNTIME_DIR/su._525.Markpaste.sock`. Новый процесс **сначала подключается** к сокету и передаёт команду. Только если никто не ответил — сносит старый сокет и слушает сам. Опираться на результат `listen()` нельзя (docs/problems.md).

@@ -3,8 +3,8 @@
 
 #include <gtest/gtest.h>
 
-using namespace ps;
-using namespace ps::test;
+using namespace mp;
+using namespace mp::test;
 
 TEST(Renderer, BadgeContrastAtLeast45)
 {

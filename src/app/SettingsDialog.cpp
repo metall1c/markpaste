@@ -13,7 +13,7 @@
 #include <QTabWidget>
 #include <QVBoxLayout>
 
-namespace ps {
+namespace mp {
 
 namespace {
 void setButtonColor(QPushButton *b, const QColor &c)
@@ -26,7 +26,7 @@ void setButtonColor(QPushButton *b, const QColor &c)
 SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platform, QWidget *parent)
     : QDialog(parent), m_settings(settings), m_accentColor(settings.accent)
 {
-    setWindowTitle(tr("Pointshot settings"));
+    setWindowTitle(tr("Markpaste settings"));
     auto *tabs = new QTabWidget;
 
     // --- Клавиши и захват ---
@@ -171,4 +171,4 @@ Settings SettingsDialog::settings() const
     return s;
 }
 
-} // namespace ps
+} // namespace mp

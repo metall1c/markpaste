@@ -7,7 +7,7 @@
 #include <QUuid>
 #include <QWidget>
 
-namespace ps {
+namespace mp {
 
 class CommentPopup;
 
@@ -43,7 +43,7 @@ public:
     QSize sizeHint() const override;
 
 signals:
-    void toolChanged(ps::ShotCanvas::Tool tool);
+    void toolChanged(mp::ShotCanvas::Tool tool);
     void cropPendingChanged(bool pending);
     void finishRequested();
 
@@ -100,4 +100,4 @@ private:
     CommentPopup *m_popup;
 };
 
-} // namespace ps
+} // namespace mp

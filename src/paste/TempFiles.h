@@ -4,11 +4,11 @@
 #include <QString>
 #include <QStringList>
 
-namespace ps {
+namespace mp {
 
 // Временные картинки для режимов «файлы + текст» и перетаскивания (ТЗ разд. 10, 11).
-// Каталог: $XDG_RUNTIME_DIR/pointshot (Linux, в tmpfs, доступ только владельцу),
-// иначе <temp>/pointshot-<pid>. Права 0700. Очищается при очистке набора и при выходе.
+// Каталог: $XDG_RUNTIME_DIR/markpaste (Linux, в tmpfs, доступ только владельцу),
+// иначе <temp>/markpaste-<pid>. Права 0700. Очищается при очистке набора и при выходе.
 class TempFiles
 {
 public:
@@ -18,4 +18,4 @@ public:
     static void clear();
 };
 
-} // namespace ps
+} // namespace mp

@@ -7,7 +7,7 @@
 #include <QString>
 #include <QUuid>
 
-namespace ps {
+namespace mp {
 
 inline constexpr int kMaxShots = 26;            // A–Z
 inline constexpr int kMaxCommentLength = 500;   // EDT-5
@@ -69,4 +69,4 @@ QString markLabel(int shotIndex, int markIndex);   // (0, 0) → "A1"
 // в Qt 6 перевёрнутый прямоугольник нормализуется со сдвигом на пиксель.
 QRect rectFromPoints(const QPoint &a, const QPoint &b);
 
-} // namespace ps
+} // namespace mp

@@ -2,7 +2,7 @@
 
 #include <QUndoCommand>
 
-namespace ps {
+namespace mp {
 
 class StateCommand : public QUndoCommand
 {
@@ -254,4 +254,4 @@ bool CaptureSetModel::setCrop(const QUuid &shotId, const QRect &crop)
     });
 }
 
-} // namespace ps
+} // namespace mp

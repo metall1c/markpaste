@@ -2,9 +2,9 @@
 
 #include <QIcon>
 
-namespace ps {
+namespace mp {
 
 // Значок программы. Пока рисуется кодом; файл для .desktop и трея — data/icons/.
 QIcon appIcon();
 
-} // namespace ps
+} // namespace mp

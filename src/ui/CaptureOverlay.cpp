@@ -11,7 +11,7 @@
 
 #include <cmath>
 
-namespace ps {
+namespace mp {
 
 namespace {
 const QColor kAccent(0xFF, 0x5A, 0x1F);
@@ -429,4 +429,4 @@ void OverlayWidget::confirmSelection()
     m_session->confirm(this, phys);
 }
 
-} // namespace ps
+} // namespace mp

@@ -2,7 +2,7 @@
 
 #include "platform/Interfaces.h"
 
-namespace ps::lx {
+namespace mp::lx {
 
 // Быстрый захват на KDE через org.kde.KWin.ScreenShot2 (ТЗ разд. 9).
 //
@@ -25,4 +25,4 @@ public:
     QString name() const override { return QStringLiteral("KWin ScreenShot2"); }
 };
 
-} // namespace ps::lx
+} // namespace mp::lx

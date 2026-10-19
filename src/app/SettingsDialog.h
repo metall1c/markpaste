@@ -11,7 +11,7 @@ class QLineEdit;
 class QPushButton;
 class QSpinBox;
 
-namespace ps {
+namespace mp {
 
 // Настройки (APP-3). Минимальный набор для 1.0: клавиши, вставка, сообщение, вид.
 class SettingsDialog : public QDialog
@@ -41,4 +41,4 @@ private:
     QColor m_accentColor;
 };
 
-} // namespace ps
+} // namespace mp

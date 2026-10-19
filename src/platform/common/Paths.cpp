@@ -3,7 +3,7 @@
 #include <QDir>
 #include <QStandardPaths>
 
-namespace ps {
+namespace mp {
 
 QString singleInstanceSocketName(const QString &appId)
 {
@@ -17,4 +17,4 @@ QString singleInstanceSocketName(const QString &appId)
 #endif
 }
 
-} // namespace ps
+} // namespace mp

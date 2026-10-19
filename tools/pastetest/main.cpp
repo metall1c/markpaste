@@ -29,8 +29,8 @@
 #include <csignal>
 #include <memory>
 
-using namespace ps;
-using namespace ps::lx;
+using namespace mp;
+using namespace mp::lx;
 
 namespace {
 
@@ -104,9 +104,9 @@ int runCheck()
         say(QStringLiteral("  %1 %2").arg(QString::fromLatin1(i), -40)
                 .arg(v ? QStringLiteral("v%1").arg(v) : QStringLiteral("—")));
     }
-    const Status reg = bus.registerApp(QStringLiteral(POINTSHOT_APP_ID));
+    const Status reg = bus.registerApp(QStringLiteral(MARKPASTE_APP_ID));
     say(QStringLiteral("\nhost Registry.Register(%1): %2")
-            .arg(QStringLiteral(POINTSHOT_APP_ID), reg.ok ? QStringLiteral("ok") : reg.error));
+            .arg(QStringLiteral(MARKPASTE_APP_ID), reg.ok ? QStringLiteral("ok") : reg.error));
 
     if (auto *cb = DataControlClipboard::create()) {
         say(QStringLiteral("\nCurrent clipboard MIME types: %1").arg(cb->currentMimeTypes().join(QStringLiteral(", "))));
@@ -144,11 +144,11 @@ int main(int argc, char **argv)
 {
     std::signal(SIGPIPE, SIG_IGN);
     QApplication app(argc, argv);
-    QCoreApplication::setOrganizationName(QStringLiteral("pointshot"));
+    QCoreApplication::setOrganizationName(QStringLiteral("markpaste"));
     QCoreApplication::setApplicationName(QStringLiteral("pastetest"));
 
     QCommandLineParser cli;
-    cli.setApplicationDescription(QStringLiteral("Pointshot paste prototype"));
+    cli.setApplicationDescription(QStringLiteral("Markpaste paste prototype"));
     cli.addHelpOption();
     cli.addPositionalArgument(QStringLiteral("images"), QStringLiteral("PNG files (default: 3 generated samples)"));
     QCommandLineOption checkOpt(QStringLiteral("check"), QStringLiteral("Print platform capabilities and exit"));
@@ -179,7 +179,7 @@ int main(int argc, char **argv)
     if (cli.isSet(checkOpt))
         return runCheck();
     if (cli.isSet(captureOpt)) {
-        PortalBus::instance().registerApp(QStringLiteral(POINTSHOT_APP_ID));
+        PortalBus::instance().registerApp(QStringLiteral(MARKPASTE_APP_ID));
         return runCapture(cli.value(captureOpt), cli.value(outOpt));
     }
     if (cli.isSet(receiverOpt))
@@ -211,13 +211,13 @@ int main(int argc, char **argv)
 
     PortalBus &bus = PortalBus::instance();
     if (cli.isSet(selfTestOpt)) {
-        const Status r = bus.registerApp(QStringLiteral(POINTSHOT_APP_ID));
+        const Status r = bus.registerApp(QStringLiteral(MARKPASTE_APP_ID));
         if (!r.ok)
             say(QStringLiteral("warning: portal app registration failed: %1").arg(r.error));
         return runSelfTest(images, text, cli.value(settleOpt).toInt(), cli.value(delayOpt).toInt(),
                            cli.isSet(inProcessOpt));
     }
-    const Status reg = bus.registerApp(QStringLiteral(POINTSHOT_APP_ID));
+    const Status reg = bus.registerApp(QStringLiteral(MARKPASTE_APP_ID));
     if (!reg.ok)
         say(QStringLiteral("warning: portal app registration failed: %1").arg(reg.error));
 
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
 
     // --- Режим 2: одна запись с файлами, текстом и первой картинкой ---
     if (mode == 2) {
-        const QString dir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + QStringLiteral("/pointshot");
+        const QString dir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + QStringLiteral("/markpaste");
         QDir().mkpath(dir);
         QFile::setPermissions(dir, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
         QStringList uris;

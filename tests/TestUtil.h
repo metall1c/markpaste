@@ -6,7 +6,7 @@
 #include <QImage>
 #include <QRandomGenerator>
 
-namespace ps::test {
+namespace mp::test {
 
 // Шумная картинка: у соседних пикселей почти всегда разные цвета,
 // поэтому по ней видно, остались ли в размытой области исходные пиксели.
@@ -41,4 +41,4 @@ inline Shot makeShot(int w = 200, int h = 100, qreal dpr = 1.0)
     return s;
 }
 
-} // namespace ps::test
+} // namespace mp::test

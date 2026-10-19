@@ -5,7 +5,7 @@
 #include <QLocale>
 #include <QString>
 
-namespace ps {
+namespace mp {
 
 // Шаблон текста сообщения (PST-3, ТЗ разд. 10). Локализуется отдельно от интерфейса (NFR-10):
 // язык шаблона может не совпадать с языком UI.
@@ -26,4 +26,4 @@ struct MessageTemplate {
 // - между снимками — пустая строка.
 QString buildMessage(const CaptureSet &set, const MessageTemplate &tpl);
 
-} // namespace ps
+} // namespace mp

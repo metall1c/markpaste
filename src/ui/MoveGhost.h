@@ -8,7 +8,7 @@
 
 class QScreen;
 
-namespace ps {
+namespace mp {
 
 class GhostLayer;
 
@@ -32,4 +32,4 @@ private:
     bool m_available = true;
 };
 
-} // namespace ps
+} // namespace mp

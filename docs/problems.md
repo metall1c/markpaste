@@ -16,14 +16,14 @@
 ## 2026-10-19 · Второй экземпляр не находит первый, `--quit` не доходит
 
 - **Окружение:** Qt 6.11.2, Fedora 44.
-- **Симптом:** при запущенной программе `pointshot --capture` запускал второй полноценный экземпляр. `pointshot --quit` не закрывал первый.
+- **Симптом:** при запущенной программе `markpaste --capture` запускал второй полноценный экземпляр. `markpaste --quit` не закрывал первый.
 - **Причина:** `QLocalServer` с `UserAccessOption` создаёт сокет во временном каталоге (`/run/user/1000/.AxWCqw/s`) и переименовывает его поверх нужного пути. `listen()` проходит у каждого нового процесса, и последний перехватывает имя. Видно в `ss -xlp`: у каждого процесса свой LISTEN-сокет.
 - **Решение:** новый процесс сначала подключается к сокету и передаёт команду. Только если никто не ответил, сносит старый сокет и слушает сам. `UserAccessOption` убран: `$XDG_RUNTIME_DIR` и так 0700.
 - **Статус:** решено, проверено (`--capture` и `--quit` доходят, процесс завершается).
 
 ## 2026-10-19 · Пустой лог при запуске программы в фоне
 
-- **Симптом:** `pointshot > app.log 2>&1 &` — файл пустой.
+- **Симптом:** `markpaste > app.log 2>&1 &` — файл пустой.
 - **Причина:** Qt пишет в journald, когда stderr — не терминал.
 - **Решение:** `QT_FORCE_STDERR_LOGGING=1` или `journalctl --user -f` (docs/build.md).
 - **Статус:** не проблема программы, записано для разработчиков.
@@ -39,9 +39,9 @@
 ## 2026-10-19 · Портал отказывает в регистрации app id: «App info not found»
 
 - **Окружение:** xdg-desktop-portal 1.22.1, Fedora 44 KDE.
-- **Симптом:** `org.freedesktop.host.portal.Registry.Register("io.github.pointshot.Pointshot")` → `Could not register app ID: App info not found`.
+- **Симптом:** `org.freedesktop.host.portal.Registry.Register("su._525.Markpaste")` → `Could not register app ID: App info not found`.
 - **Причина:** портал ищет .desktop-файл через GLib (`GDesktopAppInfo`). GLib отбрасывает файл, если программы из `Exec` нет на диске. Проверено: `Gio.DesktopAppInfo.new()` возвращает NULL, пока бинарника нет, и объект — как только он появился.
-- **Решение:** цель `cmake --build build --target dev-install-desktop` ставит в `~/.local/share/applications/` .desktop-файл с `Exec` на бинарник из каталога сборки. Пока основного бинарника нет, `build/src/app/pointshot` — ссылка на `pointshot-pastetest`.
+- **Решение:** цель `cmake --build build --target dev-install-desktop` ставит в `~/.local/share/applications/` .desktop-файл с `Exec` на бинарник из каталога сборки. Пока основного бинарника нет, `build/src/app/markpaste` — ссылка на `markpaste-pastetest`.
 - **Следствие для пакетов:** .desktop-файл и бинарник обязаны ставиться вместе. Регистрация у порталов — только из процесса, для которого .desktop-файл валиден.
 - **Статус:** решено для разработки.
 

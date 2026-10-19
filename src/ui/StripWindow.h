@@ -16,7 +16,7 @@ class QPushButton;
 class QVBoxLayout;
 class QScrollArea;
 
-namespace ps {
+namespace mp {
 
 class ShotThumb;
 
@@ -105,4 +105,4 @@ private:
     QHash<QUuid, CachedThumb> m_thumbs;
 };
 
-} // namespace ps
+} // namespace mp

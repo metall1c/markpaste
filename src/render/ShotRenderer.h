@@ -8,7 +8,7 @@
 
 class QPainter;
 
-namespace ps {
+namespace mp {
 
 // Размеры — в логических пикселях, при запекании умножаются на devicePixelRatio снимка.
 struct RenderStyle {
@@ -56,4 +56,4 @@ struct EncodedImage {
 
 EncodedImage encodeForPaste(QImage image, const EncodeOptions &options = {});
 
-} // namespace ps
+} // namespace mp

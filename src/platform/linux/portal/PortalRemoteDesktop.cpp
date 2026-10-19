@@ -7,7 +7,7 @@
 
 Q_DECLARE_LOGGING_CATEGORY(lcPortal)
 
-namespace ps::lx {
+namespace mp::lx {
 
 static const QString kIface = QStringLiteral("org.freedesktop.portal.RemoteDesktop");
 
@@ -215,4 +215,4 @@ QFuture<Status> PortalRemoteDesktop::sendPaste()
     return promise->future();
 }
 
-} // namespace ps::lx
+} // namespace mp::lx

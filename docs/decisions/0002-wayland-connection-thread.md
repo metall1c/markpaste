@@ -18,7 +18,7 @@
 
 ## Решение
 
-`WaylandConnection` и все слушатели протоколов (`DataControlDevice`) живут в отдельном потоке `pointshot-wayland` со своим циклом событий. `DataControlClipboard` — потокобезопасный фасад для главного потока: методы передаются в поток Wayland через `QMetaObject::invokeMethod`, результаты возвращаются через `QFuture`. Данные в pipe пишет пул `QtConcurrent`, чтобы поток Wayland оставался свободным.
+`WaylandConnection` и все слушатели протоколов (`DataControlDevice`) живут в отдельном потоке `markpaste-wayland` со своим циклом событий. `DataControlClipboard` — потокобезопасный фасад для главного потока: методы передаются в поток Wayland через `QMetaObject::invokeMethod`, результаты возвращаются через `QFuture`. Данные в pipe пишет пул `QtConcurrent`, чтобы поток Wayland оставался свободным.
 
 ## Рассмотренные варианты
 
@@ -30,4 +30,4 @@
 
 - Код в `platform/linux/wayland/` обязан соблюдать правило: обращаться к объектам протокола только из потока подключения.
 - `hasGlobal()` и `global()` читают снимок, сделанный при подключении, поэтому безопасны из любого потока.
-- Проверка — `pointshot-pastetest --self-test --in-process`: приёмник в нашем процессе получает все картинки и текст.
+- Проверка — `markpaste-pastetest --self-test --in-process`: приёмник в нашем процессе получает все картинки и текст.

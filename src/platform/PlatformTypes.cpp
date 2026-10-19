@@ -1,6 +1,6 @@
 #include "PlatformTypes.h"
 
-namespace ps {
+namespace mp {
 
 QStringList ClipboardPayload::mimeTypes() const
 {
@@ -44,4 +44,4 @@ ClipboardPayload ClipboardPayload::image(const QByteArray &encoded, const QByteA
     return p;
 }
 
-} // namespace ps
+} // namespace mp

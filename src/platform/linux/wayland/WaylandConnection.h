@@ -11,7 +11,7 @@ struct wl_interface;
 
 class QThread;
 
-namespace ps::lx {
+namespace mp::lx {
 
 struct WaylandGlobal {
     uint32_t name = 0;
@@ -79,4 +79,4 @@ private:
     QThread *m_thread = nullptr;
 };
 
-} // namespace ps::lx
+} // namespace mp::lx

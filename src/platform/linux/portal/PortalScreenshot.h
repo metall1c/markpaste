@@ -2,7 +2,7 @@
 
 #include "platform/Interfaces.h"
 
-namespace ps::lx {
+namespace mp::lx {
 
 // Захват через xdg-desktop-portal Screenshot (interactive=false). Работает везде, где есть
 // портал, но: снимок всего рабочего стола одним файлом, первый раз — диалог разрешения,
@@ -23,4 +23,4 @@ public:
     QString name() const override { return QStringLiteral("xdg-desktop-portal Screenshot"); }
 };
 
-} // namespace ps::lx
+} // namespace mp::lx

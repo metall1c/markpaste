@@ -40,7 +40,7 @@ const QDBusArgument &operator>>(const QDBusArgument &arg, PortalShortcut &s)
 Q_DECLARE_METATYPE(PortalShortcut)
 Q_DECLARE_METATYPE(PortalShortcutList)
 
-namespace ps::lx {
+namespace mp::lx {
 
 static const QString kIface = QStringLiteral("org.freedesktop.portal.GlobalShortcuts");
 
@@ -232,4 +232,4 @@ void PortalGlobalShortcuts::onDeactivated(const QDBusObjectPath &session, const 
     emit released(a);
 }
 
-} // namespace ps::lx
+} // namespace mp::lx

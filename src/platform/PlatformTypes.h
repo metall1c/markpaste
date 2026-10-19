@@ -10,7 +10,7 @@
 #include <QString>
 #include <QStringList>
 
-namespace ps {
+namespace mp {
 
 // Результат асинхронной платформенной операции. Ошибки возвращаем значением,
 // а не исключением: на Wayland отказ пользователя в диалоге портала — обычный исход.
@@ -102,4 +102,4 @@ enum class ClipboardFlag {
 Q_DECLARE_FLAGS(ClipboardFlags, ClipboardFlag)
 Q_DECLARE_OPERATORS_FOR_FLAGS(ClipboardFlags)
 
-} // namespace ps
+} // namespace mp

@@ -11,7 +11,7 @@
 class QSystemTrayIcon;
 class QMimeData;
 
-namespace ps {
+namespace mp {
 
 class CaptureSession;
 class ShotEditor;
@@ -64,4 +64,4 @@ private:
     bool m_stripWasVisible = false;
 };
 
-} // namespace ps
+} // namespace mp

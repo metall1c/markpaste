@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace ps {
+namespace mp {
 
 int Shot::commentCount() const
 {
@@ -70,4 +70,4 @@ QRect rectFromPoints(const QPoint &a, const QPoint &b)
                  QPoint(std::max(a.x(), b.x()), std::max(a.y(), b.y())));
 }
 
-} // namespace ps
+} // namespace mp

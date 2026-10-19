@@ -7,7 +7,7 @@
 
 #include <functional>
 
-namespace ps {
+namespace mp {
 
 // Владелец набора и единственная точка его изменения.
 //
@@ -65,4 +65,4 @@ private:
     QUndoStack m_undo;
 };
 
-} // namespace ps
+} // namespace mp

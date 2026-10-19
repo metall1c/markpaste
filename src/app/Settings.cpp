@@ -2,7 +2,7 @@
 
 #include <QSettings>
 
-namespace ps {
+namespace mp {
 
 Settings Settings::load()
 {
@@ -96,4 +96,4 @@ PasteOptions Settings::pasteOptions() const
     return o;
 }
 
-} // namespace ps
+} // namespace mp

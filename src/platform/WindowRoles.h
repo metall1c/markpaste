@@ -4,7 +4,7 @@
 class QWidget;
 class QScreen;
 
-namespace ps {
+namespace mp {
 
 // Особые роли окон, которые на разных системах делаются по-разному (ТЗ разд. 9).
 // Вызывать ДО первого show(). Возвращают true, если роль назначена средствами
@@ -39,4 +39,4 @@ bool applyPanelRole(QWidget *widget, QScreen *screen, const PanelPlacement &plac
 // false — панель не layer-shell, её двигает оконный менеджер.
 bool movePanel(QWidget *widget, QScreen *screen, const PanelPlacement &placement);
 
-} // namespace ps
+} // namespace mp

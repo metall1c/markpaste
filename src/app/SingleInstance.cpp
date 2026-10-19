@@ -5,7 +5,7 @@
 #include <QLocalServer>
 #include <QLocalSocket>
 
-namespace ps {
+namespace mp {
 
 SingleInstance::SingleInstance(const QString &appId, QObject *parent)
     : QObject(parent)
@@ -54,4 +54,4 @@ bool SingleInstance::listen()
     return true;
 }
 
-} // namespace ps
+} // namespace mp

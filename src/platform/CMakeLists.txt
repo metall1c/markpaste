@@ -1,14 +1,14 @@
 # Платформенный слой. Только здесь допустим код под конкретную ОС (NFR-11).
 # Интерфейсы и типы — их видит ядро.
-add_library(pointshot_platform_api STATIC
+add_library(markpaste_platform_api STATIC
     PlatformTypes.h PlatformTypes.cpp
     Interfaces.h
 )
-target_include_directories(pointshot_platform_api PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
-target_link_libraries(pointshot_platform_api PUBLIC Qt6::Core Qt6::Gui)
+target_include_directories(markpaste_platform_api PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_link_libraries(markpaste_platform_api PUBLIC Qt6::Core Qt6::Gui)
 
 # Реализации. Ядро их не видит, их собирает PlatformFactory.
-add_library(pointshot_platform STATIC
+add_library(markpaste_platform STATIC
     PlatformFactory.h PlatformFactory.cpp
     common/QtClipboard.h common/QtClipboard.cpp
     common/QtScreenCapture.h common/QtScreenCapture.cpp
@@ -16,15 +16,15 @@ add_library(pointshot_platform STATIC
     WindowRoles.h common/WindowRoles.cpp
     Paths.h common/Paths.cpp
 )
-target_link_libraries(pointshot_platform PUBLIC pointshot_platform_api Qt6::Gui Qt6::Widgets)
+target_link_libraries(markpaste_platform PUBLIC markpaste_platform_api Qt6::Gui Qt6::Widgets)
 if(LayerShellQt_FOUND)
-    target_link_libraries(pointshot_platform PRIVATE LayerShellQt::Interface)
-    target_compile_definitions(pointshot_platform PRIVATE POINTSHOT_HAVE_LAYERSHELLQT)
+    target_link_libraries(markpaste_platform PRIVATE LayerShellQt::Interface)
+    target_compile_definitions(markpaste_platform PRIVATE MARKPASTE_HAVE_LAYERSHELLQT)
 endif()
 
-if(POINTSHOT_LINUX)
+if(MARKPASTE_LINUX)
     # Клиентский код протоколов Wayland для нашего отдельного подключения.
-    function(pointshot_wayland_protocol target xml)
+    function(markpaste_wayland_protocol target xml)
         get_filename_component(base ${xml} NAME_WE)
         set(header ${CMAKE_CURRENT_BINARY_DIR}/${base}-client-protocol.h)
         set(code ${CMAKE_CURRENT_BINARY_DIR}/${base}-protocol.c)
@@ -37,10 +37,10 @@ if(POINTSHOT_LINUX)
         target_sources(${target} PRIVATE ${header} ${code})
     endfunction()
 
-    pointshot_wayland_protocol(pointshot_platform
+    markpaste_wayland_protocol(markpaste_platform
         ${WAYLAND_PROTOCOLS_DIR}/staging/ext-data-control/ext-data-control-v1.xml)
 
-    target_sources(pointshot_platform PRIVATE
+    target_sources(markpaste_platform PRIVATE
         linux/FdIo.h linux/FdIo.cpp
         linux/portal/PortalBus.h linux/portal/PortalBus.cpp
         linux/portal/PortalRemoteDesktop.h linux/portal/PortalRemoteDesktop.cpp
@@ -50,6 +50,6 @@ if(POINTSHOT_LINUX)
         linux/wayland/WaylandConnection.h linux/wayland/WaylandConnection.cpp
         linux/wayland/DataControlClipboard.h linux/wayland/DataControlClipboard.cpp
     )
-    target_include_directories(pointshot_platform PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-    target_link_libraries(pointshot_platform PUBLIC Qt6::DBus Qt6::Concurrent PkgConfig::WAYLAND_CLIENT)
+    target_include_directories(markpaste_platform PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+    target_link_libraries(markpaste_platform PUBLIC Qt6::DBus Qt6::Concurrent PkgConfig::WAYLAND_CLIENT)
 endif()

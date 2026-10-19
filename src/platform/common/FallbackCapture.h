@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace ps {
+namespace mp {
 
 // Основной способ захвата с запасным: если основной отказал (например, KWin не считает
 // программу доверенной), переключаемся на запасной и больше основной не пробуем.
@@ -24,4 +24,4 @@ private:
     bool m_primaryFailed = false;
 };
 
-} // namespace ps
+} // namespace mp

@@ -17,13 +17,13 @@ int main(int argc, char **argv)
     std::signal(SIGPIPE, SIG_IGN);
 
     QApplication app(argc, argv);
-    QCoreApplication::setOrganizationName(QStringLiteral("pointshot"));
-    QCoreApplication::setApplicationName(QStringLiteral("pointshot"));
-    QCoreApplication::setApplicationVersion(QStringLiteral(POINTSHOT_VERSION));
+    QCoreApplication::setOrganizationName(QStringLiteral("markpaste"));
+    QCoreApplication::setApplicationName(QStringLiteral("markpaste"));
+    QCoreApplication::setApplicationVersion(QStringLiteral(MARKPASTE_VERSION));
     // Имя .desktop-файла = app id: по нему Wayland-композитор и порталы узнают программу.
-    QGuiApplication::setDesktopFileName(QStringLiteral(POINTSHOT_APP_ID));
-    QGuiApplication::setApplicationDisplayName(QStringLiteral("Pointshot"));
-    QGuiApplication::setWindowIcon(ps::appIcon());
+    QGuiApplication::setDesktopFileName(QStringLiteral(MARKPASTE_APP_ID));
+    QGuiApplication::setApplicationDisplayName(QStringLiteral("Markpaste"));
+    QGuiApplication::setWindowIcon(mp::appIcon());
     QApplication::setQuitOnLastWindowClosed(false);   // работаем в фоне (APP-1)
 
     // Язык интерфейса — по системе (APP-5). Переводы Qt — для стандартных кнопок диалогов.
@@ -32,7 +32,7 @@ int main(int argc, char **argv)
                           QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
         QCoreApplication::installTranslator(&qtTranslator);
     QTranslator appTranslator;
-    if (appTranslator.load(QLocale(), QStringLiteral("pointshot"), QStringLiteral("_"), QStringLiteral(":/i18n")))
+    if (appTranslator.load(QLocale(), QStringLiteral("markpaste"), QStringLiteral("_"), QStringLiteral(":/i18n")))
         QCoreApplication::installTranslator(&appTranslator);
 
     QCommandLineParser cli;
@@ -60,18 +60,18 @@ int main(int argc, char **argv)
             command = name;
 
     // Второй экземпляр — только передаёт команду (APP-2, CAP-7)
-    ps::SingleInstance instance(QStringLiteral(POINTSHOT_APP_ID));
+    mp::SingleInstance instance(QStringLiteral(MARKPASTE_APP_ID));
     if (!instance.listen()) {
         if (instance.sendToRunning(command))
             return 0;
-        qWarning("Pointshot: another instance does not answer and the socket cannot be created");
+        qWarning("Markpaste: another instance does not answer and the socket cannot be created");
         return 1;
     }
     if (command == u"quit")
         return 0;
 
-    ps::AppController controller;
-    QObject::connect(&instance, &ps::SingleInstance::commandReceived, &controller, &ps::AppController::handleCommand);
+    mp::AppController controller;
+    QObject::connect(&instance, &mp::SingleInstance::commandReceived, &controller, &mp::AppController::handleCommand);
     controller.start();
     controller.handleStartup(command);
     return app.exec();

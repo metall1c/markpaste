@@ -6,7 +6,7 @@
 
 #include <memory>
 
-namespace ps {
+namespace mp {
 
 // Набор реализаций для текущей системы. Любой указатель может быть пустым:
 // ядро и UI обязаны работать с тем, что есть (например, без глобальных клавиш —
@@ -28,4 +28,4 @@ struct Platform {
 // Вызывать после создания QApplication и до показа окон.
 Platform createPlatform(const QString &appId);
 
-} // namespace ps
+} // namespace mp

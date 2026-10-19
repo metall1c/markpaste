@@ -5,7 +5,7 @@
 #include <QDBusObjectPath>
 #include <QHash>
 
-namespace ps::lx {
+namespace mp::lx {
 
 // Глобальные клавиши через xdg-desktop-portal GlobalShortcuts (KDE, GNOME 48+, Hyprland).
 //
@@ -49,4 +49,4 @@ private:
     bool m_sessionStarted = false;
 };
 
-} // namespace ps::lx
+} // namespace mp::lx

@@ -1,12 +1,12 @@
 [Desktop Entry]
 Type=Application
-Name=@POINTSHOT_APP_NAME@
+Name=@MARKPASTE_APP_NAME@
 GenericName=Screenshot annotator
 GenericName[ru]=Снимки с пометками для чатов
 Comment=Capture, mark and paste screenshots with comments into any chat
 Comment[ru]=Снять, отметить и вставить снимки с комментариями в любой чат
-Exec=@POINTSHOT_DESKTOP_EXEC@
-Icon=@POINTSHOT_APP_ID@
+Exec=@MARKPASTE_DESKTOP_EXEC@
+Icon=@MARKPASTE_APP_ID@
 Terminal=false
 Categories=Utility;Graphics;
 Keywords=screenshot;annotate;chat;paste;снимок;скриншот;

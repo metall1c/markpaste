@@ -21,8 +21,8 @@
 #include <functional>
 #include <memory>
 
-using namespace ps;
-using namespace ps::lx;
+using namespace mp;
+using namespace mp::lx;
 
 namespace {
 
@@ -59,7 +59,7 @@ protected:
 QWidget *makeReceiverWindow(Receiver **out)
 {
     auto *window = new QWidget;
-    window->setWindowTitle(QStringLiteral("Pointshot paste self-test"));
+    window->setWindowTitle(QStringLiteral("Markpaste paste self-test"));
     auto *layout = new QVBoxLayout(window);
     layout->addWidget(new QLabel(QStringLiteral("Не трогайте клавиатуру: сюда сейчас будет вставлен набор.")));
     auto *receiver = new Receiver;

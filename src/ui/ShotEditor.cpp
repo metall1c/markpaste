@@ -12,7 +12,7 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-namespace ps {
+namespace mp {
 
 namespace {
 QToolButton *toolButton(const QString &text, const QString &tip, bool checkable)
@@ -202,8 +202,8 @@ void ShotEditor::showShot(const QUuid &shotId)
 void ShotEditor::updateTitle()
 {
     const int i = m_model->set().shotIndex(m_canvas->shotId());
-    setWindowTitle(i < 0 ? QStringLiteral("Pointshot")
-                         : tr("Shot %1 — Pointshot").arg(shotLetter(i)));
+    setWindowTitle(i < 0 ? QStringLiteral("Markpaste")
+                         : tr("Shot %1 — Markpaste").arg(shotLetter(i)));
 }
 
 void ShotEditor::updateTools()
@@ -232,4 +232,4 @@ void ShotEditor::closeEvent(QCloseEvent *e)
     e->accept();
 }
 
-} // namespace ps
+} // namespace mp

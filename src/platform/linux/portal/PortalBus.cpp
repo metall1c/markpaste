@@ -10,9 +10,9 @@
 
 #include <memory>
 
-Q_LOGGING_CATEGORY(lcPortal, "pointshot.portal")
+Q_LOGGING_CATEGORY(lcPortal, "markpaste.portal")
 
-namespace ps::lx {
+namespace mp::lx {
 
 const QString PortalBus::kService = QStringLiteral("org.freedesktop.portal.Desktop");
 const QString PortalBus::kPath = QStringLiteral("/org/freedesktop/portal/desktop");
@@ -107,7 +107,7 @@ PortalBus &PortalBus::instance()
 }
 
 PortalBus::PortalBus()
-    : m_bus(QDBusConnection::connectToBus(QDBusConnection::SessionBus, QStringLiteral("pointshot-portal")))
+    : m_bus(QDBusConnection::connectToBus(QDBusConnection::SessionBus, QStringLiteral("markpaste-portal")))
 {
     if (!m_bus.isConnected())
         qCWarning(lcPortal) << "cannot connect to session bus:" << m_bus.lastError().message();
@@ -212,6 +212,6 @@ QFuture<Status> PortalBus::call(const QString &interface, const QString &method,
     return promise->future();
 }
 
-} // namespace ps::lx
+} // namespace mp::lx
 
 #include "PortalBus.moc"

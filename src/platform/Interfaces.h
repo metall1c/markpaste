@@ -11,7 +11,7 @@
 // Все вызовы асинхронные: на Wayland за вызовом может стоять диалог портала.
 // Ядро выбирает поведение по capabilities()/can*(), а не по названию ОС.
 
-namespace ps {
+namespace mp {
 
 class ICapture : public QObject
 {
@@ -40,8 +40,8 @@ public:
     virtual QString name() const = 0;
 
 signals:
-    void activated(ps::Action action, const ps::ActivationContext &ctx);
-    void released(ps::Action action);
+    void activated(mp::Action action, const mp::ActivationContext &ctx);
+    void released(mp::Action action);
 };
 
 class IClipboard : public QObject
@@ -71,4 +71,4 @@ public:
     virtual QString name() const = 0;
 };
 
-} // namespace ps
+} // namespace mp

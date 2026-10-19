@@ -3,7 +3,7 @@
 #include "platform/Interfaces.h"
 #include "PortalBus.h"
 
-namespace ps::lx {
+namespace mp::lx {
 
 // Эмуляция Ctrl+V через портал RemoteDesktop (только клавиатура).
 //
@@ -59,4 +59,4 @@ private:
     QList<std::shared_ptr<QPromise<Status>>> m_beginWaiters;
 };
 
-} // namespace ps::lx
+} // namespace mp::lx

@@ -6,7 +6,7 @@
 class QLabel;
 class QPlainTextEdit;
 
-namespace ps {
+namespace mp {
 
 // Поле комментария рядом с меткой (EDT-1, EDT-5). Дочерний виджет холста, а не отдельное
 // окно: на Wayland программа не может сама поставить окно рядом с меткой.
@@ -38,4 +38,4 @@ private:
     QPlainTextEdit *m_edit;
 };
 
-} // namespace ps
+} // namespace mp

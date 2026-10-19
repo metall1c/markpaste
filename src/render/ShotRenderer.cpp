@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace ps {
+namespace mp {
 
 // --- Контраст (WCAG 2.x) ---
 
@@ -234,4 +234,4 @@ EncodedImage encodeForPaste(QImage image, const EncodeOptions &options)
     return result;
 }
 
-} // namespace ps
+} // namespace mp

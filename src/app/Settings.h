@@ -6,7 +6,7 @@
 
 #include <QString>
 
-namespace ps {
+namespace mp {
 
 // Настройки программы (APP-3, ТЗ разд. 11). Хранятся в QSettings (INI) в каталоге
 // конфигурации пользователя. Сочетания — в переносимом виде (Primary+Alt+V).
@@ -47,4 +47,4 @@ struct Settings {
     RenderStyle renderStyle() const;
 };
 
-} // namespace ps
+} // namespace mp

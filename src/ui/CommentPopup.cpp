@@ -8,7 +8,7 @@
 #include <QPlainTextEdit>
 #include <QVBoxLayout>
 
-namespace ps {
+namespace mp {
 
 CommentPopup::CommentPopup(QWidget *parent)
     : QFrame(parent)
@@ -127,4 +127,4 @@ bool CommentPopup::eventFilter(QObject *watched, QEvent *event)
     return QFrame::eventFilter(watched, event);
 }
 
-} // namespace ps
+} // namespace mp

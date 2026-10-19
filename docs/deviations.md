@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | Разд. 2, 9, 13: эталон — три редакции Fedora 44, главная сложность — GNOME; первый этап — ядро и Windows | Главная платформа — Fedora 44 KDE Plasma на Wayland, начинаем с Linux | [0001](decisions/0001-linux-primary-kde-plasma.md) |
 | Разд. 9: KDE Plasma 6.6 | Фактически Plasma 6.7.5 (обновление Fedora 44) | [0001](decisions/0001-linux-primary-kde-plasma.md) |
-| Разд. 8 «Потоки»: подключение libwayland-client обслуживается в главном потоке | Отдельный поток `pointshot-wayland` | [0002](decisions/0002-wayland-connection-thread.md) |
+| Разд. 8 «Потоки»: подключение libwayland-client обслуживается в главном потоке | Отдельный поток `markpaste-wayland` | [0002](decisions/0002-wayland-connection-thread.md) |
 | Разд. 8: `IInputInjector` без управления сессией; методы возвращают `QFuture<void>` | Добавлены `begin()`/`end()` (сессия RemoteDesktop на время вставки) и `isAvailable()`; результат — `QFuture<Status>`: отказ в диалоге портала — обычный исход, а не исключение | — (мелкое, описано в `src/platform/Interfaces.h`) |
 | EDT-3 + NFR-9: белый текст на акцентном #FF5A1F при контрасте ≥ 4.5:1 | Фон значка затемняется до 4.5:1, рамка — исходного цвета | [0003](decisions/0003-badge-contrast.md) |
 | Разд. 7: логи через spdlog | Пока `QLoggingCategory`; запись в файл с ротацией — позже, решение о spdlog откладывается | — |
@@ -16,3 +16,4 @@
 | Разд. 5.2 | Дополнительно: в редакторе список комментариев снимка, клик по нему открывает комментарий | — |
 | STR-5: ленту можно свернуть в значок и перетащить к другому краю | Перенос к левому или правому краю, на любую высоту и монитор — при отпускании, без плавного движения. Сворачивание — в трей, не в значок на экране | [0004](decisions/0004-strip-placement-and-visibility.md) |
 | Разд. 4, шаг 3: лента появляется после снимка; APP-1 | Пустой набор — лента скрыта, программа в трее. Лента показывается после снимка и прячется, когда набор опустел | [0004](decisions/0004-strip-placement-and-visibility.md) |
+| Разд. 2, 11, 14: рабочее название Pointshot, идентификатор `io.github.pointshot.Pointshot` | Название Markpaste, идентификатор `su._525.Markpaste`, исполняемый файл `markpaste`. В TZ.md старое имя оставлено как есть | [0005](decisions/0005-name-markpaste.md) |

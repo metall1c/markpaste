@@ -4,7 +4,7 @@
 
 #include <QStringList>
 
-namespace ps::lx {
+namespace mp::lx {
 
 class DataControlDevice;
 
@@ -35,4 +35,4 @@ private:
     DataControlDevice *m_device;   // живёт в потоке Wayland
 };
 
-} // namespace ps::lx
+} // namespace mp::lx

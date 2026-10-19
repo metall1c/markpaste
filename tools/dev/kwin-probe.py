@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Замер на живой сессии KDE: отправляет команду работающему Pointshot и каждые 250 мс
+# Замер на живой сессии KDE: отправляет команду работающему Markpaste и каждые 250 мс
 # спрашивает у KWin геометрию окон программы.
 #
 #   tools/dev/kwin-probe.py "debug-move-strip DP-1 left 300" [фильтр]
@@ -10,11 +10,11 @@ import dbus, dbus.service, dbus.mainloop.glib, socket, subprocess, sys, time, os
 from gi.repository import GLib
 dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 bus = dbus.SessionBus()
-name = dbus.service.BusName("org.pointshot.Probe", bus)
-filt = sys.argv[2] if len(sys.argv) > 2 else "pointshot"
+name = dbus.service.BusName("org.markpaste.Probe", bus)
+filt = sys.argv[2] if len(sys.argv) > 2 else "markpaste"
 t0 = None
 class Probe(dbus.service.Object):
-    @dbus.service.method("org.pointshot.Probe", in_signature="s")
+    @dbus.service.method("org.markpaste.Probe", in_signature="s")
     def Report(self, text):
         lines = [l for l in text.split("\n") if filt.lower() in l.lower()]
         stamp = "before" if t0 is None else f"{time.time()-t0:5.2f}s"
@@ -29,7 +29,7 @@ def run_script():
     return True
 def send():
     global t0
-    s = socket.socket(socket.AF_UNIX); s.connect(f"/run/user/{os.getuid()}/io.github.pointshot.Pointshot.sock")
+    s = socket.socket(socket.AF_UNIX); s.connect(f"/run/user/{os.getuid()}/su._525.Markpaste.sock")
     s.sendall((sys.argv[1] + "\n").encode()); s.close(); t0 = time.time()
     GLib.timeout_add(250, run_script)
     return False

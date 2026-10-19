@@ -7,9 +7,9 @@
 #include <QUrl>
 #include <QtConcurrent>
 
-Q_LOGGING_CATEGORY(lcPaste, "pointshot.paste")
+Q_LOGGING_CATEGORY(lcPaste, "markpaste.paste")
 
-namespace ps {
+namespace mp {
 
 namespace {
 
@@ -278,4 +278,4 @@ void PasteOrchestrator::finish(const Status &status)
     emit finished(status, m_options.mode);
 }
 
-} // namespace ps
+} // namespace mp

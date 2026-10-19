@@ -7,7 +7,7 @@
 #include <QScreen>
 #include <QWidget>
 
-namespace ps {
+namespace mp {
 
 class GhostLayer : public QWidget
 {
@@ -98,4 +98,4 @@ void MoveGhost::hide()
     m_created = false;
 }
 
-} // namespace ps
+} // namespace mp

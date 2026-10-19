@@ -8,7 +8,7 @@
 #include <QPointer>
 #include <QWidget>
 
-namespace ps {
+namespace mp {
 
 class OverlayWidget;
 
@@ -31,7 +31,7 @@ public:
     void start();
 
 signals:
-    void selected(const ps::CaptureSelection &selection);
+    void selected(const mp::CaptureSelection &selection);
     void cancelled();
 
 private:
@@ -88,6 +88,6 @@ private:
     bool m_hasCursor = false;
 };
 
-} // namespace ps
+} // namespace mp
 
-Q_DECLARE_METATYPE(ps::CaptureSelection)
+Q_DECLARE_METATYPE(mp::CaptureSelection)

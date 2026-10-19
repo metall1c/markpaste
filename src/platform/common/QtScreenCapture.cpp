@@ -4,7 +4,7 @@
 #include <QPixmap>
 #include <QScreen>
 
-namespace ps {
+namespace mp {
 
 QFuture<CaptureResult> QtScreenCapture::captureAllScreens()
 {
@@ -25,4 +25,4 @@ QFuture<CaptureResult> QtScreenCapture::captureAllScreens()
     return readyFuture(r);
 }
 
-} // namespace ps
+} // namespace mp

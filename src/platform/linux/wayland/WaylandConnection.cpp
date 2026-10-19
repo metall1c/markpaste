@@ -8,9 +8,9 @@
 #include <algorithm>
 #include <cerrno>
 
-Q_LOGGING_CATEGORY(lcWayland, "pointshot.wayland")
+Q_LOGGING_CATEGORY(lcWayland, "markpaste.wayland")
 
-namespace ps::lx {
+namespace mp::lx {
 
 static const wl_registry_listener kRegistryListener = {
     &WaylandConnection::handleGlobal,
@@ -24,7 +24,7 @@ WaylandConnection *WaylandConnection::instance()
             return static_cast<WaylandConnection *>(nullptr);
 
         auto *thread = new QThread;
-        thread->setObjectName(QStringLiteral("pointshot-wayland"));
+        thread->setObjectName(QStringLiteral("markpaste-wayland"));
         auto *c = new WaylandConnection;
         c->m_thread = thread;
         c->moveToThread(thread);
@@ -153,4 +153,4 @@ bool WaylandConnection::roundtrip()
     return wl_display_roundtrip(m_display) >= 0;
 }
 
-} // namespace ps::lx
+} // namespace mp::lx

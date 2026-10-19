@@ -5,15 +5,15 @@
 #include <QWidget>
 #include <QWindow>
 
-#ifdef POINTSHOT_HAVE_LAYERSHELLQT
+#ifdef MARKPASTE_HAVE_LAYERSHELLQT
 #include <LayerShellQt/Window>
 #endif
 
-namespace ps {
+namespace mp {
 
 bool layerShellAvailable()
 {
-#ifdef POINTSHOT_HAVE_LAYERSHELLQT
+#ifdef MARKPASTE_HAVE_LAYERSHELLQT
     // LayerShellQt работает только поверх нативного Wayland-клиента Qt.
     // Наличие zwlr_layer_shell_v1 у композитора проверяет PlatformFactory.
     return QGuiApplication::platformName().startsWith(QStringLiteral("wayland"));
@@ -22,7 +22,7 @@ bool layerShellAvailable()
 #endif
 }
 
-#ifdef POINTSHOT_HAVE_LAYERSHELLQT
+#ifdef MARKPASTE_HAVE_LAYERSHELLQT
 static LayerShellQt::Window *layerWindow(QWidget *widget)
 {
     // Роль поверхности назначается при создании платформенного окна,
@@ -35,7 +35,7 @@ static LayerShellQt::Window *layerWindow(QWidget *widget)
 
 bool applyOverlayRole(QWidget *widget, QScreen *screen)
 {
-#ifdef POINTSHOT_HAVE_LAYERSHELLQT
+#ifdef MARKPASTE_HAVE_LAYERSHELLQT
     if (!layerShellAvailable())
         return false;
     auto *lw = layerWindow(widget);
@@ -46,7 +46,7 @@ bool applyOverlayRole(QWidget *widget, QScreen *screen)
                                                  | LayerShellQt::Window::AnchorLeft | LayerShellQt::Window::AnchorRight));
     lw->setExclusiveZone(-1);   // не сдвигаться из-за панелей
     lw->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityExclusive);
-    lw->setScope(QStringLiteral("pointshot-overlay"));
+    lw->setScope(QStringLiteral("markpaste-overlay"));
     lw->setScreen(screen);
     widget->setGeometry(screen->geometry());
     return true;
@@ -59,7 +59,7 @@ bool applyOverlayRole(QWidget *widget, QScreen *screen)
 
 bool applyGhostRole(QWidget *widget, QScreen *screen)
 {
-#ifdef POINTSHOT_HAVE_LAYERSHELLQT
+#ifdef MARKPASTE_HAVE_LAYERSHELLQT
     if (!layerShellAvailable())
         return false;
     // Ввод проходит насквозь: на Wayland Qt ставит поверхности пустую область ввода
@@ -73,7 +73,7 @@ bool applyGhostRole(QWidget *widget, QScreen *screen)
     lw->setAnchors(W::Anchors(W::AnchorTop | W::AnchorBottom | W::AnchorLeft | W::AnchorRight));
     lw->setExclusiveZone(-1);
     lw->setKeyboardInteractivity(W::KeyboardInteractivityNone);
-    lw->setScope(QStringLiteral("pointshot-ghost"));
+    lw->setScope(QStringLiteral("markpaste-ghost"));
     lw->setScreen(screen);
     widget->setGeometry(screen->geometry());
     return true;
@@ -84,7 +84,7 @@ bool applyGhostRole(QWidget *widget, QScreen *screen)
 #endif
 }
 
-#ifdef POINTSHOT_HAVE_LAYERSHELLQT
+#ifdef MARKPASTE_HAVE_LAYERSHELLQT
 static void setPlacement(LayerShellQt::Window *lw, const PanelPlacement &pl)
 {
     using W = LayerShellQt::Window;
@@ -102,7 +102,7 @@ static void setPlacement(LayerShellQt::Window *lw, const PanelPlacement &pl)
 
 bool applyPanelRole(QWidget *widget, QScreen *screen, const PanelPlacement &placement)
 {
-#ifdef POINTSHOT_HAVE_LAYERSHELLQT
+#ifdef MARKPASTE_HAVE_LAYERSHELLQT
     if (!layerShellAvailable())
         return false;
     auto *lw = layerWindow(widget);
@@ -112,7 +112,7 @@ bool applyPanelRole(QWidget *widget, QScreen *screen, const PanelPlacement &plac
     lw->setLayer(W::LayerTop);
     lw->setExclusiveZone(0);
     lw->setKeyboardInteractivity(W::KeyboardInteractivityNone);
-    lw->setScope(QStringLiteral("pointshot-strip"));
+    lw->setScope(QStringLiteral("markpaste-strip"));
     lw->setScreen(screen);
     setPlacement(lw, placement);
     return true;
@@ -126,7 +126,7 @@ bool applyPanelRole(QWidget *widget, QScreen *screen, const PanelPlacement &plac
 
 bool movePanel(QWidget *widget, QScreen *screen, const PanelPlacement &placement)
 {
-#ifdef POINTSHOT_HAVE_LAYERSHELLQT
+#ifdef MARKPASTE_HAVE_LAYERSHELLQT
     if (!layerShellAvailable() || !widget->windowHandle())
         return false;
     auto *lw = LayerShellQt::Window::get(widget->windowHandle());
@@ -158,4 +158,4 @@ bool movePanel(QWidget *widget, QScreen *screen, const PanelPlacement &placement
 #endif
 }
 
-} // namespace ps
+} // namespace mp

@@ -9,7 +9,7 @@
 #include <QUrl>
 #include <QtConcurrent>
 
-namespace ps::lx {
+namespace mp::lx {
 
 static const QString kIface = QStringLiteral("org.freedesktop.portal.Screenshot");
 
@@ -72,4 +72,4 @@ QFuture<CaptureResult> PortalScreenshot::captureAllScreens()
         .unwrap();
 }
 
-} // namespace ps::lx
+} // namespace mp::lx

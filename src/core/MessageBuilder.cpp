@@ -2,7 +2,7 @@
 
 #include <QStringList>
 
-namespace ps {
+namespace mp {
 
 MessageTemplate MessageTemplate::defaultFor(const QLocale &locale)
 {
@@ -58,4 +58,4 @@ QString buildMessage(const CaptureSet &set, const MessageTemplate &tpl)
     return blocks.join(QStringLiteral("\n\n"));
 }
 
-} // namespace ps
+} // namespace mp

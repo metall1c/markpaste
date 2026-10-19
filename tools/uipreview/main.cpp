@@ -12,7 +12,7 @@
 #include <QPainter>
 #include <QTranslator>
 
-using namespace ps;
+using namespace mp;
 
 static QByteArray fakeScreen(int w, int h, const QColor &bg, const QString &title)
 {
@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     // offscreen не грузит тему KDE: просим Breeze явно, чтобы видеть те же иконки
     QIcon::setThemeName(QStringLiteral("breeze"));
     QTranslator tr;
-    if (tr.load(QStringLiteral(":/i18n/pointshot_ru.qm")))
+    if (tr.load(QStringLiteral(":/i18n/markpaste_ru.qm")))
         QCoreApplication::installTranslator(&tr);
     const QString out = argc > 1 ? QString::fromLocal8Bit(argv[1]) : QStringLiteral("ui-preview");
     QDir().mkpath(out);
