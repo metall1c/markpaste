@@ -1,0 +1,72 @@
+#pragma once
+
+#include <QByteArray>
+#include <QList>
+#include <QRect>
+#include <QSize>
+#include <QString>
+#include <QUuid>
+
+namespace ps {
+
+inline constexpr int kMaxShots = 26;            // A–Z
+inline constexpr int kMaxCommentLength = 500;   // EDT-5
+
+// Все прямоугольники — в физических пикселях исходного снимка (NFR-7, CAP-6),
+// а не относительно обрезки: обрезка хранится отдельно и отменяется без копии кадра.
+
+struct Mark {
+    QUuid id;
+    QRect rect;
+    QString comment;
+
+    bool operator==(const Mark &) const = default;
+};
+
+struct Redaction {
+    QUuid id;
+    QRect rect;
+
+    bool operator==(const Redaction &) const = default;
+};
+
+struct Shot {
+    QUuid id;
+    QByteArray sourcePng;          // исходник без меток, сжатый (NFR-2)
+    QSize sourceSize;              // физические пиксели
+    qreal devicePixelRatio = 1.0;  // масштаб монитора, с которого снят кадр
+    QRect crop;                    // пустой — без обрезки
+    QList<Mark> marks;             // номер метки = позиция + 1
+    QList<Redaction> redactions;
+
+    QRect sourceRect() const { return QRect(QPoint(0, 0), sourceSize); }
+    QRect visibleRect() const { return crop.isNull() ? sourceRect() : crop; }
+    int commentCount() const;      // метки с непустым комментарием
+    int markIndex(const QUuid &markId) const;
+    int redactionIndex(const QUuid &redactionId) const;
+
+    bool operator==(const Shot &) const = default;
+};
+
+struct CaptureSet {
+    QList<Shot> shots;             // буква снимка = позиция в списке
+
+    int shotIndex(const QUuid &shotId) const;
+    int totalMarks() const;
+    int totalComments() const;
+    bool isFull() const { return shots.size() >= kMaxShots; }
+    bool isEmpty() const { return shots.isEmpty(); }
+
+    bool operator==(const CaptureSet &) const = default;
+};
+
+// Буква снимка по позиции: 0 → 'A'. Номера не хранятся, а вычисляются,
+// поэтому перестановка, удаление и отмена не оставят рассинхронизированных номеров.
+QChar shotLetter(int shotIndex);
+QString markLabel(int shotIndex, int markIndex);   // (0, 0) → "A1"
+
+// Прямоугольник по двум углам, включая оба. QRect(p1, p2).normalized() для этого не годится:
+// в Qt 6 перевёрнутый прямоугольник нормализуется со сдвигом на пиксель.
+QRect rectFromPoints(const QPoint &a, const QPoint &b);
+
+} // namespace ps
