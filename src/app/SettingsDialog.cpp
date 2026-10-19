@@ -1,5 +1,7 @@
 #include "SettingsDialog.h"
 
+#include "platform/Autostart.h"
+
 #include <QCheckBox>
 #include <QColorDialog>
 #include <QComboBox>
@@ -123,6 +125,12 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     // --- Система: что доступно здесь ---
     auto *sys = new QWidget;
     auto *sl = new QVBoxLayout(sys);
+    if (isAutostartSupported()) {
+        m_autostart = new QCheckBox(tr("Start Markpaste when I log in"));
+        m_autostart->setChecked(isAutostartEnabled(QStringLiteral(MARKPASTE_APP_ID)));
+        sl->addWidget(m_autostart);
+        sl->addSpacing(8);
+    }
     QString info = QStringLiteral("<b>%1</b><br>").arg(platform.environment.toHtmlEscaped());
     auto line = [](const QString &what, const QString &how) {
         return QStringLiteral("%1: %2<br>").arg(what.toHtmlEscaped(), how.isEmpty() ? QStringLiteral("—") : how.toHtmlEscaped());
@@ -148,6 +156,11 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     layout->addWidget(tabs);
     layout->addWidget(buttons);
     resize(560, 420);
+}
+
+bool SettingsDialog::autostart() const
+{
+    return m_autostart && m_autostart->isChecked();
 }
 
 Settings SettingsDialog::settings() const

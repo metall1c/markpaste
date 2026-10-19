@@ -21,6 +21,27 @@ cmake --build build --target dev-install-desktop   # обязательно, с�
 
 `spdlog-devel` и `python3-dbusmock` поставлены, но пока не используются: логи идут через `QLoggingCategory`, тестов порталов в CI ещё нет.
 
+## Пакет .rpm (и .tar.gz)
+
+Проверено 2026-10-19 на Fedora 44: CPack 4.3.0, rpm-build 6.0.2.
+
+```bash
+sudo dnf install -y rpm-build
+cmake -S . -B build-pkg -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release \
+      -DMARKPASTE_BUILD_TESTS=OFF -DMARKPASTE_BUILD_TOOLS=OFF
+cmake --build build-pkg --target package
+# → build-pkg/markpaste-0.1.0-1.fc44.x86_64.rpm, build-pkg/markpaste-0.1.0-Linux.tar.gz
+sudo dnf install ./build-pkg/markpaste-0.1.0-1.fc44.x86_64.rpm
+```
+
+- **`-DCMAKE_INSTALL_PREFIX=/usr` обязателен.** Путь в `Exec` .desktop-файла абсолютный и берётся из префикса установки: KWin пускает к ScreenShot2, только если он совпадает с исполняемым файлом процесса. С префиксом по умолчанию (`/usr/local`) пакет поставит программу в `/usr/local/bin`.
+- В пакете: `/usr/bin/markpaste`, `.desktop`-файл, значок SVG (`hicolor/scalable`), AppStream metainfo, LICENSE. Переводы встроены в программу.
+- Зависимости от библиотек (Qt 6, libwayland-client, LayerShellQt) rpm находит сам по связанным `.so`; вручную добавлен только `xdg-desktop-portal`. LayerShellQt становится обязательной зависимостью, если он был при сборке.
+- Пакет привязан к версии Qt сборки (`libQt6Core.so.6(Qt_6.11)`): rpm для Fedora 44 собирать на Fedora 44.
+- Проверка: `rpmlint build-pkg/*.rpm` — 0 ошибок, одно предупреждение (нет man-страницы); `desktop-file-validate`, `appstreamcli validate --no-net` — без замечаний.
+- **.deb** включается автоматически, если есть `dpkg-shlibdeps` (собирать на Ubuntu/Debian). На Fedora собирается только rpm и tar.gz. На Ubuntu 24.04 пока не проверено.
+- **Разработчику:** `~/.local/share/applications/su._525.Markpaste.desktop` от `dev-install-desktop` важнее системного из пакета (каталог пользователя ищется первым) и указывает на `build/`. Чтобы проверить установленный пакет, этот файл надо удалить.
+
 ## Что получается
 
 | Файл | Что это |

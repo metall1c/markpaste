@@ -97,6 +97,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Could not change autostart: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>New hotkeys take effect after restart</source>
         <translation type="unfinished"></translation>
     </message>
@@ -377,6 +381,10 @@ On Wayland the program only suggests a shortcut — the desktop assigns it and l
     </message>
     <message>
         <source>Appearance</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Start Markpaste when I log in</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

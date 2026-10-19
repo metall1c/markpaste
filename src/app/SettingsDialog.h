@@ -20,6 +20,8 @@ class SettingsDialog : public QDialog
 public:
     SettingsDialog(const Settings &settings, const Platform &platform, QWidget *parent = nullptr);
     Settings settings() const;
+    // Автозапуск хранится не в настройках, а файлом в ~/.config/autostart: его видит и система
+    bool autostart() const;
 
 private:
     Settings m_settings;
@@ -39,6 +41,7 @@ private:
     QCheckBox *m_textFirst;
     QPushButton *m_accent;
     QColor m_accentColor;
+    QCheckBox *m_autostart = nullptr;
 };
 
 } // namespace mp

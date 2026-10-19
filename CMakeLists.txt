@@ -8,6 +8,14 @@ set(MARKPASTE_APP_NAME "Markpaste")
 set(MARKPASTE_APP_ID "su._525.Markpaste")
 set(MARKPASTE_EXECUTABLE "markpaste")
 
+include(GNUInstallDirs)
+set(CMAKE_INSTALL_DOCDIR ${CMAKE_INSTALL_DATADIR}/doc/${MARKPASTE_EXECUTABLE})
+
+# Позиционно-независимый исполняемый файл (PIE): требование пакетов Fedora и Debian
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+include(CheckPIESupported)
+check_pie_supported()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -67,8 +75,18 @@ endif()
 # .desktop-файл. Его имя = app id: по нему порталы узнают программу (ТЗ разд. 9, 11),
 # а KWin — доверенную программу для ScreenShot2.
 if(MARKPASTE_LINUX)
-    set(MARKPASTE_DESKTOP_EXEC "${CMAKE_INSTALL_PREFIX}/bin/${MARKPASTE_EXECUTABLE}")
+    # Путь в Exec — абсолютный: KWin сверяет его с исполняемым файлом процесса.
+    # Поэтому пакет собирается с -DCMAKE_INSTALL_PREFIX=/usr (docs/build.md).
+    set(MARKPASTE_DESKTOP_EXEC "${CMAKE_INSTALL_FULL_BINDIR}/${MARKPASTE_EXECUTABLE}")
     configure_file(data/app.desktop.in ${CMAKE_BINARY_DIR}/data/${MARKPASTE_APP_ID}.desktop @ONLY)
+    configure_file(data/app.metainfo.xml.in ${CMAKE_BINARY_DIR}/data/${MARKPASTE_APP_ID}.metainfo.xml @ONLY)
+    install(FILES ${CMAKE_BINARY_DIR}/data/${MARKPASTE_APP_ID}.desktop
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+    install(FILES ${CMAKE_BINARY_DIR}/data/${MARKPASTE_APP_ID}.metainfo.xml
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
+    install(FILES data/icons/app.svg
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
+            RENAME ${MARKPASTE_APP_ID}.svg)
 
     # Для разработки: тот же файл, но Exec указывает на бинарник в каталоге сборки.
     # Без него host Registry отвечает «App info not found» (docs/problems.md).
@@ -82,3 +100,56 @@ if(MARKPASTE_LINUX)
         COMMENT "Installing dev .desktop file into ~/.local/share/applications"
         VERBATIM)
 endif()
+
+install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DOCDIR})
+
+# --- Пакеты (ТЗ разд. 11): cmake --build <каталог> --target package ---
+# Зависимости от библиотек (Qt 6, libwayland-client, LayerShellQt) пакетные системы
+# находят сами по связанным .so; вручную — только то, что нужно во время работы.
+set(CPACK_PACKAGE_NAME ${MARKPASTE_EXECUTABLE})
+set(CPACK_PACKAGE_VENDOR "Markpaste")
+set(CPACK_PACKAGE_CONTACT "Andrey <a@525.su>")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Capture, mark and paste screenshots with comments into any chat")
+set(CPACK_PACKAGE_DESCRIPTION "Press a hotkey, select an area, put numbered marks A1, A2... on it and
+comment each one. One more hotkey pastes the whole set - images and text -
+into any chat or AI assistant.")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://gitlab.525.su/che/main/markpaste")
+set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE)
+set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
+set(CPACK_STRIP_FILES ON)
+set(CPACK_GENERATOR "TGZ")
+
+find_program(MARKPASTE_RPMBUILD rpmbuild)
+if(MARKPASTE_RPMBUILD)
+    list(APPEND CPACK_GENERATOR "RPM")
+    set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-or-later")
+    set(CPACK_RPM_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION})
+    set(CPACK_RPM_PACKAGE_GROUP "Applications/Productivity")
+    set(CPACK_RPM_PACKAGE_RELEASE 1)
+    set(CPACK_RPM_PACKAGE_RELEASE_DIST ON)
+    set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
+    # Порталы — захват, клавиши, Ctrl+V; без них программа работает в урезанном режиме
+    set(CPACK_RPM_PACKAGE_REQUIRES "xdg-desktop-portal")
+    # Общие каталоги принадлежат другим пакетам (filesystem, hicolor-icon-theme)
+    set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
+        ${CMAKE_INSTALL_FULL_DATADIR}/applications
+        ${CMAKE_INSTALL_FULL_DATADIR}/metainfo
+        ${CMAKE_INSTALL_FULL_DATADIR}/icons
+        ${CMAKE_INSTALL_FULL_DATADIR}/icons/hicolor
+        ${CMAKE_INSTALL_FULL_DATADIR}/icons/hicolor/scalable
+        ${CMAKE_INSTALL_FULL_DATADIR}/icons/hicolor/scalable/apps
+        ${CMAKE_INSTALL_FULL_DATADIR}/doc)
+endif()
+
+find_program(MARKPASTE_DPKG_SHLIBDEPS dpkg-shlibdeps)
+if(MARKPASTE_DPKG_SHLIBDEPS)
+    list(APPEND CPACK_GENERATOR "DEB")
+    set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+    set(CPACK_DEBIAN_PACKAGE_SECTION "graphics")
+    set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}\n${CPACK_PACKAGE_DESCRIPTION}")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "xdg-desktop-portal")
+    set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "xdg-desktop-portal-kde | xdg-desktop-portal-gnome")
+endif()
+
+include(CPack)

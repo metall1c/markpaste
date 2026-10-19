@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Значок Markpaste. Повторяет src/app/AppIcon.cpp (там он рисуется кодом для трея и окон):
+     рамка выделения акцентного цвета и значок метки «A1». Цвет значка — акцент #FF5A1F,
+     затемнённый до контраста 4.5:1 с белым (ADR 0003). -->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <rect x="46.08" y="56.32" width="184.32" height="158.72" rx="15.36" ry="15.36"
+        fill="none" stroke="#FF5A1F" stroke-width="23.04"/>
+  <circle cx="64" cy="69.12" r="53.76" fill="#CC4819" stroke="#FFFFFF" stroke-width="8.96"/>
+  <text x="64" y="69.12" dy="0.35em" text-anchor="middle" fill="#FFFFFF"
+        font-family="sans-serif" font-weight="bold" font-size="56">A1</text>
+</svg>

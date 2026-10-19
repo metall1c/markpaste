@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Описание для центров приложений (AppStream). id = app id = имя .desktop-файла. -->
+<component type="desktop-application">
+  <id>@MARKPASTE_APP_ID@</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>@MARKPASTE_APP_NAME@</name>
+  <summary>Capture, mark and paste screenshots with comments into any chat</summary>
+  <summary xml:lang="ru">Снимки с пометками и комментариями — в любой чат одним действием</summary>
+  <description>
+    <p>
+      Press a hotkey, select an area, put numbered marks A1, A2… on it and comment each one.
+      One more hotkey pastes the whole set — images and text — into any chat or AI assistant.
+    </p>
+    <p xml:lang="ru">
+      Горячая клавиша — выделить область — поставить нумерованные метки A1, A2… с комментариями.
+      Ещё одна клавиша вставляет весь набор, картинки и текст, в любой чат или ИИ-ассистент.
+    </p>
+  </description>
+  <launchable type="desktop-id">@MARKPASTE_APP_ID@.desktop</launchable>
+  <url type="homepage">https://gitlab.525.su/che/main/markpaste</url>
+  <developer id="su.525">
+    <name>Andrey</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="@PROJECT_VERSION@" date="2026-10-19"/>
+  </releases>
+</component>

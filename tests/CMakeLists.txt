@@ -17,6 +17,7 @@ find_package(Qt6 REQUIRED COMPONENTS Test)
 add_executable(markpaste_ui_tests
     test_ui_main.cpp
     test_editor_ui.cpp
+    test_platform.cpp
 )
 target_link_libraries(markpaste_ui_tests PRIVATE markpaste_ui Qt6::Test GTest::gtest)
 gtest_discover_tests(markpaste_ui_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

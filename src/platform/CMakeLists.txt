@@ -15,6 +15,7 @@ add_library(markpaste_platform STATIC
     common/FallbackCapture.h common/FallbackCapture.cpp
     WindowRoles.h common/WindowRoles.cpp
     Paths.h common/Paths.cpp
+    Autostart.h common/Autostart.cpp
 )
 target_link_libraries(markpaste_platform PUBLIC markpaste_platform_api Qt6::Gui Qt6::Widgets)
 if(LayerShellQt_FOUND)

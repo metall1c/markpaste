@@ -40,7 +40,7 @@ target_link_libraries(markpaste PRIVATE markpaste_ui Qt6::Network)
 target_compile_definitions(markpaste PRIVATE
     MARKPASTE_APP_ID="${MARKPASTE_APP_ID}"
     MARKPASTE_VERSION="${PROJECT_VERSION}")
-install(TARGETS markpaste RUNTIME DESTINATION bin)
+install(TARGETS markpaste RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # Переводы (APP-5, NFR-10): .ts в i18n/, .qm встраиваются в программу под :/i18n.
 # Обновить строки: cmake --build build --target update_translations

@@ -3,6 +3,7 @@
 #include "AppIcon.h"
 #include "SettingsDialog.h"
 #include "paste/TempFiles.h"
+#include "platform/Autostart.h"
 #include "ui/CaptureOverlay.h"
 #include "ui/MoveGhost.h"
 #include "ui/ShotEditor.h"
@@ -394,6 +395,10 @@ void AppController::showSettings()
     const Settings old = m_settings;
     m_settings = dlg.settings();
     m_settings.save();
+    const QString appId = QStringLiteral(MARKPASTE_APP_ID);
+    if (isAutostartSupported() && dlg.autostart() != isAutostartEnabled(appId)
+        && !setAutostartEnabled(appId, dlg.autostart()))
+        notify(tr("Could not change autostart: %1").arg(autostartFilePath(appId)));
     m_strip->setStyle(m_settings.renderStyle());
     m_editor->setStyle(m_settings.renderStyle());
     if (old.captureHotkey != m_settings.captureHotkey || old.pasteHotkey != m_settings.pasteHotkey)

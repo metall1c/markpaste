@@ -97,6 +97,10 @@
         <translation>Текст скопирован — вставьте его после того, как бросите файлы</translation>
     </message>
     <message>
+        <source>Could not change autostart: %1</source>
+        <translation>Не удалось изменить автозапуск: %1</translation>
+    </message>
+    <message>
         <source>New hotkeys take effect after restart</source>
         <translation>Новые клавиши заработают после перезапуска</translation>
     </message>
@@ -379,6 +383,10 @@ On Wayland the program only suggests a shortcut — the desktop assigns it and l
     <message>
         <source>Appearance</source>
         <translation>Вид</translation>
+    </message>
+    <message>
+        <source>Start Markpaste when I log in</source>
+        <translation>Запускать Markpaste при входе в систему</translation>
     </message>
     <message>
         <source>Hotkeys</source>
