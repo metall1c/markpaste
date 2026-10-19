@@ -1,5 +1,7 @@
 #include "PenPicker.h"
 
+#include "render/ShotRenderer.h"
+
 #include <QButtonGroup>
 #include <QColorDialog>
 #include <QGridLayout>
@@ -113,7 +115,7 @@ QToolButton *panelButton(QWidget *parent)
 } // namespace
 
 PenPicker::PenPicker(QWidget *parent)
-    : QWidget(parent)
+    : QWidget(parent), m_accent(RenderStyle().accent), m_defaultWidth(RenderStyle().frameWidth)
 {
     m_colorButton = new QToolButton;
     m_colorButton->setToolTip(tr("Mark color"));

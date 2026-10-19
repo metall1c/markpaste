@@ -44,8 +44,8 @@ private:
     QWidget *buildWidthPanel();
 
     MarkPen m_pen;
-    QColor m_accent = QColor(0xFF, 0x5A, 0x1F);
-    qreal m_defaultWidth = 3;
+    QColor m_accent;          // из RenderStyle по умолчанию, см. конструктор
+    qreal m_defaultWidth;
 
     QToolButton *m_colorButton;
     QToolButton *m_widthButton;

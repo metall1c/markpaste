@@ -53,7 +53,7 @@ TEST(Renderer, RenderDrawsFrameInAccent)
     s.marks.append(Mark{QUuid::createUuid(), QRect(100, 40, 80, 50), {}});
     RenderStyle style;
     const QImage out = renderShot(s, 0, style);
-    // Середина правой стороны рамки: 3 px внутрь от края метки, центр пера — 1.5 px
+    // Середина правой стороны рамки: 2 px внутрь от края метки, центр пера — 1 px
     const QColor c = out.pixelColor(100 + 80 - 2, 65);
     EXPECT_EQ(c.rgb(), style.accent.rgb());
 }
@@ -106,7 +106,7 @@ TEST(Renderer, RenderDrawsArrowAndFreehand)
     const QImage out = renderShot(s, 0, style);
     EXPECT_EQ(out.pixelColor(100, 80).rgb(), style.accent.rgb());   // древко
     EXPECT_EQ(out.pixelColor(176, 80).rgb(), style.accent.rgb());   // наконечник у острия
-    EXPECT_EQ(out.pixelColor(167, 85).rgb(), style.accent.rgb());   // наконечник шире древка
+    EXPECT_EQ(out.pixelColor(171, 83).rgb(), style.accent.rgb());   // наконечник шире древка
     EXPECT_EQ(out.pixelColor(100, 20).rgb(), style.accent.rgb());   // линия карандаша
     // Вдали от линий — исходные пиксели
     const QImage src = noiseImage(200, 100);

@@ -162,7 +162,7 @@ static QPointF pixelCenter(const QPoint &p)
     return QPointF(p) + QPointF(0.5, 0.5);
 }
 
-static void drawArrowMark(QPainter &p, const Mark &m, const QColor &accent, qreal w, qreal ow)
+static void drawArrowMark(QPainter &p, const Mark &m, const QColor &accent, qreal w, qreal ow, qreal dpr)
 {
     if (m.points.size() != 2)
         return;
@@ -175,8 +175,9 @@ static void drawArrowMark(QPainter &p, const Mark &m, const QColor &accent, qrea
     const QPointF dir = (tip - tail) / length;
     const QPointF normal(-dir.y(), dir.x());
 
-    // Наконечник в 4 толщины древка; на короткой стрелке — не длиннее 2/3 её длины
-    const qreal headLength = std::min(4.0 * w, length * 2.0 / 3.0);
+    // Наконечник в 4 толщины древка, но не короче 12 логических px;
+    // на короткой стрелке — не длиннее 2/3 её длины
+    const qreal headLength = std::min(std::max(4.0 * w, 12.0 * dpr), length * 2.0 / 3.0);
     const qreal headHalf = headLength * 0.55;
     const QPointF base = tip - dir * headLength;
     const QPolygonF head{tip, base + normal * headHalf, base - normal * headHalf};
@@ -244,7 +245,7 @@ void paintMarks(QPainter &p, const Shot &shot, int shotIndex, const RenderStyle 
             drawRectMark(p, m, color, w, ow);
             break;
         case MarkShape::Arrow:
-            drawArrowMark(p, m, color, w, ow);
+            drawArrowMark(p, m, color, w, ow, dpr);
             break;
         case MarkShape::Freehand:
             drawFreehandMark(p, m, color, w, ow);

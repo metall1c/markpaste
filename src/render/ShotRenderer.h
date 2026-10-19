@@ -13,8 +13,8 @@ namespace mp {
 // Размеры — в логических пикселях, при запекании умножаются на devicePixelRatio снимка.
 struct RenderStyle {
     QColor accent = QColor(0xFF, 0x5A, 0x1F);   // ТЗ разд. 10
-    qreal frameWidth = 3.0;                    // рамка и линия карандаша
-    qreal arrowWidth = 4.0;                    // древко стрелки; наконечник — от него
+    qreal frameWidth = 2.0;                    // рамка и линия карандаша
+    qreal arrowWidth = 2.0;                    // древко стрелки; наконечник — от него
     qreal outlineWidth = 1.0;
     qreal badgeDiameter = 28.0;
     int pixelBlock = 12;                       // EDT-6
