@@ -46,6 +46,7 @@ private:
     QPushButton *m_accent;
     QColor m_accentColor;
     QCheckBox *m_autostart = nullptr;
+    QCheckBox *m_hideEmpty;
 };
 
 } // namespace mp

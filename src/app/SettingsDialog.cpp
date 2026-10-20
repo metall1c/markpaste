@@ -132,6 +132,9 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
         }
     });
     lf->addRow(tr("Mark color:"), m_accent);
+    m_hideEmpty = new QCheckBox(tr("Hide the strip to the tray when the set is empty"));
+    m_hideEmpty->setChecked(settings.hideStripWhenEmpty);
+    lf->addRow(m_hideEmpty);
     tabs->addTab(look, tr("Appearance"));
 
     // --- Система: что доступно здесь ---
@@ -195,6 +198,7 @@ Settings SettingsDialog::settings() const
     s.outro = m_outro->text();
     s.textBeforeImages = m_textFirst->isChecked();
     s.accent = m_accentColor;
+    s.hideStripWhenEmpty = m_hideEmpty->isChecked();
     return s;
 }
 

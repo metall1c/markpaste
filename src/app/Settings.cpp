@@ -29,6 +29,7 @@ Settings Settings::load()
     s.accent = QColor(q.value(QStringLiteral("appearance/accent"), d.accent.name()).toString());
     if (!s.accent.isValid())
         s.accent = d.accent;
+    s.hideStripWhenEmpty = q.value(QStringLiteral("strip/hideWhenEmpty"), d.hideStripWhenEmpty).toBool();
     s.markPen.color = QColor(q.value(QStringLiteral("editor/markColor")).toString());   // пусто — акцент
     s.markPen.width = std::clamp(q.value(QStringLiteral("editor/markWidth"), 0.0).toDouble(), 0.0, 20.0);
     const QString line = q.value(QStringLiteral("editor/markLine")).toString();
@@ -57,6 +58,7 @@ void Settings::save() const
     q.setValue(QStringLiteral("message/outro"), outro);
     q.setValue(QStringLiteral("message/textBeforeImages"), textBeforeImages);
     q.setValue(QStringLiteral("appearance/accent"), accent.name());
+    q.setValue(QStringLiteral("strip/hideWhenEmpty"), hideStripWhenEmpty);
     q.setValue(QStringLiteral("editor/markColor"), markPen.color.isValid() ? markPen.color.name() : QString());
     q.setValue(QStringLiteral("editor/markWidth"), markPen.width);
     q.setValue(QStringLiteral("editor/markLine"), markPen.line == LineStyle::Dash  ? QStringLiteral("dash")

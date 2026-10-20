@@ -113,9 +113,10 @@ void AppController::start()
     connect(&m_model, &CaptureSetModel::changed, this, [this] {
         if (m_strip && m_editor)
             m_strip->setCurrentShot(m_editor->isVisible() ? m_editor->shotId() : QUuid());
-        // Лента видна, только пока в наборе есть снимки; пустой набор — программа в трее.
-        // Без трея (GNOME без расширения) ленту не прячем: иначе программу не найти (APP-1).
-        if (m_strip && m_tray && m_model.set().isEmpty() && !m_capturing)
+        // Лента видна, только пока в наборе есть снимки; пустой набор — программа в трее
+        // (отключается настройкой). Без трея (GNOME без расширения) ленту не прячем:
+        // иначе программу не найти (APP-1).
+        if (m_strip && m_tray && m_settings.hideStripWhenEmpty && m_model.set().isEmpty() && !m_capturing)
             m_strip->hide();
     });
 
@@ -211,7 +212,8 @@ void AppController::handleCommand(const QString &command)
 
 void AppController::handleStartup(const QString &command)
 {
-    // Обычный запуск (в том числе автозапуск): пустой набор — только значок в трее
+    // Обычный запуск (в том числе автозапуск): пустой набор — только значок в трее,
+    // если лента прячется при пустом наборе
     QSettings s;
     if (command == u"show" && !onceFlag(s, QStringLiteral("setupShown"))) {
         // Первый запуск — мастер проверки вместо уведомления (APP-4)
@@ -220,7 +222,7 @@ void AppController::handleStartup(const QString &command)
         showSetupWizard();
         return;
     }
-    if (command == u"show" && m_tray && m_model.set().isEmpty()) {
+    if (command == u"show" && m_tray && m_settings.hideStripWhenEmpty && m_model.set().isEmpty()) {
         if (!onceFlag(s, QStringLiteral("welcomeShown"))) {
             s.setValue(QStringLiteral("once/welcomeShown"), true);
             const QString key = m_boundTriggers.value(Action::Capture, m_settings.captureHotkey);
@@ -431,6 +433,12 @@ void AppController::showSettings()
         notify(tr("Could not change autostart: %1").arg(autostartFilePath(appId)));
     m_strip->setStyle(m_settings.renderStyle());
     m_editor->setStyle(m_settings.renderStyle());
+    if (old.hideStripWhenEmpty != m_settings.hideStripWhenEmpty && m_tray && m_model.set().isEmpty()) {
+        if (m_settings.hideStripWhenEmpty)
+            m_strip->hide();
+        else
+            showStrip();
+    }
     if (old.captureHotkey != m_settings.captureHotkey || old.pasteHotkey != m_settings.pasteHotkey)
         notify(tr("New hotkeys take effect after restart"));
 }

@@ -391,6 +391,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Hide the strip to the tray when the set is empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Appearance</source>
         <translation type="unfinished"></translation>
     </message>

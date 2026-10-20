@@ -391,6 +391,10 @@
         <translation>Цвет меток:</translation>
     </message>
     <message>
+        <source>Hide the strip to the tray when the set is empty</source>
+        <translation>Прятать ленту в трей, когда набор пуст</translation>
+    </message>
+    <message>
         <source>Appearance</source>
         <translation>Вид</translation>
     </message>
