@@ -27,19 +27,22 @@ Settings Settings::load()
     s.intro = q.value(QStringLiteral("message/intro")).toString();
     s.outro = q.value(QStringLiteral("message/outro")).toString();
     s.textBeforeImages = q.value(QStringLiteral("message/textBeforeImages"), d.textBeforeImages).toBool();
+    s.captionsOnImage = q.value(QStringLiteral("message/captionsOnImage"), d.captionsOnImage).toBool();
     s.accent = QColor(q.value(QStringLiteral("appearance/accent"), d.accent.name()).toString());
     if (!s.accent.isValid())
         s.accent = d.accent;
     s.keepSetOnRestart = q.value(QStringLiteral("session/keep"), d.keepSetOnRestart).toBool();
     s.checkUpdates = q.value(QStringLiteral("updates/check"), d.checkUpdates).toBool();
+    s.badgeSize = std::clamp(q.value(QStringLiteral("appearance/badgeSize"), d.badgeSize).toInt(), 16, 48);
+    s.uiLanguage = q.value(QStringLiteral("ui/language"), d.uiLanguage).toString();
     s.hideStripWhenEmpty = q.value(QStringLiteral("strip/hideWhenEmpty"), d.hideStripWhenEmpty).toBool();
     s.markPen.color = QColor(q.value(QStringLiteral("editor/markColor")).toString());   // пусто — акцент
     s.markPen.width = std::clamp(q.value(QStringLiteral("editor/markWidth"), 0.0).toDouble(), 0.0, 20.0);
     const QString line = q.value(QStringLiteral("editor/markLine")).toString();
     s.markPen.line = line == u"dash" ? LineStyle::Dash : line == u"dot" ? LineStyle::Dot : LineStyle::Solid;
-    s.maxLongSide = q.value(QStringLiteral("images/maxLongSide"), d.maxLongSide).toInt();
-    s.jpegThresholdMb = q.value(QStringLiteral("images/jpegThresholdMb"), d.jpegThresholdMb).toInt();
-    s.jpegQuality = q.value(QStringLiteral("images/jpegQuality"), d.jpegQuality).toInt();
+    s.maxLongSide = std::clamp(q.value(QStringLiteral("images/maxLongSide"), d.maxLongSide).toInt(), 0, 16384);
+    s.jpegThresholdMb = std::clamp(q.value(QStringLiteral("images/jpegThresholdMb"), d.jpegThresholdMb).toInt(), 0, 100);
+    s.jpegQuality = std::clamp(q.value(QStringLiteral("images/jpegQuality"), d.jpegQuality).toInt(), 30, 100);
     return s;
 }
 
@@ -60,8 +63,11 @@ void Settings::save() const
     q.setValue(QStringLiteral("message/intro"), intro);
     q.setValue(QStringLiteral("message/outro"), outro);
     q.setValue(QStringLiteral("message/textBeforeImages"), textBeforeImages);
+    q.setValue(QStringLiteral("message/captionsOnImage"), captionsOnImage);
     q.setValue(QStringLiteral("appearance/accent"), accent.name());
     q.setValue(QStringLiteral("strip/hideWhenEmpty"), hideStripWhenEmpty);
+    q.setValue(QStringLiteral("appearance/badgeSize"), badgeSize);
+    q.setValue(QStringLiteral("ui/language"), uiLanguage);
     q.setValue(QStringLiteral("session/keep"), keepSetOnRestart);
     q.setValue(QStringLiteral("updates/check"), checkUpdates);
     q.setValue(QStringLiteral("editor/markColor"), markPen.color.isValid() ? markPen.color.name() : QString());
@@ -96,6 +102,8 @@ RenderStyle Settings::renderStyle() const
 {
     RenderStyle st;
     st.accent = accent;
+    st.badgeDiameter = badgeSize;
+    st.captions = captionsOnImage;
     return st;
 }
 

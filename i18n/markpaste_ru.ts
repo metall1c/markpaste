@@ -15,8 +15,8 @@
 <context>
     <name>ShotThumb</name>
     <message>
-        <source>Click — edit · Drag — drop into a chat as a file · Right click — menu</source>
-        <translation>Клик — редактировать · Перетащить — в чат файлом · Правый клик — меню</translation>
+        <source>Click — edit · Drag — into a chat as a file or within the strip to reorder · Right click — menu</source>
+        <translation>Клик — редактировать · Перетащить — в чат файлом или в ленте, чтобы поменять порядок · Правый клик — меню</translation>
     </message>
     <message>
         <source>Edit</source>
@@ -105,6 +105,10 @@
         <translation>Не удалось изменить автозапуск: %1</translation>
     </message>
     <message>
+        <source>The interface language changes after restart</source>
+        <translation>Язык интерфейса сменится после перезапуска</translation>
+    </message>
+    <message>
         <source>New hotkeys take effect after restart</source>
         <translation>Новые клавиши заработают после перезапуска</translation>
     </message>
@@ -186,6 +190,10 @@
     <message>
         <source>Add drawing</source>
         <translation>Рисунок карандашом</translation>
+    </message>
+    <message>
+        <source>Add point</source>
+        <translation>Добавить точку</translation>
     </message>
     <message>
         <source>Edit comment</source>
@@ -462,6 +470,14 @@
         <translation>Текст перед картинками</translation>
     </message>
     <message>
+        <source>Also write comments on the image, next to the numbers</source>
+        <translation>Писать комментарии и на картинке, рядом с номерами</translation>
+    </message>
+    <message>
+        <source>For chats where text gets separated from images. The message text stays as is.</source>
+        <translation>Для чатов, где текст отрывается от картинок. Текст сообщения не меняется.</translation>
+    </message>
+    <message>
         <source>Message</source>
         <translation>Сообщение</translation>
     </message>
@@ -474,12 +490,60 @@
         <translation>Цвет меток:</translation>
     </message>
     <message>
+        <source> px</source>
+        <translation> px</translation>
+    </message>
+    <message>
+        <source>Number badge size:</source>
+        <translation>Размер значка номера:</translation>
+    </message>
+    <message>
+        <source>Interface language:</source>
+        <translation>Язык интерфейса:</translation>
+    </message>
+    <message>
         <source>Hide the strip to the tray when the set is empty</source>
         <translation>Прятать ленту в трей, когда набор пуст</translation>
     </message>
     <message>
         <source>Appearance</source>
         <translation>Вид</translation>
+    </message>
+    <message>
+        <source>no limit</source>
+        <translation>без ограничения</translation>
+    </message>
+    <message>
+        <source>Shrink the long side to:</source>
+        <translation>Уменьшать длинную сторону до:</translation>
+    </message>
+    <message>
+        <source> MB</source>
+        <translation> МБ</translation>
+    </message>
+    <message>
+        <source>never, always PNG</source>
+        <translation>никогда, всегда PNG</translation>
+    </message>
+    <message>
+        <source>Switch to JPEG when PNG is larger than:</source>
+        <translation>Переходить на JPEG, если PNG больше:</translation>
+    </message>
+    <message>
+        <source> %</source>
+        <translation> %</translation>
+    </message>
+    <message>
+        <source>JPEG quality:</source>
+        <translation>Качество JPEG:</translation>
+    </message>
+    <message>
+        <source>Applies to pasting, copying and dragging into a chat. &quot;Save to folder&quot; always writes full-size PNG.</source>
+        <translation>Для вставки, копирования и перетаскивания в чат. «Сохранить в папку» всегда пишет PNG в полном размере.</translation>
+    </message>
+    <message>
+        <source>Images</source>
+        <translation>Изображения</translation>
     </message>
     <message>
         <source>Start Markpaste when I log in</source>
@@ -699,6 +763,14 @@
         <translation>▭ Метка</translation>
     </message>
     <message>
+        <source>● Point</source>
+        <translation>● Точка</translation>
+    </message>
+    <message>
+        <source>Put a numbered point on the spot and comment it (D)</source>
+        <translation>Поставить нумерованную точку на место и прокомментировать (D)</translation>
+    </message>
+    <message>
         <source>▦ Blur</source>
         <translation>▦ Размыть</translation>
     </message>
@@ -787,6 +859,10 @@ Drag over the shot to add one.</source>
     <message>
         <source>Draw around or under the spot · Double-click a line — edit comment</source>
         <translation>Обведите или подчеркните нужное · Двойной клик по линии — комментарий</translation>
+    </message>
+    <message>
+        <source>Click the spot — a numbered point appears · Drag a point to move it · Double-click — edit comment</source>
+        <translation>Щёлкните по месту — появится точка с номером · Точку можно перетащить · Двойной клик — комментарий</translation>
     </message>
     <message>
         <source>Cancel shot</source>

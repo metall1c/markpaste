@@ -28,6 +28,7 @@ static CaptureSet sampleSet()
     b.id = QUuid::createUuid();
     b.marks << Mark{QUuid::createUuid(), QRect(1, 1, 10, 10), QString(), MarkShape::Freehand,
                     {QPoint(1, 1), QPoint(5, 8), QPoint(10, 3)}, MarkPen{QColor(), 0, LineStyle::Dot}};
+    b.marks << Mark{QUuid::createUuid(), QRect(20, 20, 1, 1), QStringLiteral("точка"), MarkShape::Point, {QPoint(20, 20)}};
     CaptureSet set;
     set.shots << a << b;
     return set;
@@ -121,8 +122,8 @@ TEST(SetStorage, ExportWritesBakedPngsAndMarkdown)
     QFile md(tmp.filePath(QStringLiteral("message.md")));
     ASSERT_TRUE(md.open(QIODevice::ReadOnly));
     const QString text = QString::fromUtf8(md.readAll());
-    EXPECT_EQ(text, QStringLiteral("![A](A.png)\n![B](B.png)\n\nShot A\nA1 Кнопка\nярче\nA2 сюда\n\nShot B\nB1\n"));
+    EXPECT_EQ(text, QStringLiteral("![A](A.png)\n![B](B.png)\n\nShot A\nA1 Кнопка\nярче\nA2 сюда\n\nShot B\nB1\nB2 точка\n"));
 
     tpl.textBeforeImages = true;
-    EXPECT_TRUE(SetStorage::exportMarkdown(set, tpl).endsWith(QStringLiteral("B1\n\n![A](A.png)\n![B](B.png)\n")));
+    EXPECT_TRUE(SetStorage::exportMarkdown(set, tpl).endsWith(QStringLiteral("B2 точка\n\n![A](A.png)\n![B](B.png)\n")));
 }

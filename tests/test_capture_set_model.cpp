@@ -283,3 +283,24 @@ TEST(CaptureSetModel, MarkPenIsStoredAndUndoable)
     m.setCrop(s, QRect(20, 0, 180, 100));
     EXPECT_EQ(m.shot(s)->marks[0].pen, blue);
 }
+
+TEST(CaptureSetModel, PointMarkSharesNumberingAndLeavesWithCrop)
+{
+    CaptureSetModel m;
+    const QUuid s = m.addShot(makeShot(200, 100));
+    m.addMark(s, QRect(10, 10, 20, 20));
+    const QUuid p = m.addLinearMark(s, MarkShape::Point, {{150, 50}}, QStringLiteral("здесь"));
+    ASSERT_FALSE(p.isNull());
+    const Shot *shot = m.shot(s);
+    ASSERT_EQ(shot->marks.size(), 2);
+    EXPECT_EQ(shot->markIndex(p), 1);   // A2
+    EXPECT_EQ(shot->marks[1].points, QList<QPoint>{QPoint(150, 50)});
+    // Точка вне снимка не ставится, две точки — не точка
+    EXPECT_TRUE(m.addLinearMark(s, MarkShape::Point, {{250, 50}}).isNull());
+    EXPECT_TRUE(m.addLinearMark(s, MarkShape::Point, {{1, 1}, {2, 2}}).isNull());
+    // Перетаскивание и обрезка
+    EXPECT_TRUE(m.setMarkPoints(s, p, {{120, 40}}));
+    EXPECT_EQ(m.marksOutsideCrop(s, QRect(0, 0, 100, 100)), 1);
+    EXPECT_TRUE(m.setCrop(s, QRect(0, 0, 100, 100)));
+    EXPECT_EQ(m.shot(s)->marks.size(), 1);
+}

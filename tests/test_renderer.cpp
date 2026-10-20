@@ -165,3 +165,45 @@ TEST(Renderer, DefaultPenFollowsStyle)
     arrow.pen.width = 9;
     EXPECT_EQ(markWidth(arrow, style), 9);
 }
+
+TEST(Renderer, PointIsBadgeWithRingCenteredOnSpot)
+{
+    QImage bg(200, 100, QImage::Format_ARGB32);
+    bg.fill(Qt::black);
+    Shot s;
+    s.sourcePng = toPng(bg);
+    s.sourceSize = bg.size();
+    s.marks.append(Mark{QUuid::createUuid(), QRect(), {}, MarkShape::Point, {{100, 50}}});
+    RenderStyle style;
+    const QImage out = renderShot(s, 0, style);
+    // Центр — фон значка; кольцо цвета метки за краем значка (14 px) плюс зазор и обводка
+    EXPECT_EQ(out.pixelColor(100, 50 + 7).rgb(), badgeFillColor(style.accent).rgb());
+    const int ringY = 50 + int(style.badgeDiameter / 2 + style.outlineWidth + style.frameWidth / 2 + style.frameWidth);
+    EXPECT_EQ(out.pixelColor(100, ringY).rgb(), style.accent.rgb());
+    EXPECT_EQ(out.pixelColor(100, 50 + 30).rgb(), QColor(Qt::black).rgb());
+}
+
+TEST(Renderer, CaptionsOnImageOnlyWhenEnabled)
+{
+    QImage bg(400, 200, QImage::Format_ARGB32);
+    bg.fill(Qt::black);
+    Shot s;
+    s.sourcePng = toPng(bg);
+    s.sourceSize = bg.size();
+    s.marks.append(Mark{QUuid::createUuid(), QRect(20, 20, 100, 60), QStringLiteral("Кнопку ярче")});
+    s.marks.append(Mark{QUuid::createUuid(), QRect(), QStringLiteral("у края"), MarkShape::Point, {{395, 190}}});
+    RenderStyle style;
+    auto whiteRight = [](const QImage &img, int x0, int x1, int y) {
+        int n = 0;
+        for (int x = x0; x < x1; ++x)
+            n += img.pixelColor(x, y).rgb() == QColor(Qt::white).rgb();
+        return n;
+    };
+    const QImage plain = renderShot(s, 0, style);
+    EXPECT_LT(whiteRight(plain, 60, 120, 12), 5);   // справа от значка A1, над рамкой — фон
+    style.captions = true;
+    const QImage captioned = renderShot(s, 0, style);
+    EXPECT_GT(whiteRight(captioned, 60, 120, 12), 30);   // белая плашка с подписью
+    // У края подпись не вылезает за снимок, а уходит влево от значка
+    EXPECT_GT(whiteRight(captioned, 300, 360, 180), 20);
+}

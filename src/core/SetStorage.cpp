@@ -55,6 +55,7 @@ QString shapeName(MarkShape s)
     switch (s) {
     case MarkShape::Arrow: return QStringLiteral("arrow");
     case MarkShape::Freehand: return QStringLiteral("freehand");
+    case MarkShape::Point: return QStringLiteral("point");
     case MarkShape::Rect: break;
     }
     return QStringLiteral("rect");
@@ -156,11 +157,14 @@ std::optional<CaptureSet> SetStorage::fromJson(const QByteArray &json, QString *
             m.rect = rectFromJson(mo.value(QStringLiteral("rect")));
             m.comment = mo.value(QStringLiteral("comment")).toString().left(kMaxCommentLength);
             const QString shape = mo.value(QStringLiteral("shape")).toString();
-            m.shape = shape == u"arrow" ? MarkShape::Arrow : shape == u"freehand" ? MarkShape::Freehand : MarkShape::Rect;
+            m.shape = shape == u"arrow"      ? MarkShape::Arrow
+                    : shape == u"freehand" ? MarkShape::Freehand
+                    : shape == u"point"    ? MarkShape::Point
+                                           : MarkShape::Rect;
             const QJsonArray pts = mo.value(QStringLiteral("points")).toArray();
             for (int i = 0; i + 1 < pts.size(); i += 2)
                 m.points << QPoint(pts[i].toInt(), pts[i + 1].toInt());
-            if (m.isLinear() && m.points.size() < 2)
+            if (m.isLinear() && m.points.size() < (m.shape == MarkShape::Point ? 1 : 2))
                 continue;   // линия без точек не нарисуется — пропускаем, а не падаем
             m.pen.color = QColor(mo.value(QStringLiteral("color")).toString());
             m.pen.width = mo.value(QStringLiteral("width")).toDouble(0);

@@ -18,7 +18,8 @@ inline constexpr int kMaxCommentLength = 500;   // EDT-5
 // а не относительно обрезки: обрезка хранится отдельно и отменяется без копии кадра.
 
 // Форма метки (EDT-9). Все формы нумеруются вместе: A1 может быть стрелкой, A2 — рамкой.
-enum class MarkShape { Rect, Arrow, Freehand };
+// Точка-маркер — значок номера прямо на месте, без рамки и линии.
+enum class MarkShape { Rect, Arrow, Freehand, Point };
 
 enum class LineStyle { Solid, Dash, Dot };
 
@@ -37,9 +38,10 @@ struct Mark {
     QRect rect;                    // рамка; у стрелки и карандаша — охватывающий прямоугольник points
     QString comment;
     MarkShape shape = MarkShape::Rect;
-    QList<QPoint> points;          // стрелка: {хвост, острие}; карандаш: ломаная после упрощения
+    QList<QPoint> points;          // стрелка: {хвост, острие}; карандаш: ломаная после упрощения; точка: {центр}
     MarkPen pen;
 
+    // Геометрия задана точками, а не рамкой (стрелка, карандаш, точка)
     bool isLinear() const { return shape != MarkShape::Rect; }
     QPoint badgeAnchor() const { return isLinear() && !points.isEmpty() ? points.first() : rect.topLeft(); }
 

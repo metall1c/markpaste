@@ -18,6 +18,8 @@ struct RenderStyle {
     qreal outlineWidth = 1.0;
     qreal badgeDiameter = 28.0;
     int pixelBlock = 12;                       // EDT-6
+    bool captions = false;                     // EDT-10: комментарий подписью рядом со значком
+    qreal captionMaxWidth = 280.0;
 };
 
 // Фон значка: акцентный цвет, затемнённый до контраста ≥ 4.5:1 с белым текстом (NFR-9).
@@ -30,7 +32,7 @@ qreal markWidth(const Mark &mark, const RenderStyle &style);
 qreal defaultMarkWidth(MarkShape shape, const RenderStyle &style);
 double contrastRatio(const QColor &a, const QColor &b);
 
-// Рисует рамки, стрелки, линии карандаша и значки меток. Painter уже переведён в координаты исходника (физические
+// Рисует рамки, стрелки, линии карандаша, точки, значки меток и (если включены) подписи. Painter уже переведён в координаты исходника (физические
 // пиксели). Общая функция для запекания и редактора: на экране видно ровно то, что уйдёт в чат.
 void paintMarks(QPainter &p, const Shot &shot, int shotIndex, const RenderStyle &style, const QRectF &bounds);
 

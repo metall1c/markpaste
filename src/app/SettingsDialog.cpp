@@ -120,6 +120,10 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     m_textFirst = new QCheckBox(tr("Text before the images"));
     m_textFirst->setChecked(settings.textBeforeImages);
     mf->addRow(m_textFirst);
+    m_captions = new QCheckBox(tr("Also write comments on the image, next to the numbers"));
+    m_captions->setToolTip(tr("For chats where text gets separated from images. The message text stays as is."));
+    m_captions->setChecked(settings.captionsOnImage);
+    mf->addRow(m_captions);
     tabs->addTab(msg, tr("Message"));
 
     // --- Вид ---
@@ -135,10 +139,51 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
         }
     });
     lf->addRow(tr("Mark color:"), m_accent);
+    m_badgeSize = new QSpinBox;
+    m_badgeSize->setRange(16, 48);
+    m_badgeSize->setSuffix(tr(" px"));
+    m_badgeSize->setValue(settings.badgeSize);
+    lf->addRow(tr("Number badge size:"), m_badgeSize);
+    m_uiLanguage = new QComboBox;
+    m_uiLanguage->addItem(tr("Like the system"), QStringLiteral("auto"));
+    m_uiLanguage->addItem(QStringLiteral("Русский"), QStringLiteral("ru"));
+    m_uiLanguage->addItem(QStringLiteral("English"), QStringLiteral("en"));
+    m_uiLanguage->setCurrentIndex(std::max(0, m_uiLanguage->findData(settings.uiLanguage)));
+    lf->addRow(tr("Interface language:"), m_uiLanguage);
     m_hideEmpty = new QCheckBox(tr("Hide the strip to the tray when the set is empty"));
     m_hideEmpty->setChecked(settings.hideStripWhenEmpty);
     lf->addRow(m_hideEmpty);
     tabs->addTab(look, tr("Appearance"));
+
+    // --- Изображения (PST-7) ---
+    auto *images = new QWidget;
+    auto *imf = new QFormLayout(images);
+    m_maxSide = new QSpinBox;
+    m_maxSide->setRange(0, 16384);
+    m_maxSide->setSingleStep(256);
+    m_maxSide->setSuffix(tr(" px"));
+    m_maxSide->setSpecialValueText(tr("no limit"));
+    m_maxSide->setValue(settings.maxLongSide);
+    imf->addRow(tr("Shrink the long side to:"), m_maxSide);
+    m_jpegThreshold = new QSpinBox;
+    m_jpegThreshold->setRange(0, 100);
+    m_jpegThreshold->setSuffix(tr(" MB"));
+    m_jpegThreshold->setSpecialValueText(tr("never, always PNG"));
+    m_jpegThreshold->setValue(settings.jpegThresholdMb);
+    imf->addRow(tr("Switch to JPEG when PNG is larger than:"), m_jpegThreshold);
+    m_jpegQuality = new QSpinBox;
+    m_jpegQuality->setRange(30, 100);
+    m_jpegQuality->setSuffix(tr(" %"));
+    m_jpegQuality->setValue(settings.jpegQuality);
+    imf->addRow(tr("JPEG quality:"), m_jpegQuality);
+    connect(m_jpegThreshold, &QSpinBox::valueChanged, m_jpegQuality, [this](int v) { m_jpegQuality->setEnabled(v > 0); });
+    m_jpegQuality->setEnabled(settings.jpegThresholdMb > 0);
+    auto *imagesNote = new QLabel(tr("Applies to pasting, copying and dragging into a chat. "
+                                     "\"Save to folder\" always writes full-size PNG."));
+    imagesNote->setWordWrap(true);
+    imagesNote->setForegroundRole(QPalette::PlaceholderText);
+    imf->addRow(imagesNote);
+    tabs->addTab(images, tr("Images"));
 
     // --- Система: что доступно здесь ---
     auto *sys = new QWidget;
@@ -216,6 +261,12 @@ Settings SettingsDialog::settings() const
     s.textBeforeImages = m_textFirst->isChecked();
     s.accent = m_accentColor;
     s.hideStripWhenEmpty = m_hideEmpty->isChecked();
+    s.captionsOnImage = m_captions->isChecked();
+    s.badgeSize = m_badgeSize->value();
+    s.uiLanguage = m_uiLanguage->currentData().toString();
+    s.maxLongSide = m_maxSide->value();
+    s.jpegThresholdMb = m_jpegThreshold->value();
+    s.jpegQuality = m_jpegQuality->value();
     s.keepSetOnRestart = m_keepSet->isChecked();
     s.checkUpdates = m_checkUpdates->isChecked();
     return s;

@@ -15,7 +15,7 @@
 <context>
     <name>ShotThumb</name>
     <message>
-        <source>Click — edit · Drag — drop into a chat as a file · Right click — menu</source>
+        <source>Click — edit · Drag — into a chat as a file or within the strip to reorder · Right click — menu</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -105,6 +105,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>The interface language changes after restart</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>New hotkeys take effect after restart</source>
         <translation type="unfinished"></translation>
     </message>
@@ -185,6 +189,10 @@
     </message>
     <message>
         <source>Add drawing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add point</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -461,6 +469,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Also write comments on the image, next to the numbers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>For chats where text gets separated from images. The message text stays as is.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Message</source>
         <translation type="unfinished"></translation>
     </message>
@@ -473,11 +489,59 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source> px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Number badge size:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Interface language:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Hide the strip to the tray when the set is empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Appearance</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>no limit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Shrink the long side to:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> MB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>never, always PNG</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Switch to JPEG when PNG is larger than:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> %</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>JPEG quality:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Applies to pasting, copying and dragging into a chat. &quot;Save to folder&quot; always writes full-size PNG.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Images</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -696,6 +760,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>● Point</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Put a numbered point on the spot and comment it (D)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>▦ Blur</source>
         <translation type="unfinished"></translation>
     </message>
@@ -782,6 +854,10 @@ Drag over the shot to add one.</source>
     </message>
     <message>
         <source>Draw around or under the spot · Double-click a line — edit comment</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Click the spot — a numbered point appears · Drag a point to move it · Double-click — edit comment</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

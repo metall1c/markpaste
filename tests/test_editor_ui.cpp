@@ -219,3 +219,24 @@ TEST(ShotEditorUi, EachShotStartsWithMarkTool)
     f.editor.showShot(f.shot);
     EXPECT_EQ(f.canvas()->tool(), ShotCanvas::Tool::Mark);
 }
+
+TEST(ShotEditorUi, PointToolPlacesPointByClick)
+{
+    EditorFixture f;
+    f.editor.resize(900, 600);
+    QTest::qWait(20);
+    QTest::keyClick(f.canvas(), Qt::Key_D);
+    ASSERT_EQ(f.canvas()->tool(), ShotCanvas::Tool::Point);
+    dragSource(f.canvas(), {{120, 90}});   // щелчок без перетаскивания
+    const Shot *s = f.model.shot(f.shot);
+    ASSERT_EQ(s->marks.size(), 1);
+    EXPECT_EQ(s->marks[0].shape, MarkShape::Point);
+    EXPECT_EQ(s->marks[0].points, QList<QPoint>{QPoint(120, 90)});
+    f.canvas()->commitComment();
+
+    // Щелчок по значку точки берёт её, а не ставит новую; перетаскивание двигает
+    dragSource(f.canvas(), {{125, 92}, {160, 110}, {200, 130}});
+    s = f.model.shot(f.shot);
+    ASSERT_EQ(s->marks.size(), 1);
+    EXPECT_EQ(s->marks[0].points, QList<QPoint>{QPoint(195, 128)});
+}

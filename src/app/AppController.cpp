@@ -475,6 +475,8 @@ void AppController::showSettings()
             SetStorage::removeSession(sessionDirectory());
         }
     }
+    if (old.uiLanguage != m_settings.uiLanguage)
+        notify(tr("The interface language changes after restart"));
     if (old.checkUpdates != m_settings.checkUpdates)
         m_updates->setEnabled(m_settings.checkUpdates, 5000);
     if (old.hideStripWhenEmpty != m_settings.hideStripWhenEmpty && m_tray && m_model.set().isEmpty()) {

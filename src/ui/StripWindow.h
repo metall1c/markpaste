@@ -78,6 +78,18 @@ private:
     QPixmap thumbnailFor(int index);
     void startDrag(const QList<QUuid> &shots, QWidget *source);
 
+public:
+    // Перестановка перетаскиванием внутри ленты (STR-3). Публичны для тестов.
+    static constexpr const char *kShotMime = "application/x-markpaste-shot";
+    static QByteArray shotDragData(const QUuid &shotId);
+    static QUuid draggedShot(const QMimeData *data);
+    int dropIndexAt(int yInList) const;      // место вставки 0…N по координате в списке
+    int dropLineY(int index) const;
+    void moveShotTo(const QUuid &shotId, int insertIndex);
+
+private:
+    friend class ShotListHost;
+
     CaptureSetModel *m_model;
     RenderStyle m_style;
     QUuid m_current;

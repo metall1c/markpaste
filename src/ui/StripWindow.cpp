@@ -6,6 +6,9 @@
 #include <QApplication>
 #include <QCoreApplication>
 #include <QDrag>
+#include <QDragEnterEvent>
+#include <QDragLeaveEvent>
+#include <QDropEvent>
 #include <QGuiApplication>
 #include <QLabel>
 #include <QMenu>
@@ -42,7 +45,7 @@ public:
     {
         setFixedSize(kThumbWidth, int(pixmap.height() / pixmap.devicePixelRatio()) + 8);
         setCursor(Qt::PointingHandCursor);
-        setToolTip(tr("Click — edit · Drag — drop into a chat as a file · Right click — menu"));
+        setToolTip(tr("Click — edit · Drag — into a chat as a file or within the strip to reorder · Right click — menu"));
     }
 
 protected:
@@ -132,6 +135,62 @@ private:
     int m_marks;
     bool m_current;
     QPoint m_pressPos;
+};
+
+// Список миниатюр — цель перетаскивания внутри ленты (STR-3): снимок, брошенный между
+// другими, встаёт на это место, буквы пересчитываются. Наружу тот же снимок уходит файлом
+// (STR-6) — это одно перетаскивание, решает место, где его отпустили.
+class ShotListHost : public QWidget
+{
+public:
+    explicit ShotListHost(StripWindow *strip) : m_strip(strip) { setAcceptDrops(true); }
+
+protected:
+    void dragEnterEvent(QDragEnterEvent *e) override { dragMoveEvent(e); }
+    void dragMoveEvent(QDragMoveEvent *e) override
+    {
+        if (StripWindow::draggedShot(e->mimeData()).isNull()) {
+            e->ignore();
+            return;
+        }
+        e->setDropAction(Qt::CopyAction);
+        e->accept();
+        setDropLine(m_strip->dropIndexAt(e->position().toPoint().y()));
+    }
+    void dragLeaveEvent(QDragLeaveEvent *) override { setDropLine(-1); }
+    void dropEvent(QDropEvent *e) override
+    {
+        const QUuid id = StripWindow::draggedShot(e->mimeData());
+        const int at = m_strip->dropIndexAt(e->position().toPoint().y());
+        setDropLine(-1);
+        if (id.isNull())
+            return;
+        e->setDropAction(Qt::CopyAction);
+        e->accept();
+        // Отложенно: перестройка ленты удалит миниатюру — источник ещё идущего QDrag
+        QTimer::singleShot(0, m_strip, [strip = m_strip, id, at] { strip->moveShotTo(id, at); });
+    }
+    void paintEvent(QPaintEvent *) override
+    {
+        if (m_dropIndex < 0)
+            return;
+        QPainter p(this);
+        p.setPen(Qt::NoPen);
+        p.setBrush(m_strip->m_style.accent);
+        p.drawRoundedRect(QRectF(2, m_strip->dropLineY(m_dropIndex) - 2, width() - 4, 4), 2, 2);
+    }
+
+private:
+    void setDropLine(int index)
+    {
+        if (index != m_dropIndex) {
+            m_dropIndex = index;
+            update();
+        }
+    }
+
+    StripWindow *m_strip;
+    int m_dropIndex = -1;
 };
 
 // Ручка «перетащить весь набор»
@@ -313,7 +372,7 @@ StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
     m_counter->setForegroundRole(QPalette::PlaceholderText);
     layout->addWidget(m_counter);
 
-    auto *listHost = new QWidget;
+    auto *listHost = new ShotListHost(this);
     m_list = new QVBoxLayout(listHost);
     m_list->setContentsMargins(0, 0, 0, 0);
     m_list->setSpacing(6);
@@ -477,6 +536,57 @@ void StripWindow::rebuild()
     }
 }
 
+QByteArray StripWindow::shotDragData(const QUuid &shotId)
+{
+    // pid — чтобы снимок из другого экземпляра программы не переставлял ничего здесь
+    return QByteArray::number(QCoreApplication::applicationPid()) + ' ' + shotId.toByteArray(QUuid::WithoutBraces);
+}
+
+QUuid StripWindow::draggedShot(const QMimeData *data)
+{
+    if (!data || !data->hasFormat(QString::fromLatin1(kShotMime)))
+        return {};
+    const QList<QByteArray> parts = data->data(QString::fromLatin1(kShotMime)).split(' ');
+    if (parts.size() != 2 || parts[0].toLongLong() != QCoreApplication::applicationPid())
+        return {};
+    return QUuid::fromString(QLatin1String(parts[1]));
+}
+
+int StripWindow::dropIndexAt(int y) const
+{
+    // Место вставки — перед первой миниатюрой, середина которой ниже курсора
+    const int n = m_list->count() - 1;   // последний элемент — растяжка
+    for (int i = 0; i < n; ++i) {
+        const QWidget *w = m_list->itemAt(i)->widget();
+        if (y < w->geometry().center().y())
+            return i;
+    }
+    return n;
+}
+
+int StripWindow::dropLineY(int index) const
+{
+    const int n = m_list->count() - 1;
+    if (n <= 0)
+        return 0;
+    if (index < n) {
+        const QRect g = m_list->itemAt(index)->widget()->geometry();
+        return index == 0 ? g.top() + 2 : g.top() - m_list->spacing() / 2;
+    }
+    return m_list->itemAt(n - 1)->widget()->geometry().bottom() + 1;
+}
+
+void StripWindow::moveShotTo(const QUuid &shotId, int insertIndex)
+{
+    const int from = m_model->set().shotIndex(shotId);
+    if (from < 0)
+        return;
+    // Место вставки считается до удаления снимка со старого места
+    const int to = insertIndex > from ? insertIndex - 1 : insertIndex;
+    if (to != from)
+        m_model->moveShot(shotId, to);
+}
+
 void StripWindow::startDrag(const QList<QUuid> &shots, QWidget *source)
 {
     if (!m_dragProvider || shots.isEmpty())
@@ -484,6 +594,9 @@ void StripWindow::startDrag(const QList<QUuid> &shots, QWidget *source)
     QMimeData *data = m_dragProvider(shots);
     if (!data)
         return;
+    // Один снимок можно бросить и обратно в ленту — тогда он переставляется (STR-3)
+    if (shots.size() == 1)
+        data->setData(QString::fromLatin1(kShotMime), shotDragData(shots.first()));
     auto *drag = new QDrag(source);
     drag->setMimeData(data);
     if (shots.size() == 1) {

@@ -83,6 +83,11 @@ bool CaptureSetModel::fitMark(Mark &mark, const QRect &bounds, qreal dpr)
             return false;
         break;
     }
+    case MarkShape::Point: {
+        if (mark.points.size() != 1 || !bounds.contains(mark.points.first()))
+            return false;
+        break;
+    }
     }
     mark.rect = boundsOf(mark.points);
     return true;
@@ -171,7 +176,8 @@ QUuid CaptureSetModel::addLinearMark(const QUuid &shotId, MarkShape shape, const
     if (shape == MarkShape::Rect)
         return addMark(shotId, boundsOf(points), comment, pen);
     const QUuid markId = QUuid::createUuid();
-    const bool ok = apply(shape == MarkShape::Arrow ? tr("Add arrow") : tr("Add drawing"), [&](CaptureSet &s) {
+    const QString what = shape == MarkShape::Arrow ? tr("Add arrow") : shape == MarkShape::Point ? tr("Add point") : tr("Add drawing");
+    const bool ok = apply(what, [&](CaptureSet &s) {
         const int i = s.shotIndex(shotId);
         if (i < 0)
             return false;

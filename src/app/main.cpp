@@ -8,6 +8,7 @@
 #include <QGuiApplication>
 #include <QLibraryInfo>
 #include <QLocale>
+#include <QSettings>
 #include <QTranslator>
 
 #include <csignal>
@@ -27,13 +28,17 @@ int main(int argc, char **argv)
     QGuiApplication::setWindowIcon(mp::appIcon());
     QApplication::setQuitOnLastWindowClosed(false);   // работаем в фоне (APP-1)
 
-    // Язык интерфейса — по системе (APP-5). Переводы Qt — для стандартных кнопок диалогов.
+    // Язык интерфейса — по системе или из настроек (APP-3, APP-5). Переводы Qt — для стандартных кнопок диалогов.
+    const QString uiLanguage = QSettings().value(QStringLiteral("ui/language")).toString();
+    const QLocale uiLocale = uiLanguage == u"ru"   ? QLocale(QLocale::Russian)
+                           : uiLanguage == u"en" ? QLocale(QLocale::English)
+                                                 : QLocale();
     QTranslator qtTranslator;
-    if (qtTranslator.load(QLocale(), QStringLiteral("qtbase"), QStringLiteral("_"),
+    if (qtTranslator.load(uiLocale, QStringLiteral("qtbase"), QStringLiteral("_"),
                           QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
         QCoreApplication::installTranslator(&qtTranslator);
     QTranslator appTranslator;
-    if (appTranslator.load(QLocale(), QStringLiteral("markpaste"), QStringLiteral("_"), QStringLiteral(":/i18n")))
+    if (appTranslator.load(uiLocale, QStringLiteral("markpaste"), QStringLiteral("_"), QStringLiteral(":/i18n")))
         QCoreApplication::installTranslator(&appTranslator);
 
     QCommandLineParser cli;

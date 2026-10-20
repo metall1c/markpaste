@@ -1,4 +1,10 @@
-add_executable(markpaste-uipreview main.cpp)
+# Окно настроек — из программы: собираем его исходники сюда же
+add_executable(markpaste-uipreview main.cpp
+    ${PROJECT_SOURCE_DIR}/src/app/Settings.cpp
+    ${PROJECT_SOURCE_DIR}/src/app/SettingsDialog.cpp
+    ${PROJECT_SOURCE_DIR}/src/app/LogFile.cpp)
+target_include_directories(markpaste-uipreview PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_compile_definitions(markpaste-uipreview PRIVATE MARKPASTE_APP_ID="su._525.MarkpastePreview")
 find_package(Qt6 REQUIRED COMPONENTS Test)
 target_link_libraries(markpaste-uipreview PRIVATE markpaste_ui Qt6::Test)
 # Только .qm: цель lupdate у .ts должна быть одна (docs/problems.md)

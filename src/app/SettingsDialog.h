@@ -47,6 +47,12 @@ private:
     QColor m_accentColor;
     QCheckBox *m_autostart = nullptr;
     QCheckBox *m_hideEmpty;
+    QCheckBox *m_captions;
+    QSpinBox *m_badgeSize;
+    QComboBox *m_uiLanguage;
+    QSpinBox *m_maxSide;
+    QSpinBox *m_jpegThreshold;
+    QSpinBox *m_jpegQuality;
     QCheckBox *m_keepSet;
     QCheckBox *m_checkUpdates;
 };

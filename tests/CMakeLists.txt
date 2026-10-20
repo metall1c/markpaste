@@ -21,6 +21,7 @@ add_executable(markpaste_ui_tests
     test_platform.cpp
     test_setup_wizard.cpp
     test_app_parts.cpp
+    test_strip_ui.cpp
     # Части программы без зависимостей от контроллера
     ${PROJECT_SOURCE_DIR}/src/app/LogFile.cpp
     ${PROJECT_SOURCE_DIR}/src/app/UpdateChecker.cpp

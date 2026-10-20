@@ -191,6 +191,7 @@ std::optional<MarkShape> ShotCanvas::creatingShape() const
     case Tool::Mark: return MarkShape::Rect;
     case Tool::Arrow: return MarkShape::Arrow;
     case Tool::Pen: return MarkShape::Freehand;
+    case Tool::Point: return MarkShape::Point;
     default: return std::nullopt;
     }
 }
@@ -202,6 +203,12 @@ bool ShotCanvas::hitsMark(const Mark &mark, const QPointF &pos) const
     if (!mark.isLinear())
         return QRectF(mark.rect).contains(toSource(pos));
     const QTransform t = toWidget();
+    if (mark.shape == MarkShape::Point && !mark.points.isEmpty()) {
+        // Точку ловим по её значку с кольцом
+        const qreal dpr = shot() && shot()->devicePixelRatio > 0 ? shot()->devicePixelRatio : 1.0;
+        const qreal radius = (m_style.badgeDiameter / 2 + markWidth(mark, m_style) * 1.5 + 2) * dpr * t.m11();
+        return QLineF(t.map(QPointF(mark.points.first()) + QPointF(0.5, 0.5)), pos).length() <= radius + kLineHitSlop;
+    }
     QList<QPointF> pts;
     pts.reserve(mark.points.size());
     for (const QPoint &p : mark.points)
@@ -271,7 +278,8 @@ void ShotCanvas::paintEvent(QPaintEvent *)
     // Снимок и метки — в координатах исходника
     Shot preview = *s;
     const auto shape = creatingShape();
-    if (m_drag == Drag::Create && shape && *shape != MarkShape::Rect && m_livePoints.size() >= 2) {
+    if (m_drag == Drag::Create && shape && *shape != MarkShape::Rect
+        && m_livePoints.size() >= (*shape == MarkShape::Point ? 1 : 2)) {
         preview.marks.append(Mark{QUuid(), boundsOf(m_livePoints), {}, *shape, m_livePoints, m_pen});
     } else if (m_drag != Drag::None && !m_live.isEmpty()) {
         if (m_drag == Drag::Create && shape == MarkShape::Rect)
@@ -318,7 +326,14 @@ void ShotCanvas::paintEvent(QPaintEvent *)
     if (m_selected.valid() && m_drag == Drag::None) {
         const QRectF r = t.mapRect(QRectF(rectOf(m_selected)));
         const Mark *m = markOf(m_selected);
-        if (m && m->shape == MarkShape::Freehand) {
+        if (m && m->shape == MarkShape::Point) {
+            // Точка тянется только целиком: пунктирный круг вокруг значка
+            const qreal dpr = shot()->devicePixelRatio > 0 ? shot()->devicePixelRatio : 1.0;
+            const qreal radius = (m_style.badgeDiameter / 2 + markWidth(*m, m_style) * 1.5 + 4) * dpr * t.m11();
+            p.setPen(QPen(palette().highlight().color(), 1, Qt::DashLine));
+            p.setBrush(Qt::NoBrush);
+            p.drawEllipse(t.map(QPointF(m->points.first()) + QPointF(0.5, 0.5)), radius, radius);
+        } else if (m && m->shape == MarkShape::Freehand) {
             // Карандаш тянется только целиком: вместо ручек — пунктир вокруг
             p.setPen(QPen(palette().highlight().color(), 1, Qt::DashLine));
             p.setBrush(Qt::NoBrush);
@@ -428,6 +443,10 @@ void ShotCanvas::mouseMoveEvent(QMouseEvent *e)
         if (m_tool == Tool::Arrow) {
             m_livePoints = {m_livePoints.first(), clampedSource(pos)};
             m_live = boundsOf(m_livePoints);
+        } else if (m_tool == Tool::Point) {
+            // Точку можно сразу довести до нужного места, не отпуская мышь
+            m_livePoints = {clampedSource(pos)};
+            m_live = boundsOf(m_livePoints);
         } else if (m_tool == Tool::Pen) {
             // Сырые точки мыши; упрощает их модель при добавлении метки
             if (const QPoint p = clampedSource(pos); p != m_livePoints.last())
@@ -487,13 +506,15 @@ void ShotCanvas::mouseReleaseEvent(QMouseEvent *e)
         bool tooSmall = live.width() < kMinSourceSize || live.height() < kMinSourceSize;
         if (m_tool == Tool::Pen)
             tooSmall = std::max(live.width(), live.height()) < kMinSourceSize;
+        else if (m_tool == Tool::Point)
+            tooSmall = livePoints.size() != 1;   // точке размер не нужен: ставится щелчком
         else if (m_tool == Tool::Arrow && livePoints.size() == 2)
             tooSmall = QLineF(livePoints[0], livePoints[1]).length() < m_style.badgeDiameter * dpr;
         if (tooSmall) {
             update();
             return;
         }
-        if (m_tool == Tool::Arrow || m_tool == Tool::Pen) {
+        if (m_tool == Tool::Arrow || m_tool == Tool::Pen || m_tool == Tool::Point) {
             const QUuid id = m_model->addLinearMark(m_shotId, *creatingShape(), livePoints, {}, m_pen);
             if (!id.isNull()) {
                 m_selected = Hit{true, id, HNone};

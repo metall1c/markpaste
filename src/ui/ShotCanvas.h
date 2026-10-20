@@ -13,7 +13,7 @@ namespace mp {
 
 class CommentPopup;
 
-// Холст редактора снимка: метки (рамка, стрелка, карандаш), размытие, обрезка (ТЗ 5.2).
+// Холст редактора снимка: метки (рамка, стрелка, карандаш, точка), размытие, обрезка (ТЗ 5.2).
 //
 // Координаты меток — физические пиксели исходника. Холст хранит одно преобразование
 // «исходник → окно» (toWidget) и рисует метки той же функцией, что и запекание
@@ -24,7 +24,7 @@ class ShotCanvas : public QWidget
 {
     Q_OBJECT
 public:
-    enum class Tool { Mark, Arrow, Pen, Blur, Crop };
+    enum class Tool { Mark, Arrow, Pen, Point, Blur, Crop };
 
     explicit ShotCanvas(CaptureSetModel *model, QWidget *parent = nullptr);
 

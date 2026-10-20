@@ -34,7 +34,7 @@ public:
     // Метки
     QUuid addMark(const QUuid &shotId, const QRect &rect, const QString &comment = {}, const MarkPen &pen = {});
     bool setMarkRect(const QUuid &shotId, const QUuid &markId, const QRect &rect);
-    // Стрелка и карандаш (EDT-9). Точки обрезаются по видимой области, линия карандаша
+    // Стрелка, карандаш и точка (EDT-9). Точки обрезаются по видимой области, линия карандаша
     // упрощается; rect метки становится охватывающим прямоугольником.
     QUuid addLinearMark(const QUuid &shotId, MarkShape shape, const QList<QPoint> &points,
                         const QString &comment = {}, const MarkPen &pen = {});
