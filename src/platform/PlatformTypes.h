@@ -66,6 +66,7 @@ enum class Action {
     PasteSet,
     NewShot,
     ClearSet,
+    CaptureToStrip,   // снимок сразу в ленту, без редактора (Ctrl+Print)
 };
 
 struct BindResult {

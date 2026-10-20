@@ -81,13 +81,14 @@ QString PortalGlobalShortcuts::shortcutId(Action action)
     case Action::PasteSet: return QStringLiteral("paste-set");
     case Action::NewShot: return QStringLiteral("new-shot");
     case Action::ClearSet: return QStringLiteral("clear-set");
+    case Action::CaptureToStrip: return QStringLiteral("capture-to-strip");
     }
     return {};
 }
 
 bool PortalGlobalShortcuts::actionFromId(const QString &id, Action *action)
 {
-    for (Action a : {Action::Capture, Action::PasteSet, Action::NewShot, Action::ClearSet})
+    for (Action a : {Action::Capture, Action::PasteSet, Action::NewShot, Action::ClearSet, Action::CaptureToStrip})
         if (shortcutId(a) == id) {
             *action = a;
             return true;
@@ -166,6 +167,9 @@ QFuture<QHash<Action, BindResult>> PortalGlobalShortcuts::bindAll(const QHash<Ac
                 case Action::PasteSet: sc.properties[QStringLiteral("description")] = tr("Paste the set into the chat"); break;
                 case Action::NewShot: sc.properties[QStringLiteral("description")] = tr("New shot"); break;
                 case Action::ClearSet: sc.properties[QStringLiteral("description")] = tr("Clear the set"); break;
+                case Action::CaptureToStrip:
+                    sc.properties[QStringLiteral("description")] = tr("Capture an area straight to the strip");
+                    break;
                 }
                 if (!it.value().isEmpty())
                     sc.properties[QStringLiteral("preferred_trigger")] = toPortalTrigger(it.value());

@@ -47,6 +47,7 @@ int main(int argc, char **argv)
     cli.addVersionOption();
     const QList<std::pair<QString, QString>> commands = {
         {QStringLiteral("capture"), QStringLiteral("Start capture in the running instance")},
+        {QStringLiteral("capture-to-strip"), QStringLiteral("Capture an area straight to the strip, without the editor")},
         {QStringLiteral("paste"), QStringLiteral("Paste the set into the active window")},
         {QStringLiteral("copy"), QStringLiteral("Copy the set (files + text) to the clipboard")},
         {QStringLiteral("show"), QStringLiteral("Show the set strip")},

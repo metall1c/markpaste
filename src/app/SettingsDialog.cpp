@@ -81,11 +81,13 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     auto *kf = formPage(keys);
     m_captureKey = new QLineEdit(settings.captureHotkey);
     m_pasteKey = new QLineEdit(settings.pasteHotkey);
+    m_toStripKey = new QLineEdit(settings.captureToStripHotkey);
     // Сочетания хранит система (портал GlobalShortcuts): своё значение она учитывает только при
     // первой привязке, поэтому показываем фактическое и меняем его через систему.
     m_systemKeys = platform.hotkeys && platform.hotkeys->systemAssignsTriggers();
     if (m_systemKeys) {
-        for (auto [edit, action] : {std::pair{m_captureKey, Action::Capture}, std::pair{m_pasteKey, Action::PasteSet}}) {
+        for (auto [edit, action] : {std::pair{m_captureKey, Action::Capture}, std::pair{m_pasteKey, Action::PasteSet},
+                                    std::pair{m_toStripKey, Action::CaptureToStrip}}) {
             const QString t = boundTriggers.value(action);
             edit->setText(t.isEmpty() ? tr("not assigned") : t);
             edit->setReadOnly(true);
@@ -93,6 +95,8 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     }
     kf->addRow(tr("Capture:"), m_captureKey);
     kf->addRow(tr("Paste the set:"), m_pasteKey);
+    kf->addRow(tr("Shot to the strip:"), m_toStripKey);
+    m_toStripKey->setToolTip(tr("Select an area — the shot goes to the strip without opening the editor"));
     auto *keysNote = noteLabel(
         m_systemKeys
             ? tr("Shortcuts are assigned by the desktop. Change them with the button below "
@@ -321,6 +325,7 @@ Settings SettingsDialog::settings() const
     if (!m_systemKeys) {
         s.captureHotkey = m_captureKey->text().trimmed();
         s.pasteHotkey = m_pasteKey->text().trimmed();
+        s.captureToStripHotkey = m_toStripKey->text().trimmed();
     }
     s.quickCapture = m_quick->isChecked();
     s.clearOnNextCapture = m_clearOnNext->isChecked();

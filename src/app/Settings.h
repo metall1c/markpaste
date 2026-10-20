@@ -14,6 +14,7 @@ struct Settings {
     // Клавиши
     QString captureHotkey = QStringLiteral("Print");
     QString pasteHotkey = QStringLiteral("Primary+Alt+V");   // не Ctrl+Shift+V (PST-2)
+    QString captureToStripHotkey = QStringLiteral("Primary+Print");   // снимок сразу в ленту (ADR 0022)
 
     // Захват
     bool quickCapture = true;          // CAP-4: подтверждение отпусканием мыши

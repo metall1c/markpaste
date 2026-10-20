@@ -84,6 +84,7 @@ void AppController::start()
             notify(tr("Paste failed: %1").arg(s.error));
             return;
         }
+        m_setDelivered = true;
         if (mode == PasteMode::FilesAndText) {
             notify(tr("Set copied — press Ctrl+V in the chat"));
             return;
@@ -135,6 +136,7 @@ void AppController::start()
     });
 
     connect(&m_model, &CaptureSetModel::changed, this, [this] {
+        m_setDelivered = false;   // набор поменяли после вставки — это уже новая работа, не очищать
         if (m_strip && m_editor)
             m_strip->setCurrentShot(m_editor->isVisible() ? m_editor->shotId() : QUuid());
         // Лента видна, только пока в наборе есть снимки; пустой набор — программа в трее
@@ -159,6 +161,7 @@ void AppController::start()
             case Action::PasteSet: paste(true); break;
             case Action::NewShot: capture(); break;
             case Action::ClearSet: clearSet(); break;
+            case Action::CaptureToStrip: captureToStrip(); break;
             }
         });
         connect(m_platform.hotkeys.get(), &IHotkeys::triggerChanged, this, [this](Action a, const QString &trigger) {
@@ -203,6 +206,7 @@ void AppController::bindHotkeys()
     const QHash<Action, QString> wanted{
         {Action::Capture, m_settings.captureHotkey},
         {Action::PasteSet, m_settings.pasteHotkey},
+        {Action::CaptureToStrip, m_settings.captureToStripHotkey},
     };
     m_platform.hotkeys->bindAll(wanted).then(this, [this](const QHash<Action, BindResult> &result) {
         for (auto it = result.cbegin(); it != result.cend(); ++it) {
@@ -222,6 +226,8 @@ void AppController::handleCommand(const QString &command)
     qCInfo(lcApp) << "command:" << command;
     if (command == u"capture")
         capture();
+    else if (command == u"capture-to-strip")
+        captureToStrip();
     else if (command == u"paste")
         paste(false);
     else if (command == u"copy")
@@ -304,13 +310,25 @@ void AppController::restoreOwnWindows()
 
 void AppController::capture()
 {
+    startCapture(false);
+}
+
+void AppController::captureToStrip()
+{
+    startCapture(true);
+}
+
+void AppController::startCapture(bool toStrip)
+{
     if (m_capturing || m_paste->isRunning())
         return;
     if (!m_platform.capture) {
         notify(tr("Screen capture is not available on this system"));
         return;
     }
-    if (m_settings.clearOnNextCapture && !m_model.set().isEmpty() && m_editor && !m_editor->isVisible())
+    // Новый набор — только после вставки: снимки в ленту без редактора копятся подряд,
+    // и проверка «редактор закрыт» очищала бы набор на каждом (ADR 0022)
+    if (m_settings.clearOnNextCapture && m_setDelivered && !m_model.set().isEmpty() && m_editor && !m_editor->isVisible())
         m_model.clear();
     if (m_model.set().isFull()) {   // CAP-8
         showStrip();
@@ -324,8 +342,8 @@ void AppController::capture()
     hideOwnWindows();
     auto timer = std::make_shared<QElapsedTimer>();
     timer->start();
-    QTimer::singleShot(hadWindows ? 180 : 0, this, [this, timer] {
-        m_platform.capture->captureAllScreens().then(this, [this, timer](const CaptureResult &r) {
+    QTimer::singleShot(hadWindows ? 180 : 0, this, [this, timer, toStrip] {
+        m_platform.capture->captureAllScreens().then(this, [this, timer, toStrip](const CaptureResult &r) {
             qCInfo(lcApp) << "captured" << r.frames.size() << "screens via" << m_platform.capture->name() << "in"
                           << timer->elapsed() << "ms";
             if (r.programReplaced)
@@ -337,10 +355,10 @@ void AppController::capture()
                 return;
             }
             m_capture = new CaptureSession(r.frames, m_settings.quickCapture, this);
-            connect(m_capture, &CaptureSession::selected, this, [this, timer](const CaptureSelection &sel) {
+            connect(m_capture, &CaptureSession::selected, this, [this, toStrip](const CaptureSelection &sel) {
                 m_capturing = false;
                 m_capture->deleteLater();
-                onCaptured(sel.image, sel.devicePixelRatio);
+                onCaptured(sel.image, sel.devicePixelRatio, toStrip);
             });
             connect(m_capture, &CaptureSession::cancelled, this, [this] {
                 m_capturing = false;
@@ -353,7 +371,7 @@ void AppController::capture()
     });
 }
 
-void AppController::onCaptured(const QImage &image, qreal dpr)
+void AppController::onCaptured(const QImage &image, qreal dpr, bool toStrip)
 {
     // PNG в памяти — чтобы 26 кадров 4K укладывались в NFR-2. Кодируем в пуле потоков.
     QtConcurrent::run([image] {
@@ -362,7 +380,7 @@ void AppController::onCaptured(const QImage &image, qreal dpr)
         buf.open(QIODevice::WriteOnly);
         image.save(&buf, "PNG", 50);   // 50 — баланс скорости и размера, сжатие без потерь
         return png;
-    }).then(this, [this, size = image.size(), dpr](const QByteArray &png) {
+    }).then(this, [this, size = image.size(), dpr, toStrip](const QByteArray &png) {
         Shot shot;
         shot.sourcePng = png;
         shot.sourceSize = size;
@@ -373,6 +391,12 @@ void AppController::onCaptured(const QImage &image, qreal dpr)
             return;
         }
         showStrip();
+        if (toStrip) {
+            // Снимок только в ленту; открытый до снимка редактор возвращается к своему снимку
+            if (m_editorWasVisible)
+                m_editor->show();
+            return;
+        }
         openEditor(id, true);
     });
 }
@@ -533,7 +557,8 @@ void AppController::showSettings()
         else
             showStrip();
     }
-    if (old.captureHotkey != m_settings.captureHotkey || old.pasteHotkey != m_settings.pasteHotkey)
+    if (old.captureHotkey != m_settings.captureHotkey || old.pasteHotkey != m_settings.pasteHotkey
+        || old.captureToStripHotkey != m_settings.captureToStripHotkey)
         notify(tr("New hotkeys take effect after restart"));
 }
 

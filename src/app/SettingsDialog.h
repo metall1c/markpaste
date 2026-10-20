@@ -32,6 +32,7 @@ private:
     Settings m_settings;
     QLineEdit *m_captureKey;
     QLineEdit *m_pasteKey;
+    QLineEdit *m_toStripKey;
     bool m_systemKeys = false;
     QCheckBox *m_quick;
     QCheckBox *m_clearOnNext;

@@ -66,7 +66,7 @@ static void createLinuxWayland(Platform &p, const QString &appId)
     if (PortalGlobalShortcuts::isAvailable())
         p.hotkeys = std::make_unique<PortalGlobalShortcuts>();
     else
-        p.notes << QStringLiteral("No GlobalShortcuts portal: bind a key to `markpaste --capture` in your desktop settings.");
+        p.notes << QStringLiteral("No GlobalShortcuts portal: bind keys to `markpaste --capture` (and `--capture-to-strip`) in your desktop settings.");
 
     // Эмуляция Ctrl+V. Токен восстановления хранится в настройках, чтобы диалог был один раз.
     auto rd = std::make_unique<PortalRemoteDesktop>();

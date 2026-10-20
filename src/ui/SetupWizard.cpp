@@ -279,17 +279,29 @@ void SetupWizard::updateHotkeys()
 {
     if (!m_platform->hotkeys) {
         setStatus(m_hotkeyStatus, Result::Failed,
-                  tr("Global hotkeys are not available here. Assign the commands “markpaste --capture” and "
-                     "“markpaste --paste” to keys in the system keyboard settings."));
+                  tr("Global hotkeys are not available here. Assign the commands “markpaste --capture”, "
+                     "“markpaste --paste” and “markpaste --capture-to-strip” to keys in the system keyboard settings."));
         return;
     }
-    const QList<std::pair<Action, QString>> actions{{Action::Capture, tr("Capture")}, {Action::PasteSet, tr("Paste set")}};
+    // Снимок в ленту — дополнительная клавиша: видна, если назначена, но на итог проверки не влияет
+    struct Line {
+        Action action;
+        QString name;
+        bool required;
+    };
+    const QList<Line> actions{{Action::Capture, tr("Capture"), true},
+                              {Action::PasteSet, tr("Paste set"), true},
+                              {Action::CaptureToStrip, tr("Shot to the strip"), false}};
     QStringList lines;
     bool allPressed = true, anyMissing = false;
-    for (const auto &[action, name] : actions) {
+    for (const auto &[action, name, required] : actions) {
         const QString trigger = m_triggers.value(action);
         QString state;
-        if (trigger.isEmpty()) {
+        if (!required) {
+            if (trigger.isEmpty())
+                continue;
+            state = m_pressed.value(action) ? tr("%1 — works").arg(trigger) : tr("press %1 to test").arg(trigger);
+        } else if (trigger.isEmpty()) {
             anyMissing = true;
             allPressed = false;
             state = tr("not assigned");

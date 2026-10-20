@@ -14,6 +14,7 @@ Settings Settings::load()
     QSettings q;
     s.captureHotkey = q.value(QStringLiteral("hotkeys/capture"), d.captureHotkey).toString();
     s.pasteHotkey = q.value(QStringLiteral("hotkeys/paste"), d.pasteHotkey).toString();
+    s.captureToStripHotkey = q.value(QStringLiteral("hotkeys/captureToStrip"), d.captureToStripHotkey).toString();
     s.quickCapture = q.value(QStringLiteral("capture/quick"), d.quickCapture).toBool();
     s.clearOnNextCapture = q.value(QStringLiteral("capture/clearOnNext"), d.clearOnNextCapture).toBool();
     const int mode = q.value(QStringLiteral("paste/mode"), int(d.pasteMode)).toInt();
@@ -54,6 +55,7 @@ void Settings::save() const
     QSettings q;
     q.setValue(QStringLiteral("hotkeys/capture"), captureHotkey);
     q.setValue(QStringLiteral("hotkeys/paste"), pasteHotkey);
+    q.setValue(QStringLiteral("hotkeys/captureToStrip"), captureToStripHotkey);
     q.setValue(QStringLiteral("capture/quick"), quickCapture);
     q.setValue(QStringLiteral("capture/clearOnNext"), clearOnNextCapture);
     q.setValue(QStringLiteral("paste/mode"), int(pasteMode));

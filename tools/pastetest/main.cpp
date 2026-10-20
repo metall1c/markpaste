@@ -235,8 +235,10 @@ int runX11Hotkeys(int holdMs)
         events << QStringLiteral("activated %1").arg(int(a));
     });
     QObject::connect(hk.get(), &IHotkeys::released, [&events](Action a) { events << QStringLiteral("released %1").arg(int(a)); });
+    // Print и Ctrl+Print — на одной клавише: срабатывать должно только сочетание с теми же модификаторами
     const auto bound = await(hk->bindAll({{Action::Capture, QStringLiteral("Print")},
-                                          {Action::PasteSet, QStringLiteral("Primary+Alt+V")}}));
+                                          {Action::PasteSet, QStringLiteral("Primary+Alt+V")},
+                                          {Action::CaptureToStrip, QStringLiteral("Primary+Print")}}));
     bool allBound = true;
     for (auto it = bound.cbegin(); it != bound.cend(); ++it) {
         say(QStringLiteral("bind %1: %2").arg(int(it.key())).arg(it->status.ok ? it->trigger : QStringLiteral("FAILED: ") + it->status.error));
@@ -249,7 +251,7 @@ int runX11Hotkeys(int holdMs)
     if (!allBound)
         return 4;
     for (const QString &k : {QStringLiteral("Print"), QStringLiteral("ctrl+alt+v"), QStringLiteral("v"),
-                             QStringLiteral("ctrl+v")}) {
+                             QStringLiteral("ctrl+v"), QStringLiteral("ctrl+Print"), QStringLiteral("shift+Print")}) {
         QProcess::execute(QStringLiteral("xdotool"), {QStringLiteral("key"), k});
         sleepMs(150);
     }
@@ -260,7 +262,8 @@ int runX11Hotkeys(int holdMs)
     sleepMs(150);
     say(QStringLiteral("events: %1").arg(events.join(QStringLiteral(", "))));
     const QStringList expected{QStringLiteral("activated 0"), QStringLiteral("released 0"), QStringLiteral("activated 1"),
-                               QStringLiteral("released 1"), QStringLiteral("activated 0"), QStringLiteral("released 0")};
+                               QStringLiteral("released 1"), QStringLiteral("activated 4"), QStringLiteral("released 4"),
+                               QStringLiteral("activated 0"), QStringLiteral("released 0")};
     const bool ok = events == expected;
     say(ok ? QStringLiteral("PASS") : QStringLiteral("FAIL, expected: %1").arg(expected.join(QStringLiteral(", "))));
     return ok ? 0 : 7;

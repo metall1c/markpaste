@@ -65,9 +65,12 @@ BindResult X11Hotkeys::grab(Action action, const QString &preferred)
 
     xcb_connection_t *c = x11Connection();
     QList<xcb_void_cookie_t> cookies;
+    // owner_events = 0: пока сочетание зажато, его события идут корневому окну, даже если фокус уже
+    // у нашего окна (оверлей открывается за миллисекунды). С 1 отпускание уходило оверлею, сочетание
+    // оставалось «нажатым», и следующее нажатие глоталось как автоповтор (docs/problems.md, 2026-10-20)
     for (uint8_t kc : b.keycodes)
         for (uint16_t extra : kIgnored)
-            cookies << xcb_grab_key_checked(c, 1, x11RootWindow(), b.trigger.modifiers | extra, kc,
+            cookies << xcb_grab_key_checked(c, 0, x11RootWindow(), b.trigger.modifiers | extra, kc,
                                             XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     bool taken = false;
     for (const xcb_void_cookie_t &cookie : cookies)
@@ -107,27 +110,36 @@ bool X11Hotkeys::nativeEventFilter(const QByteArray &eventType, void *message, q
     if (type != XCB_KEY_PRESS && type != XCB_KEY_RELEASE)
         return false;
     auto *key = reinterpret_cast<xcb_key_press_event_t *>(ev);
-    if (key->event != x11RootWindow())
-        return false;   // клавиши наших окон — не наше дело
+    // Клавиши наших окон — не наше дело. Кроме отпускания зажатого сочетания: если активный захват
+    // прервали (ungrab в Qt), оно придёт окну с фокусом. Тогда только сбрасываем «нажато», а само
+    // событие окну оставляем
+    const bool toRoot = key->event == x11RootWindow();
+    if (!toRoot && type != XCB_KEY_RELEASE)
+        return false;
     const uint16_t mods = key->state & kRelevant;
+    // На одной клавише может быть несколько сочетаний (Print и Ctrl+Print): несовпавшее
+    // по модификаторам пропускаем и смотрим следующее
     for (auto it = m_bindings.begin(); it != m_bindings.end(); ++it) {
         Binding &b = it.value();
         if (!b.keycodes.contains(key->detail))
             continue;
         if (type == XCB_KEY_PRESS) {
-            if (mods != b.trigger.modifiers || b.down)
-                return mods == b.trigger.modifiers;   // автоповтор — съедаем молча
+            if (mods != b.trigger.modifiers)
+                continue;
+            if (b.down)
+                return true;   // автоповтор — съедаем молча
             b.down = true;
             emit activated(it.key(), ActivationContext{});
         } else {
+            // Отпускание — того сочетания, что нажато, с какими бы модификаторами оно ни пришло
             if (!b.down)
-                return false;
+                continue;
             if (isKeyDown(key->detail))
-                return true;   // автоповтор: клавиша всё ещё нажата
+                return toRoot;   // автоповтор: клавиша всё ещё нажата
             b.down = false;
             emit released(it.key());
         }
-        return true;
+        return toRoot;
     }
     return false;
 }

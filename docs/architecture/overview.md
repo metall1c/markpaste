@@ -25,7 +25,7 @@ markpaste (app/)             контроллер, настройки, один 
 | Интерфейс | Реализация | Запасная |
 | --- | --- | --- |
 | ICapture | KWin ScreenShot2, каждый монитор в родных пикселях | портал Screenshot (`FallbackCapture` переключается навсегда после первой ошибки) |
-| IHotkeys | портал GlobalShortcuts (сочетание назначает система, ADR 0012) | нет — тогда CLI `markpaste --capture` |
+| IHotkeys | портал GlobalShortcuts (сочетание назначает система, ADR 0012) | нет — тогда CLI `markpaste --capture`, `--capture-to-strip` |
 | IClipboard | ext-data-control-v1 | QClipboard (без записи из фона: режим 1 выключается) |
 | IInputInjector | портал RemoteDesktop | нет — режим 2 |
 

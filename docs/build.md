@@ -161,7 +161,7 @@ tools/dev/winvm/vm.sh tests                                   # три набо�
 - **Логи.** Когда stderr — не терминал, Qt пишет в journald. Для разработки:
   `QT_FORCE_STDERR_LOGGING=1 QT_LOGGING_RULES="markpaste.*=true" ./build/src/app/markpaste`.
   Без перенаправления лог — в `journalctl --user -f`.
-- **Управление запущенным экземпляром:** `markpaste --capture | --paste | --copy | --show | --settings | --setup | --clear | --quit`.
+- **Управление запущенным экземпляром:** `markpaste --capture | --capture-to-strip | --paste | --copy | --show | --settings | --setup | --about | --clear | --quit`. `--capture-to-strip` — снимок сразу в ленту, без редактора (ADR 0022).
 - **`pkill -f build/src/app/markpaste` убивает и саму оболочку**, если путь есть в её командной строке. Используйте `pkill -x markpaste`.
 - **Переводы:** строки обновляются `cmake --build build --target update_translations` (lupdate), файлы — `i18n/*.ts`. `.qm` встраиваются в программу под `:/i18n`. Каждый `.ts` подключать через `qt_add_translations` только к одной цели, иначе параллельные lupdate портят файл (docs/problems.md); тестам — `qt_add_lrelease`.
 - **API Qt не новее 6.4.** На Fedora стоит 6.11, поэтому компилятор не поймает новые вызовы. Защита — будущая сборка в CI на Ubuntu 24.04 (Qt 6.4.2). Уже используется только то, что есть в 6.4: `QFuture::then/unwrap`, `QPromise`, `qt_add_translations`.

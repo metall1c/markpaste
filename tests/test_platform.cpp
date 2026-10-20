@@ -54,6 +54,7 @@ TEST(Autostart, WritesAndRemovesRunKey)
 
 #ifdef Q_OS_LINUX
 #include "platform/linux/FdIo.h"
+#include "platform/linux/portal/PortalGlobalShortcuts.h"
 
 #include <QEventLoop>
 #include <QFuture>
@@ -102,5 +103,30 @@ TEST(FdIo, OverLimitGivesNothing)
     ::close(fds[1]);
     QObject ctx;
     EXPECT_TRUE(awaitBytes(lx::readAllAsync(fds[0], 1000, &ctx, 4)).isEmpty());
+}
+TEST(PortalGlobalShortcuts, TriggerInXdgFormat)
+{
+    using lx::PortalGlobalShortcuts;
+    EXPECT_EQ(PortalGlobalShortcuts::toPortalTrigger(QStringLiteral("Print")), QStringLiteral("Print"));
+    EXPECT_EQ(PortalGlobalShortcuts::toPortalTrigger(QStringLiteral("Primary+Print")), QStringLiteral("CTRL+Print"));
+    EXPECT_EQ(PortalGlobalShortcuts::toPortalTrigger(QStringLiteral("Primary+Alt+V")), QStringLiteral("CTRL+ALT+v"));
+}
+
+TEST(PortalGlobalShortcuts, EveryActionHasOwnId)
+{
+    using lx::PortalGlobalShortcuts;
+    QStringList ids;
+    for (Action a : {Action::Capture, Action::PasteSet, Action::NewShot, Action::ClearSet, Action::CaptureToStrip}) {
+        const QString id = PortalGlobalShortcuts::shortcutId(a);
+        ASSERT_FALSE(id.isEmpty());
+        EXPECT_FALSE(ids.contains(id)) << id.toStdString();
+        ids << id;
+        Action back = Action::Capture;
+        ASSERT_TRUE(PortalGlobalShortcuts::actionFromId(id, &back));
+        EXPECT_EQ(back, a);
+    }
+    // Id уже привязанных сочетаний не меняются: по ним KDE хранит назначенные клавиши
+    EXPECT_EQ(PortalGlobalShortcuts::shortcutId(Action::Capture), QStringLiteral("capture"));
+    EXPECT_EQ(PortalGlobalShortcuts::shortcutId(Action::PasteSet), QStringLiteral("paste-set"));
 }
 #endif

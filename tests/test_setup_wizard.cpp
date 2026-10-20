@@ -136,3 +136,20 @@ TEST(SetupWizard, HotkeysTurnOkWhenPressed)
     w.hotkeyActivated(Action::PasteSet);
     EXPECT_EQ(w.hotkeyResult(), SetupWizard::Result::Ok);
 }
+
+TEST(SetupWizard, ShotToStripKeyIsOptional)
+{
+    WizardFixture f;
+    f.platform.hotkeys = std::make_unique<FakeHotkeys>();
+    SetupWizard w(&f.platform, QStringLiteral("su._525.MarkpasteTest"));
+    // Снимок в ленту назначен, но не нажат — проверка всё равно проходит по двум главным клавишам
+    w.setTriggers({{Action::Capture, QStringLiteral("Print")},
+                   {Action::PasteSet, QStringLiteral("Ctrl+Alt+V")},
+                   {Action::CaptureToStrip, QStringLiteral("Ctrl+Print")}});
+    w.hotkeyActivated(Action::Capture);
+    w.hotkeyActivated(Action::PasteSet);
+    EXPECT_EQ(w.hotkeyResult(), SetupWizard::Result::Ok);
+    // Не назначен — не предупреждение
+    w.setTriggers({{Action::Capture, QStringLiteral("Print")}, {Action::PasteSet, QStringLiteral("Ctrl+Alt+V")}});
+    EXPECT_EQ(w.hotkeyResult(), SetupWizard::Result::Ok);
+}

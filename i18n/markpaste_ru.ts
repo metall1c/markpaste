@@ -495,6 +495,14 @@
         <translation>Вставка набора:</translation>
     </message>
     <message>
+        <source>Shot to the strip:</source>
+        <translation>Снимок в ленту:</translation>
+    </message>
+    <message>
+        <source>Select an area — the shot goes to the strip without opening the editor</source>
+        <translation>Выделите область — снимок попадёт в ленту, редактор не откроется</translation>
+    </message>
+    <message>
         <source>Shortcuts are assigned by the desktop. Change them with the button below or in the system shortcut settings.</source>
         <translation>Сочетания назначает рабочий стол. Изменить их можно кнопкой ниже или в системных настройках комбинаций клавиш.</translation>
     </message>
@@ -846,10 +854,6 @@
         <translation>окружение может показывать свой диалог при каждом снимке</translation>
     </message>
     <message>
-        <source>Global hotkeys are not available here. Assign the commands “markpaste --capture” and “markpaste --paste” to keys in the system keyboard settings.</source>
-        <translation>Глобальных клавиш здесь нет. Назначьте команды «markpaste --capture» и «markpaste --paste» на клавиши в настройках клавиатуры системы.</translation>
-    </message>
-    <message>
         <source>Capture</source>
         <translation>Снимок</translation>
     </message>
@@ -864,6 +868,14 @@
     <message>
         <source>%1 — works</source>
         <translation>%1 — работает</translation>
+    </message>
+    <message>
+        <source>Global hotkeys are not available here. Assign the commands “markpaste --capture”, “markpaste --paste” and “markpaste --capture-to-strip” to keys in the system keyboard settings.</source>
+        <translation>Глобальных клавиш здесь нет. Назначьте команды «markpaste --capture», «markpaste --paste» и «markpaste --capture-to-strip» на клавиши в настройках клавиатуры системы.</translation>
+    </message>
+    <message>
+        <source>Shot to the strip</source>
+        <translation>Снимок в ленту</translation>
     </message>
     <message>
         <source>press %1 to test</source>
@@ -1202,6 +1214,10 @@ Drag over the shot to add one.</source>
     <message>
         <source>Clear the set</source>
         <translation>Очистить набор</translation>
+    </message>
+    <message>
+        <source>Capture an area straight to the strip</source>
+        <translation>Снять область сразу в ленту</translation>
     </message>
 </context>
 </TS>

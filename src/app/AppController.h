@@ -32,13 +32,15 @@ public:
     ~AppController() override;
 
     void start();
-    // Команды от CLI и второго экземпляра: capture, paste, copy, show, clear, quit
+    // Команды от CLI и второго экземпляра: capture, capture-to-strip, paste, copy, show, clear, quit
     void handleCommand(const QString &command);
     // Команда первого запуска: без явной команды и с пустым набором — только трей
     void handleStartup(const QString &command);
 
 public slots:
     void capture();
+    // Снимок сразу в ленту: выделил область — снимок в наборе, редактор не открывается (ADR 0022)
+    void captureToStrip();
     void paste(bool fromHotkey = false);
     void copySet();
     void clearSet();
@@ -51,7 +53,8 @@ public slots:
 
 private:
     void bindHotkeys();
-    void onCaptured(const QImage &image, qreal dpr);
+    void startCapture(bool toStrip);
+    void onCaptured(const QImage &image, qreal dpr, bool toStrip);
     void openEditor(const QUuid &shotId, bool fresh = false);
     void hideOwnWindows();
     void restoreOwnWindows();
@@ -80,6 +83,9 @@ private:
     QHash<Action, QString> m_boundTriggers;   // фактические сочетания от системы
     QUrl m_trayClickUrl;   // что открыть по клику на последнее уведомление в трее
     bool m_capturing = false;
+    // Набор вставлен или скопирован и с тех пор не менялся: «Начинать новый набор при следующем
+    // захвате» очищает только такой (ТЗ разд. 4, шаг 8)
+    bool m_setDelivered = false;
     bool m_editorWasVisible = false;
     bool m_stripWasVisible = false;
 };
