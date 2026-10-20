@@ -333,6 +333,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Close</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Preparing…</source>
         <translation type="unfinished"></translation>
     </message>
@@ -507,6 +511,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>The same color marks the selected tool, the main buttons and the shot letters.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source> px</source>
         <translation type="unfinished"></translation>
     </message>
@@ -587,6 +595,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Screen capture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Hotkeys</source>
         <translation type="unfinished"></translation>
     </message>
@@ -602,11 +614,23 @@
         <source>System</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>mp::SetupWizard</name>
     <message>
         <source>Markpaste setup</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Checking this system</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -618,15 +642,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>1. System</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>The program runs under XWayland: global hotkeys and capture will not work. Start it without QT_QPA_PLATFORM=xcb.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>2. Screen capture</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -642,15 +658,23 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>3. Hotkeys</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Change in system settings…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>4. Paste into chats</source>
+        <source>System</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Screen capture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hotkeys</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Paste into chats</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

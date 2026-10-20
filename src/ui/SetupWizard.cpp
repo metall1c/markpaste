@@ -1,14 +1,14 @@
 #include "SetupWizard.h"
 
+#include "Controls.h"
 #include "platform/Autostart.h"
 
 #include <QCheckBox>
-#include <QDialogButtonBox>
 #include <QElapsedTimer>
-#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPainter>
 #include <QPushButton>
 #include <QTime>
 #include <QTimer>
@@ -30,12 +30,63 @@ QLabel *wrapLabel(const QString &text = {})
     return l;
 }
 
-QGroupBox *section(const QString &title, QVBoxLayout *&layout)
+// Номер шага в кружке
+class StepBadge : public QWidget
 {
-    auto *box = new QGroupBox(title);
-    layout = new QVBoxLayout(box);
-    layout->setSpacing(6);
-    return box;
+public:
+    explicit StepBadge(int number) : m_number(QString::number(number)) { setFixedSize(22, 22); }
+
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        const UiColors c = UiColors::from(palette());
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(QPen(c.border, 1));
+        p.setBrush(c.raised);
+        p.drawEllipse(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5));
+        QFont f = smallerFont(font());
+        f.setBold(true);
+        p.setFont(f);
+        p.setPen(c.text);
+        p.drawText(rect(), Qt::AlignCenter, m_number);
+    }
+
+private:
+    QString m_number;
+};
+
+// Шаг мастера — карточка с номером и заголовком
+Card *section(int number, const QString &title, QVBoxLayout *&layout)
+{
+    auto *card = new Card;
+    layout = new QVBoxLayout(card);
+    layout->setContentsMargins(14, 12, 14, 12);
+    layout->setSpacing(8);
+    auto *head = new QHBoxLayout;
+    head->setSpacing(8);
+    head->addWidget(new StepBadge(number));
+    auto *label = new QLabel(title);
+    QFont f = label->font();
+    f.setWeight(QFont::DemiBold);
+    label->setFont(f);
+    head->addWidget(label, 1);
+    layout->addLayout(head);
+    return card;
+}
+
+ActionButton *wizardButton(const QString &text)
+{
+    auto *b = new ActionButton(text);
+    b->setFocusPolicy(Qt::StrongFocus);
+    return b;
+}
+
+QLabel *mutedLabel(const QString &text)
+{
+    QLabel *l = wrapLabel(text);
+    setMutedText(l);
+    return l;
 }
 
 } // namespace
@@ -44,46 +95,61 @@ SetupWizard::SetupWizard(Platform *platform, const QString &appId, QWidget *pare
     : QDialog(parent), m_platform(platform), m_appId(appId)
 {
     setWindowTitle(tr("Markpaste setup"));
+    useAccentSelection(this);
     auto *layout = new QVBoxLayout(this);
+    layout->setContentsMargins(18, 16, 18, 16);
     layout->setSpacing(10);
 
+    auto *title = new QLabel(tr("Checking this system"));
+    QFont titleFont = title->font();
+    titleFont.setWeight(QFont::DemiBold);
+    if (titleFont.pointSizeF() > 0)
+        titleFont.setPointSizeF(titleFont.pointSizeF() * 1.35);
+    title->setFont(titleFont);
+    layout->addWidget(title);
     QString introText = tr("Let's check that capture, hotkeys and paste work on this system.");
     if (platform->nativeWayland)   // на Windows и X11 разрешений никто не спрашивает
         introText += u' ' + tr("On Wayland the desktop may ask for permission — allow it once, and it will not ask again.");
-    auto *intro = wrapLabel(introText);
-    layout->addWidget(intro);
+    layout->addWidget(mutedLabel(introText.toHtmlEscaped()));
+    layout->addSpacing(2);
 
     // --- Окружение ---
     QVBoxLayout *l = nullptr;
-    layout->addWidget(section(tr("1. System"), l));
-    QString env = QStringLiteral("<b>%1</b>").arg(platform->environment.toHtmlEscaped());
-    if (platform->runningUnderXWayland)
-        env += QStringLiteral("<br><span style='color:#c62828'>%1</span>")
-                   .arg(tr("The program runs under XWayland: global hotkeys and capture will not work. "
-                           "Start it without QT_QPA_PLATFORM=xcb.").toHtmlEscaped());
-    for (const QString &note : platform->notes)
-        env += QStringLiteral("<br>⚠ %1").arg(note.toHtmlEscaped());
-    l->addWidget(wrapLabel(env));
+    layout->addWidget(section(1, tr("System"), l));
+    l->addWidget(wrapLabel(QStringLiteral("<b>%1</b>").arg(platform->environment.toHtmlEscaped())));
+    if (platform->runningUnderXWayland) {
+        auto *x = new StatusLine;
+        x->setState(StatusLine::State::Failed, tr("The program runs under XWayland: global hotkeys and capture will not work. "
+                                                  "Start it without QT_QPA_PLATFORM=xcb."));
+        l->addWidget(x);
+    }
+    for (const QString &note : platform->notes) {
+        auto *n = new StatusLine;
+        n->setState(StatusLine::State::Warning, note);
+        l->addWidget(n);
+    }
 
     // --- Захват ---
-    layout->addWidget(section(tr("2. Screen capture"), l));
-    l->addWidget(wrapLabel(platform->capture ? tr("Method: %1").arg(platform->capture->name().toHtmlEscaped())
-                                             : tr("No capture method available.")));
+    layout->addWidget(section(2, tr("Screen capture"), l));
+    l->addWidget(mutedLabel(platform->capture ? tr("Method: %1").arg(platform->capture->name().toHtmlEscaped())
+                                              : tr("No capture method available.")));
     auto *captureRow = new QHBoxLayout;
-    m_captureButton = new QPushButton(tr("Test capture"));
+    captureRow->setSpacing(12);
+    m_captureButton = wizardButton(tr("Test capture"));
     m_captureButton->setEnabled(platform->capture != nullptr);
-    m_captureStatus = wrapLabel();
-    captureRow->addWidget(m_captureButton);
-    captureRow->addWidget(m_captureStatus, 1);
+    m_captureStatus = new StatusLine;
+    // Пока проверки не было, строка результата скрыта — кнопка не растягивается на её место
+    captureRow->addWidget(m_captureButton, 0, Qt::AlignLeft | Qt::AlignTop);
+    captureRow->addWidget(m_captureStatus, 1, Qt::AlignVCenter);
     l->addLayout(captureRow);
     connect(m_captureButton, &QPushButton::clicked, this, &SetupWizard::checkCapture);
 
     // --- Клавиши ---
-    layout->addWidget(section(tr("3. Hotkeys"), l));
-    m_hotkeyStatus = wrapLabel();
+    layout->addWidget(section(3, tr("Hotkeys"), l));
+    m_hotkeyStatus = new StatusLine;
     l->addWidget(m_hotkeyStatus);
     if (platform->hotkeys && platform->hotkeys->canOpenSystemSettings()) {
-        auto *sys = new QPushButton(tr("Change in system settings…"));
+        auto *sys = wizardButton(tr("Change in system settings…"));
         connect(sys, &QPushButton::clicked, this, [this] { m_platform->hotkeys->openSystemSettings(); });
         auto *row = new QHBoxLayout;
         row->addWidget(sys);
@@ -92,20 +158,21 @@ SetupWizard::SetupWizard(Platform *platform, const QString &appId, QWidget *pare
     }
 
     // --- Вставка ---
-    layout->addWidget(section(tr("4. Paste into chats"), l));
+    layout->addWidget(section(4, tr("Paste into chats"), l));
     QString how = tr("Clipboard: %1").arg(platform->clipboard ? platform->clipboard->name().toHtmlEscaped() : QStringLiteral("—"));
     how += QStringLiteral("<br>") + tr("Ctrl+V emulation: %1")
                .arg(platform->injector && platform->injector->isAvailable() ? platform->injector->name().toHtmlEscaped()
                                                                              : QStringLiteral("—"));
-    l->addWidget(wrapLabel(how));
+    l->addWidget(mutedLabel(how));
     m_pasteField = new QLineEdit;
     m_pasteField->setPlaceholderText(tr("The test text will be pasted here"));
     l->addWidget(m_pasteField);
     auto *pasteRow = new QHBoxLayout;
-    m_pasteButton = new QPushButton(tr("Test paste"));
-    m_pasteStatus = wrapLabel();
-    pasteRow->addWidget(m_pasteButton);
-    pasteRow->addWidget(m_pasteStatus, 1);
+    pasteRow->setSpacing(12);
+    m_pasteButton = wizardButton(tr("Test paste"));
+    m_pasteStatus = new StatusLine;
+    pasteRow->addWidget(m_pasteButton, 0, Qt::AlignLeft | Qt::AlignTop);
+    pasteRow->addWidget(m_pasteStatus, 1, Qt::AlignVCenter);
     l->addLayout(pasteRow);
     connect(m_pasteButton, &QPushButton::clicked, this, &SetupWizard::checkPaste);
 
@@ -122,14 +189,21 @@ SetupWizard::SetupWizard(Platform *platform, const QString &appId, QWidget *pare
         layout->addWidget(m_autostart);
     }
 
-    auto *buttons = new QDialogButtonBox;
-    auto *settings = buttons->addButton(tr("Settings…"), QDialogButtonBox::ActionRole);
+    // «Настройки…» слева, главная «Готово» справа
+    auto *settings = wizardButton(tr("Settings…"));
     connect(settings, &QPushButton::clicked, this, &SetupWizard::openSettingsRequested);
-    auto *done = buttons->addButton(tr("Done"), QDialogButtonBox::AcceptRole);
+    auto *done = new ActionButton(tr("Done"), ActionButton::Kind::Primary);
+    done->setGlyph(Icon::Check);
+    done->setFocusPolicy(Qt::StrongFocus);
     done->setDefault(true);
-    connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
+    connect(done, &QPushButton::clicked, this, &QDialog::accept);
+    auto *buttons = new QHBoxLayout;
+    buttons->addWidget(settings);
+    buttons->addStretch();
+    buttons->addWidget(done);
     layout->addStretch();
-    layout->addWidget(buttons);
+    layout->addSpacing(4);
+    layout->addLayout(buttons);
 
     updateHotkeys();
     if (!platform->capture)
@@ -142,19 +216,17 @@ SetupWizard::SetupWizard(Platform *platform, const QString &appId, QWidget *pare
                   tr("Automatic paste is not available here. The “Paste set” button will copy the set "
                      "(files + text) — then press Ctrl+V in the chat yourself."));
     }
-    resize(560, sizeHint().height());
+    resize(600, sizeHint().height());
 }
 
-void SetupWizard::setStatus(QLabel *label, Result result, const QString &text)
+void SetupWizard::setStatus(StatusLine *label, Result result, const QString &text)
 {
-    static const QHash<Result, std::pair<QString, QString>> look{
-        {Result::Pending, {QStringLiteral("…"), QStringLiteral("palette(text)")}},
-        {Result::Ok, {QStringLiteral("✓"), QStringLiteral("#2e7d32")}},
-        {Result::Warning, {QStringLiteral("⚠"), QStringLiteral("#b26a00")}},
-        {Result::Failed, {QStringLiteral("✗"), QStringLiteral("#c62828")}},
-    };
-    const auto &[mark, color] = look.value(result);
-    label->setText(QStringLiteral("<span style='color:%1'><b>%2</b> %3</span>").arg(color, mark, text.toHtmlEscaped()));
+    using State = StatusLine::State;
+    label->setState(result == Result::Ok        ? State::Ok
+                    : result == Result::Warning ? State::Warning
+                    : result == Result::Failed  ? State::Failed
+                                                : State::Pending,
+                    text);
     if (label == m_captureStatus)
         m_captureResult = result;
     else if (label == m_hotkeyStatus)

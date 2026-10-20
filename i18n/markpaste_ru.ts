@@ -333,6 +333,10 @@
         <translation>Сохранить в папку…</translation>
     </message>
     <message>
+        <source>Close</source>
+        <translation>Закрыть</translation>
+    </message>
+    <message>
         <source>Preparing…</source>
         <translation>Готовлю…</translation>
     </message>
@@ -413,7 +417,7 @@
     </message>
     <message>
         <source>Capture</source>
-        <translation>Снять</translation>
+        <translation>Захват</translation>
     </message>
     <message>
         <source>Sequential: shots one by one, then text</source>
@@ -508,6 +512,10 @@
         <translation>Цвет меток:</translation>
     </message>
     <message>
+        <source>The same color marks the selected tool, the main buttons and the shot letters.</source>
+        <translation>Этим же цветом выделены выбранный инструмент, главные кнопки и буквы снимков.</translation>
+    </message>
+    <message>
         <source> px</source>
         <translation> px</translation>
     </message>
@@ -588,6 +596,10 @@
         <translation>Открыть папку журнала</translation>
     </message>
     <message>
+        <source>Screen capture</source>
+        <translation>Захват экрана</translation>
+    </message>
+    <message>
         <source>Hotkeys</source>
         <translation>Клавиши</translation>
     </message>
@@ -603,12 +615,24 @@
         <source>System</source>
         <translation>Система</translation>
     </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Отмена</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Сохранить</translation>
+    </message>
 </context>
 <context>
     <name>mp::SetupWizard</name>
     <message>
         <source>Markpaste setup</source>
         <translation>Настройка Markpaste</translation>
+    </message>
+    <message>
+        <source>Checking this system</source>
+        <translation>Проверка системы</translation>
     </message>
     <message>
         <source>Let&apos;s check that capture, hotkeys and paste work on this system.</source>
@@ -619,16 +643,8 @@
         <translation>На Wayland окружение может спросить разрешение — разрешите один раз, больше оно не спросит.</translation>
     </message>
     <message>
-        <source>1. System</source>
-        <translation>1. Система</translation>
-    </message>
-    <message>
         <source>The program runs under XWayland: global hotkeys and capture will not work. Start it without QT_QPA_PLATFORM=xcb.</source>
         <translation>Программа запущена через XWayland: глобальные клавиши и захват работать не будут. Запустите её без QT_QPA_PLATFORM=xcb.</translation>
-    </message>
-    <message>
-        <source>2. Screen capture</source>
-        <translation>2. Захват экрана</translation>
     </message>
     <message>
         <source>Method: %1</source>
@@ -643,16 +659,24 @@
         <translation>Проверить захват</translation>
     </message>
     <message>
-        <source>3. Hotkeys</source>
-        <translation>3. Горячие клавиши</translation>
-    </message>
-    <message>
         <source>Change in system settings…</source>
         <translation>Изменить в настройках системы…</translation>
     </message>
     <message>
-        <source>4. Paste into chats</source>
-        <translation>4. Вставка в чаты</translation>
+        <source>System</source>
+        <translation>Система</translation>
+    </message>
+    <message>
+        <source>Screen capture</source>
+        <translation>Захват экрана</translation>
+    </message>
+    <message>
+        <source>Hotkeys</source>
+        <translation>Горячие клавиши</translation>
+    </message>
+    <message>
+        <source>Paste into chats</source>
+        <translation>Вставка в чаты</translation>
     </message>
     <message>
         <source>Clipboard: %1</source>

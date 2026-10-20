@@ -1,12 +1,28 @@
 #include "Controls.h"
 
+#include <QFocusEvent>
 #include <QFontMetricsF>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QPainter>
 
 namespace mp {
 
 namespace {
 constexpr int kChevron = 14;
+
+bool isKeyboardFocus(const QFocusEvent *e)
+{
+    return e->reason() == Qt::TabFocusReason || e->reason() == Qt::BacktabFocusReason
+           || e->reason() == Qt::ShortcutFocusReason;
+}
+
+void drawFocusRing(QPainter &p, const QRectF &r, const UiColors &c)
+{
+    p.setPen(QPen(c.accent, 2));
+    p.setBrush(Qt::NoBrush);
+    p.drawRoundedRect(r.adjusted(1, 1, -1, -1), 8, 8);
+}
 } // namespace
 
 // --- FlatButton ---
@@ -158,6 +174,25 @@ void ActionButton::setGlyph(std::optional<Icon> glyph)
     update();
 }
 
+void ActionButton::setSwatch(const QColor &color)
+{
+    m_swatch = color;
+    updateGeometry();
+    update();
+}
+
+void ActionButton::focusInEvent(QFocusEvent *e)
+{
+    m_keyboardFocus = isKeyboardFocus(e);
+    QPushButton::focusInEvent(e);
+}
+
+void ActionButton::focusOutEvent(QFocusEvent *e)
+{
+    m_keyboardFocus = false;
+    QPushButton::focusOutEvent(e);
+}
+
 void ActionButton::setKeyHint(const QString &keys)
 {
     m_keys = keys;
@@ -188,7 +223,7 @@ QSize ActionButton::sizeHint() const
     if (text().isEmpty())
         return {m_height, m_height};
     qreal w = QFontMetricsF(textFont()).horizontalAdvance(text());
-    if (m_glyph)
+    if (m_glyph || m_swatch.isValid())
         w += 18 + 8;
     if (!m_keys.isEmpty())
         w += 10 + keyCapSize(QFontMetricsF(keyFont()), m_keys).width();
@@ -233,6 +268,8 @@ void ActionButton::paintEvent(QPaintEvent *)
     p.setPen(border.isValid() ? QPen(border, 1) : QPen(Qt::NoPen));
     p.setBrush(bg);
     p.drawRoundedRect(r, 8, 8);
+    if (hasFocus() && m_keyboardFocus)
+        drawFocusRing(p, QRectF(rect()), c);
 
     const qreal dpr = devicePixelRatioF();
     const QColor iconColor = m_kind == Kind::Primary ? fg : (isEnabled() ? c.icon : fg);
@@ -249,14 +286,20 @@ void ActionButton::paintEvent(QPaintEvent *)
     const QFontMetricsF km(keyFont());
     const qreal textW = fm.horizontalAdvance(text());
     const QSizeF keySize = m_keys.isEmpty() ? QSizeF() : keyCapSize(km, m_keys);
-    qreal contentW = textW + (m_glyph ? 18 + 8 : 0) + (m_keys.isEmpty() ? 0 : 10 + keySize.width());
+    const bool hasGlyph = m_glyph || m_swatch.isValid();
+    qreal contentW = textW + (hasGlyph ? 18 + 8 : 0) + (m_keys.isEmpty() ? 0 : 10 + keySize.width());
     // Не влезает — сначала прячем сочетание, текст важнее
     const bool showKeys = !m_keys.isEmpty() && contentW + 2 * 10 <= width();
     if (!showKeys && !m_keys.isEmpty())
         contentW -= 10 + keySize.width();
     qreal x = std::max(10.0, (width() - contentW) / 2);
     const qreal cy = height() / 2.0;
-    if (m_glyph) {
+    if (m_swatch.isValid()) {
+        p.setPen(QPen(c.border, 1));
+        p.setBrush(m_swatch);
+        p.drawEllipse(QRectF(x + 1, cy - 8, 16, 16));
+        x += 18 + 8;
+    } else if (m_glyph) {
         p.drawPixmap(QPointF(x, cy - 9), iconPixmap(*m_glyph, iconColor, 18, dpr));
         x += 18 + 8;
     }
@@ -274,6 +317,143 @@ void ActionButton::paintEvent(QPaintEvent *)
         else
             drawKeyCap(p, key, m_keys, c.text, c.surface, c.border);
     }
+}
+
+// --- PillButton ---
+
+PillButton::PillButton(const QString &text, QWidget *parent)
+    : QPushButton(text, parent)
+{
+    setAttribute(Qt::WA_Hover);
+    setCheckable(true);
+    setFocusPolicy(Qt::StrongFocus);
+    setCursor(Qt::ArrowCursor);
+}
+
+QSize PillButton::sizeHint() const
+{
+    QFont f = font();
+    f.setWeight(QFont::DemiBold);
+    return {int(std::ceil(QFontMetricsF(f).horizontalAdvance(text()))) + 28, 32};
+}
+
+void PillButton::focusInEvent(QFocusEvent *e)
+{
+    m_keyboardFocus = isKeyboardFocus(e);
+    QPushButton::focusInEvent(e);
+}
+
+void PillButton::focusOutEvent(QFocusEvent *e)
+{
+    m_keyboardFocus = false;
+    QPushButton::focusOutEvent(e);
+}
+
+void PillButton::paintEvent(QPaintEvent *)
+{
+    const UiColors c = UiColors::from(palette());
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+    QColor bg = isChecked() ? mixColors(c.surface, c.accent, c.dark ? 0.32 : 0.18) : c.raised;
+    if (!isChecked() && underMouse())
+        bg = mixColors(bg, c.text, 0.06);
+    p.setPen(isChecked() ? QPen(Qt::NoPen) : QPen(c.border, 1));
+    p.setBrush(bg);
+    p.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), 8, 8);
+    if (hasFocus() && m_keyboardFocus)
+        drawFocusRing(p, QRectF(rect()), c);
+    QFont f = font();
+    f.setWeight(isChecked() ? QFont::DemiBold : QFont::Normal);
+    p.setFont(f);
+    p.setPen(isChecked() ? c.text : c.muted);
+    p.drawText(rect(), Qt::AlignCenter, text());
+}
+
+// --- Card ---
+
+Card::Card(QWidget *parent)
+    : QWidget(parent)
+{
+}
+
+void Card::paintEvent(QPaintEvent *)
+{
+    const UiColors c = UiColors::from(palette());
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(QPen(c.border, 1));
+    p.setBrush(c.card);
+    p.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), 10, 10);
+}
+
+// --- StatusLine ---
+
+StatusLine::StatusLine(QWidget *parent)
+    : QWidget(parent), m_label(new QLabel)
+{
+    m_label->setWordWrap(true);
+    m_label->setTextFormat(Qt::PlainText);
+    m_label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    auto *layout = new QHBoxLayout(this);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->addSpacing(18 + 6);   // значок рисуется в paintEvent
+    layout->addWidget(m_label, 1);
+    setVisible(false);
+}
+
+void StatusLine::setState(State state, const QString &text)
+{
+    m_state = state;
+    m_label->setText(text);
+    applyColor();
+    setVisible(state != State::None);
+    update();
+}
+
+QString StatusLine::text() const
+{
+    return m_label->text();
+}
+
+void StatusLine::changeEvent(QEvent *e)
+{
+    QWidget::changeEvent(e);
+    if (e->type() == QEvent::PaletteChange)
+        applyColor();
+}
+
+void StatusLine::applyColor()
+{
+    const UiColors c = UiColors::from(palette());
+    QColor color = c.text;
+    switch (m_state) {
+    case State::Ok: color = c.success; break;
+    case State::Warning: color = c.warning; break;
+    case State::Failed: color = c.danger; break;
+    case State::Pending:
+    case State::None: color = c.muted; break;
+    }
+    QPalette pal = m_label->palette();
+    pal.setColor(QPalette::WindowText, color);
+    m_label->setPalette(pal);
+}
+
+void StatusLine::paintEvent(QPaintEvent *)
+{
+    const UiColors c = UiColors::from(palette());
+    Icon icon = Icon::StatusPending;
+    QColor color = c.muted;
+    switch (m_state) {
+    case State::Ok: icon = Icon::StatusOk; color = c.success; break;
+    case State::Warning: icon = Icon::StatusWarning; color = c.warning; break;
+    case State::Failed: icon = Icon::StatusFailed; color = c.danger; break;
+    case State::Pending:
+    case State::None: break;
+    }
+    // Значок — по первой строке текста
+    const qreal line = QFontMetricsF(m_label->font()).height();
+    QPainter p(this);
+    p.drawPixmap(QPointF(0, m_label->y() + (line - 18) / 2), iconPixmap(icon, color, 18, devicePixelRatioF()));
 }
 
 // --- KeyHint ---

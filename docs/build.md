@@ -151,7 +151,8 @@ tools/dev/winvm/vm.sh tests                                   # три набо�
 | `build/tools/bench/markpaste-bench [--shots 26] [--paste 5]` | Замеры NFR-1 и NFR-2 без экрана: память набора из снимков 4K, пик и время вставки, возврат памяти (docs/platform-matrix.md, «Замеры») |
 | `build-win/tests/markpaste_windows_tests.exe` | Windows-реализации платформы на настоящем модуле Qt `windows` (под Wine или на Windows): разбор сочетаний, форматы буфера (PNG, CF_DIB, CF_HDROP, пометки «не в историю»), CF_DIB чужой программы → PNG, `RegisterHotKey` и занятое сочетание, хук Print Screen, GDI-захват |
 | `build/tools/uipreview/markpaste-uipreview [--dark] DIR` | Рисует ленту (с набором и пустую), редактор на тестовом наборе (рамки, стрелка, карандаш разными перьями, размытие; отдельно — открытое поле комментария), панели цвета и толщины, мастер первого запуска, окно предпросмотра, меню ленты, вкладки настроек и снимок с подписями на картинке без дисплея, сохраняет PNG в DIR. `--dark` — палитра Breeze Dark |
-| `build/tools/uipreview/markpaste-uipreview --live [СЕК [FILE.png]]` | Показывает ленту (layer-shell) и окно снимка в настоящей сессии на СЕК секунд; с FILE.png через 2,5 с снимает экран через spectacle (KDE). Работающую программу не трогает |
+| `build/tools/uipreview/markpaste-uipreview --live [СЕК [FILE.png]]` | Показывает ленту (layer-shell) и окно снимка в настоящей сессии на СЕК секунд; с FILE.png через 2,5 с снимает весь экран через spectacle (KDE) — вместе с чужими окнами. Работающую программу не трогает |
+| `build/tools/uipreview/markpaste-uipreview --live-dialogs 0 ПРЕФИКС` | Окна настроек, мастера и предпросмотра по очереди в настоящей сессии; каждое снимается отдельно (`spectacle -a`, только активное окно) в ПРЕФИКС-1…3.png |
 | `MARKPASTE_RENDER_SAMPLE=файл.png build/tests/markpaste_core_tests --gtest_filter='*Sample*'` | Запекает пример всех форм меток в PNG — для глазной проверки рендера |
 
 ## Подводные камни

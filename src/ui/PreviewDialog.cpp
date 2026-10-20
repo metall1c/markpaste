@@ -1,12 +1,15 @@
 #include "PreviewDialog.h"
 
+#include "Controls.h"
+
 #include <QClipboard>
-#include <QDialogButtonBox>
 #include <QFrame>
 #include <QGuiApplication>
 #include <QImage>
 #include <QLabel>
 #include <QLocale>
+#include <QPainter>
+#include <QPainterPath>
 #include <QPixmap>
 #include <QPlainTextEdit>
 #include <QPointer>
@@ -19,33 +22,89 @@ namespace mp {
 
 static constexpr int kPreviewWidth = 520;
 
+namespace {
+// Картинка, как её увидит чат: скруглённые углы и тонкая рамка
+class PictureView : public QWidget
+{
+public:
+    explicit PictureView(const QPixmap &pixmap) : m_pixmap(pixmap)
+    {
+        setFixedSize(m_pixmap.deviceIndependentSize().toSize());
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        const UiColors c = UiColors::from(palette());
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing);
+        const QRectF r = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
+        QPainterPath clip;
+        clip.addRoundedRect(r, 8, 8);
+        p.save();
+        p.setClipPath(clip);
+        p.drawPixmap(QPointF(0, 0), m_pixmap);
+        p.restore();
+        p.setPen(QPen(c.border, 1));
+        p.setBrush(Qt::NoBrush);
+        p.drawRoundedRect(r, 8, 8);
+    }
+
+private:
+    QPixmap m_pixmap;
+};
+} // namespace
+
 PreviewDialog::PreviewDialog(QWidget *parent)
     : QDialog(parent)
 {
     setWindowTitle(tr("Message preview"));
-    resize(kPreviewWidth + 80, 640);
+    useAccentSelection(this);
+    resize(kPreviewWidth + 100, 660);
 
     auto *layout = new QVBoxLayout(this);
+    layout->setContentsMargins(16, 14, 16, 16);
+    layout->setSpacing(10);
     m_summary = new QLabel;
     m_summary->setWordWrap(true);
+    QFont summaryFont = m_summary->font();
+    summaryFont.setWeight(QFont::DemiBold);
+    m_summary->setFont(summaryFont);
     layout->addWidget(m_summary);
 
     auto *host = new QWidget;
     m_items = new QVBoxLayout(host);
-    m_items->setContentsMargins(0, 0, 0, 0);
-    m_items->setSpacing(10);
+    m_items->setContentsMargins(0, 0, 8, 0);
+    m_items->setSpacing(6);
     auto *scroll = new QScrollArea;
     scroll->setWidget(host);
     scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->viewport()->setAutoFillBackground(false);
+    host->setAutoFillBackground(false);
     layout->addWidget(scroll, 1);
 
-    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close);
-    m_copyText = buttons->addButton(tr("Copy text"), QDialogButtonBox::ActionRole);
-    auto *save = buttons->addButton(tr("Save to folder…"), QDialogButtonBox::ActionRole);
+    auto button = [](const QString &text, ActionButton::Kind kind) {
+        auto *b = new ActionButton(text, kind);
+        b->setFocusPolicy(Qt::StrongFocus);
+        return b;
+    };
+    auto *copyText = button(tr("Copy text"), ActionButton::Kind::Secondary);
+    copyText->setGlyph(Icon::Copy);
+    m_copyText = copyText;
+    auto *save = button(tr("Save to folder…"), ActionButton::Kind::Secondary);
+    auto *close = button(tr("Close"), ActionButton::Kind::Primary);
+    close->setDefault(true);
     connect(m_copyText, &QPushButton::clicked, this, [this] { QGuiApplication::clipboard()->setText(m_text); });
     connect(save, &QPushButton::clicked, this, &PreviewDialog::saveToFolderRequested);
-    connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    layout->addWidget(buttons);
+    connect(close, &QPushButton::clicked, this, &QDialog::reject);
+    auto *buttons = new QHBoxLayout;
+    buttons->setSpacing(8);
+    buttons->addWidget(m_copyText);
+    buttons->addWidget(save);
+    buttons->addStretch();
+    buttons->addWidget(close);
+    layout->addLayout(buttons);
 }
 
 void PreviewDialog::showSet(const CaptureSet &set, const PasteOptions &options)
@@ -86,7 +145,10 @@ void PreviewDialog::fill(const QList<PasteOrchestrator::Item> &items)
             }
 
         auto *caption = new QLabel;
-        caption->setForegroundRole(QPalette::PlaceholderText);
+        caption->setFont(smallerFont(caption->font()));
+        setMutedText(caption);
+        if (step > 1)
+            m_items->addSpacing(8);
         m_items->addWidget(caption);
 
         if (image) {
@@ -101,15 +163,11 @@ void PreviewDialog::fill(const QList<PasteOrchestrator::Item> &items)
                                  .arg(img.width())
                                  .arg(img.height())
                                  .arg(QLocale().formattedDataSize(image->data.size(), 1, QLocale::DataSizeTraditionalFormat), format));
-            auto *pic = new QLabel;
-            pic->setFrameShape(QFrame::StyledPanel);
             QPixmap px = QPixmap::fromImage(img);
             if (px.width() > kPreviewWidth * devicePixelRatioF())
                 px = px.scaledToWidth(int(kPreviewWidth * devicePixelRatioF()), Qt::SmoothTransformation);
             px.setDevicePixelRatio(devicePixelRatioF());
-            pic->setPixmap(px);
-            pic->setAlignment(Qt::AlignLeft);
-            m_items->addWidget(pic);
+            m_items->addWidget(new PictureView(px), 0, Qt::AlignLeft);
         } else {
             for (const ClipboardEntry &e : item.payload.entries)
                 if (e.mimeType.startsWith(QStringLiteral("text/plain"))) {
@@ -117,10 +175,18 @@ void PreviewDialog::fill(const QList<PasteOrchestrator::Item> &items)
                     break;
                 }
             caption->setText(tr("%1. Text").arg(step));
+            // Текст — на карточке, как сообщение в чате
+            auto *card = new Card;
+            auto *cardLayout = new QVBoxLayout(card);
+            cardLayout->setContentsMargins(10, 8, 10, 8);
             auto *text = new QPlainTextEdit(m_text);
             text->setReadOnly(true);
+            text->setFrameShape(QFrame::NoFrame);
             text->setMinimumHeight(120);
-            m_items->addWidget(text);
+            text->viewport()->setAutoFillBackground(false);
+            text->setAutoFillBackground(false);
+            cardLayout->addWidget(text);
+            m_items->addWidget(card);
         }
     }
     m_items->addStretch();

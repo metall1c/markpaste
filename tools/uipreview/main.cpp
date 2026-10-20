@@ -3,11 +3,16 @@
 //   markpaste-uipreview [--dark] [каталог]
 //   markpaste-uipreview --live [секунды [файл.png]] — показать ленту (layer-shell) и окно
 //     снимка в настоящей сессии; с файлом — через 2,5 с снять экран через spectacle (KDE)
+//     Снимок — всего экрана, с чужими окнами
+//   markpaste-uipreview --live-dialogs [секунды [префикс]] — окна настроек, мастера и предпросмотра
+//     по очереди; с префиксом — каждое снимается отдельно (spectacle -a, только активное окно):
+//     префикс-1.png, префикс-2.png, префикс-3.png
 
 #include "app/AppIcon.h"
 #include "app/SettingsDialog.h"
 #include "core/CaptureSetModel.h"
 #include "render/ShotRenderer.h"
+#include "ui/Controls.h"
 #include "ui/PreviewDialog.h"
 #include "ui/SetupWizard.h"
 #include "ui/ShotEditor.h"
@@ -19,7 +24,6 @@
 #include <QDir>
 #include <QIcon>
 #include <QMenu>
-#include <QTabWidget>
 #include <QProcess>
 #include <QTimer>
 #include <QToolButton>
@@ -57,7 +61,8 @@ static QByteArray fakeScreen(int w, int h, const QColor &bg, const QString &titl
 
 int main(int argc, char **argv)
 {
-    const bool live = argc > 1 && qstrcmp(argv[1], "--live") == 0;
+    const bool liveDialogs = argc > 1 && qstrcmp(argv[1], "--live-dialogs") == 0;
+    const bool live = liveDialogs || (argc > 1 && qstrcmp(argv[1], "--live") == 0);
     if (!live)
         qputenv("QT_QPA_PLATFORM", "offscreen");
     QApplication app(argc, argv);
@@ -69,7 +74,7 @@ int main(int argc, char **argv)
     QString out = QStringLiteral("ui-preview");
     for (int i = 1; i < argc; ++i) {
         const QString arg = QString::fromLocal8Bit(argv[i]);
-        if (arg == u"--live") {
+        if (arg == u"--live" || arg == u"--live-dialogs") {
             continue;
         } else if (live) {
             break;   // секунды показа
@@ -124,13 +129,51 @@ int main(int argc, char **argv)
 
     if (live) {
         const int seconds = argc > 2 ? QString::fromLocal8Bit(argv[2]).toInt() : 6;
-        StripWindow strip(&model);
-        strip.setCurrentShot(idb);
-        strip.setPasteMode(true, QStringLiteral("Alt+V"));
-        strip.present();
-        ShotEditor editor(&model);
-        editor.showShot(idb, true);
-        editor.findChild<ShotCanvas *>()->editMark(model.set().shots[1].marks[0].id);
+        std::unique_ptr<StripWindow> strip;
+        std::unique_ptr<ShotEditor> editor;
+        std::unique_ptr<SettingsDialog> settings;
+        std::unique_ptr<SetupWizard> wizard;
+        std::unique_ptr<PreviewDialog> preview;
+        Platform livePlatform;
+        livePlatform.environment = QStringLiteral("Wayland · KDE Plasma (предпросмотр)");
+        livePlatform.notes << QStringLiteral("Пример примечания платформы");
+        if (liveDialogs) {
+            settings = std::make_unique<SettingsDialog>(Settings{}, livePlatform);
+            settings->findChildren<PillButton *>().value(3)->click();   // «Вид»: флажок, список, цвет
+            wizard = std::make_unique<SetupWizard>(&livePlatform, QStringLiteral("su._525.MarkpastePreview"));
+            preview = std::make_unique<PreviewDialog>();
+            PasteOptions opt;
+            opt.messageTemplate = MessageTemplate::defaultFor(QLocale(QLocale::Russian));
+            preview->showSet(model.set(), opt);
+            // По очереди: показанное окно активно, и spectacle -a снимает только его
+            const QString prefix = argc > 3 ? QString::fromLocal8Bit(argv[3]) : QString();
+            const QList<QWidget *> windows{settings.get(), wizard.get(), preview.get()};
+            for (int i = 0; i < windows.size(); ++i) {
+                QTimer::singleShot(i * 3000, &app, [windows, i] {
+                    if (i > 0)
+                        windows[i - 1]->hide();
+                    windows[i]->show();
+                    windows[i]->raise();
+                    windows[i]->activateWindow();
+                });
+                if (!prefix.isEmpty())
+                    QTimer::singleShot(i * 3000 + 2000, &app, [prefix, i] {
+                        QProcess::startDetached(QStringLiteral("spectacle"),
+                                                {QStringLiteral("-b"), QStringLiteral("-n"), QStringLiteral("-a"),
+                                                 QStringLiteral("-o"), QStringLiteral("%1-%2.png").arg(prefix).arg(i + 1)});
+                    });
+            }
+            QTimer::singleShot(int(windows.size()) * 3000 + 500, &app, &QApplication::quit);
+            return app.exec();
+        } else {
+            strip = std::make_unique<StripWindow>(&model);
+            strip->setCurrentShot(idb);
+            strip->setPasteMode(true, QStringLiteral("Alt+V"));
+            strip->present();
+            editor = std::make_unique<ShotEditor>(&model);
+            editor->showShot(idb, true);
+            editor->findChild<ShotCanvas *>()->editMark(model.set().shots[1].marks[0].id);
+        }
         if (argc > 3) {
             const QString file = QString::fromLocal8Bit(argv[3]);
             QTimer::singleShot(2500, &app, [file] {
@@ -220,9 +263,10 @@ int main(int argc, char **argv)
         SettingsDialog dlg(Settings{}, platform);
         dlg.show();
         app.processEvents();
-        QTabWidget *tabs = dlg.findChild<QTabWidget *>();
-        for (int i = 0; tabs && i < tabs->count(); ++i) {
-            tabs->setCurrentIndex(i);
+        // Вкладки — кнопки-«пилюли» над страницами
+        const QList<PillButton *> tabs = dlg.findChildren<PillButton *>();
+        for (int i = 0; i < tabs.size(); ++i) {
+            tabs[i]->click();
             app.processEvents();
             dlg.grab().save(out + QStringLiteral("/settings-%1.png").arg(i + 1));
         }

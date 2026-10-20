@@ -10,6 +10,7 @@
 #include <QPalette>
 #include <QStringList>
 #include <QSvgRenderer>
+#include <QWidget>
 
 namespace mp {
 
@@ -37,6 +38,10 @@ const char *iconName(Icon icon)
     case Icon::Copy: return "copy";
     case Icon::Comment: return "comment";
     case Icon::Grip: return "grip";
+    case Icon::StatusOk: return "status-ok";
+    case Icon::StatusWarning: return "status-warn";
+    case Icon::StatusFailed: return "status-fail";
+    case Icon::StatusPending: return "status-pending";
     }
     return "mark";
 }
@@ -87,7 +92,31 @@ UiColors UiColors::from(const QPalette &palette)
     c.accent = g_accent;
     c.accentFill = badgeFillColor(g_accent);
     c.onAccent = Qt::white;
+    c.success = c.dark ? QColor(0x5c, 0xc9, 0x8a) : QColor(0x1e, 0x7d, 0x3c);
+    c.warning = c.dark ? QColor(0xf0, 0xb4, 0x4c) : QColor(0x9a, 0x5b, 0x00);
+    c.danger = c.dark ? QColor(0xff, 0x7a, 0x70) : QColor(0xc0, 0x36, 0x2c);
     return c;
+}
+
+void useAccentSelection(QWidget *window)
+{
+    const UiColors c = UiColors::from(window->palette());
+    QPalette pal = window->palette();
+    pal.setColor(QPalette::Highlight, c.accentFill);
+    pal.setColor(QPalette::HighlightedText, c.onAccent);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+    pal.setColor(QPalette::Accent, c.accentFill);   // флажки стиля Windows 11
+#endif
+    window->setPalette(pal);
+}
+
+void setMutedText(QWidget *widget)
+{
+    // От палитры окна, а не своей: при повторном вызове (смена темы) своя уже бледная
+    const QWidget *source = widget->isWindow() || !widget->window() ? widget : widget->window();
+    QPalette pal = widget->palette();
+    pal.setColor(QPalette::WindowText, UiColors::from(source->palette()).muted);
+    widget->setPalette(pal);
 }
 
 QPixmap iconPixmap(Icon icon, const QColor &color, int size, qreal dpr)

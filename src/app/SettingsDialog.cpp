@@ -2,29 +2,56 @@
 
 #include "LogFile.h"
 #include "platform/Autostart.h"
+#include "ui/Controls.h"
 
 #include <QCheckBox>
 #include <QColorDialog>
 #include <QComboBox>
 #include <QDesktopServices>
-#include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QButtonGroup>
 #include <QSpinBox>
-#include <QTabWidget>
+#include <QStackedWidget>
 #include <QUrl>
 #include <QVBoxLayout>
 
 namespace mp {
 
 namespace {
-void setButtonColor(QPushButton *b, const QColor &c)
+void setButtonColor(ActionButton *b, const QColor &c)
 {
     b->setText(c.name().toUpper());
-    b->setStyleSheet(QStringLiteral("QPushButton { background: %1; color: white; font-weight: bold; }").arg(c.name()));
+    b->setSwatch(c);
+}
+
+// Кнопка внутри окна настроек: второстепенная, с фокусом с клавиатуры
+ActionButton *dialogButton(const QString &text)
+{
+    auto *b = new ActionButton(text);
+    b->setFocusPolicy(Qt::StrongFocus);
+    return b;
+}
+
+// Страница: поля формы и отступ сверху от вкладок
+QFormLayout *formPage(QWidget *page)
+{
+    auto *form = new QFormLayout(page);
+    form->setContentsMargins(2, 14, 2, 2);
+    form->setVerticalSpacing(10);
+    return form;
+}
+
+QLabel *noteLabel(const QString &text)
+{
+    auto *l = new QLabel(text);
+    l->setWordWrap(true);
+    l->setFont(smallerFont(l->font()));
+    setMutedText(l);
+    return l;
 }
 } // namespace
 
@@ -33,11 +60,25 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     : QDialog(parent), m_settings(settings), m_accentColor(settings.accent)
 {
     setWindowTitle(tr("Markpaste settings"));
-    auto *tabs = new QTabWidget;
+    useAccentSelection(this);
+
+    // Вкладки — «пилюли» над страницами (docs/decisions/0019-ui-style.md)
+    auto *pages = new QStackedWidget;
+    auto *tabRow = new QHBoxLayout;
+    tabRow->setSpacing(6);
+    auto *tabGroup = new QButtonGroup(this);
+    auto addPage = [pages, tabRow, tabGroup](QWidget *page, const QString &title) {
+        auto *tab = new PillButton(title);
+        const int index = pages->addWidget(page);
+        tabGroup->addButton(tab, index);
+        tabRow->addWidget(tab);
+        tab->setChecked(index == 0);
+        QObject::connect(tab, &QPushButton::clicked, pages, [pages, index] { pages->setCurrentIndex(index); });
+    };
 
     // --- Клавиши и захват ---
     auto *keys = new QWidget;
-    auto *kf = new QFormLayout(keys);
+    auto *kf = formPage(keys);
     m_captureKey = new QLineEdit(settings.captureHotkey);
     m_pasteKey = new QLineEdit(settings.pasteHotkey);
     // Сочетания хранит система (портал GlobalShortcuts): своё значение она учитывает только при
@@ -52,19 +93,20 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     }
     kf->addRow(tr("Capture:"), m_captureKey);
     kf->addRow(tr("Paste the set:"), m_pasteKey);
-    auto *keysNote = new QLabel(
+    auto *keysNote = noteLabel(
         m_systemKeys
             ? tr("Shortcuts are assigned by the desktop. Change them with the button below "
                  "or in the system shortcut settings.")
             : tr("Format: Primary+Alt+V, Print. Primary is Ctrl on Windows and Linux."));
-    keysNote->setWordWrap(true);
-    keysNote->setForegroundRole(QPalette::PlaceholderText);
     kf->addRow(keysNote);
     if (platform.hotkeys && platform.hotkeys->canOpenSystemSettings()) {
-        auto *sys = new QPushButton(tr("Change shortcuts…"));
+        auto *sys = dialogButton(tr("Change shortcuts…"));
         IHotkeys *hk = platform.hotkeys.get();
         connect(sys, &QPushButton::clicked, this, [hk] { hk->openSystemSettings(); });
-        kf->addRow(sys);
+        auto *row = new QHBoxLayout;
+        row->addWidget(sys);
+        row->addStretch();
+        kf->addRow(row);
     }
     m_quick = new QCheckBox(tr("Confirm the area on mouse release (otherwise — Enter)"));
     m_quick->setChecked(settings.quickCapture);
@@ -72,11 +114,11 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     m_clearOnNext->setChecked(settings.clearOnNextCapture);
     kf->addRow(m_quick);
     kf->addRow(m_clearOnNext);
-    tabs->addTab(keys, tr("Capture"));
+    addPage(keys, tr("Capture"));
 
     // --- Вставка ---
     auto *paste = new QWidget;
-    auto *pf = new QFormLayout(paste);
+    auto *pf = formPage(paste);
     m_mode = new QComboBox;
     m_mode->addItem(tr("Sequential: shots one by one, then text"), int(PasteMode::Sequential));
     m_mode->addItem(tr("Files + text in one clipboard entry"), int(PasteMode::FilesAndText));
@@ -95,11 +137,11 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     m_clearAfter->setChecked(settings.clearAfterPaste);
     pf->addRow(m_restore);
     pf->addRow(m_clearAfter);
-    tabs->addTab(paste, tr("Paste"));
+    addPage(paste, tr("Paste"));
 
     // --- Сообщение ---
     auto *msg = new QWidget;
-    auto *mf = new QFormLayout(msg);
+    auto *mf = formPage(msg);
     m_language = new QComboBox;
     m_language->addItem(tr("Like the system"), QStringLiteral("auto"));
     m_language->addItem(QStringLiteral("Русский"), QStringLiteral("ru"));
@@ -124,12 +166,12 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     m_captions->setToolTip(tr("For chats where text gets separated from images. The message text stays as is."));
     m_captions->setChecked(settings.captionsOnImage);
     mf->addRow(m_captions);
-    tabs->addTab(msg, tr("Message"));
+    addPage(msg, tr("Message"));
 
     // --- Вид ---
     auto *look = new QWidget;
-    auto *lf = new QFormLayout(look);
-    m_accent = new QPushButton;
+    auto *lf = formPage(look);
+    m_accent = dialogButton(QString());
     setButtonColor(m_accent, m_accentColor);
     connect(m_accent, &QPushButton::clicked, this, [this] {
         const QColor c = QColorDialog::getColor(m_accentColor, this, tr("Mark color"));
@@ -138,7 +180,15 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
             setButtonColor(m_accent, c);
         }
     });
-    lf->addRow(tr("Mark color:"), m_accent);
+    auto *accentRow = new QHBoxLayout;
+    accentRow->addWidget(m_accent);
+    accentRow->addStretch();
+    // QFormLayout ставит подпись к верху поля: у высокой кнопки цвета — центруем сами
+    auto *accentLabel = new QLabel(tr("Mark color:"));
+    accentLabel->setMinimumHeight(36);
+    accentLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    lf->addRow(accentLabel, accentRow);
+    lf->addRow(noteLabel(tr("The same color marks the selected tool, the main buttons and the shot letters.")));
     m_badgeSize = new QSpinBox;
     m_badgeSize->setRange(16, 48);
     m_badgeSize->setSuffix(tr(" px"));
@@ -153,11 +203,11 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     m_hideEmpty = new QCheckBox(tr("Hide the strip to the tray when the set is empty"));
     m_hideEmpty->setChecked(settings.hideStripWhenEmpty);
     lf->addRow(m_hideEmpty);
-    tabs->addTab(look, tr("Appearance"));
+    addPage(look, tr("Appearance"));
 
     // --- Изображения (PST-7) ---
     auto *images = new QWidget;
-    auto *imf = new QFormLayout(images);
+    auto *imf = formPage(images);
     m_maxSide = new QSpinBox;
     m_maxSide->setRange(0, 16384);
     m_maxSide->setSingleStep(256);
@@ -178,16 +228,15 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     imf->addRow(tr("JPEG quality:"), m_jpegQuality);
     connect(m_jpegThreshold, &QSpinBox::valueChanged, m_jpegQuality, [this](int v) { m_jpegQuality->setEnabled(v > 0); });
     m_jpegQuality->setEnabled(settings.jpegThresholdMb > 0);
-    auto *imagesNote = new QLabel(tr("Applies to pasting, copying and dragging into a chat. "
-                                     "\"Save to folder\" always writes full-size PNG."));
-    imagesNote->setWordWrap(true);
-    imagesNote->setForegroundRole(QPalette::PlaceholderText);
-    imf->addRow(imagesNote);
-    tabs->addTab(images, tr("Images"));
+    imf->addRow(noteLabel(tr("Applies to pasting, copying and dragging into a chat. "
+                             "\"Save to folder\" always writes full-size PNG.")));
+    addPage(images, tr("Images"));
 
     // --- Система: что доступно здесь ---
     auto *sys = new QWidget;
     auto *sl = new QVBoxLayout(sys);
+    sl->setContentsMargins(2, 14, 2, 2);
+    sl->setSpacing(10);
     if (isAutostartSupported()) {
         m_autostart = new QCheckBox(tr("Start Markpaste when I log in"));
         m_autostart->setChecked(isAutostartEnabled(QStringLiteral(MARKPASTE_APP_ID)));
@@ -202,7 +251,7 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     m_checkUpdates->setToolTip(tr("The only network request of the program. Updates are installed by the package manager."));
     m_checkUpdates->setChecked(settings.checkUpdates);
     sl->addWidget(m_checkUpdates);
-    auto *logs = new QPushButton(tr("Open the log folder"));
+    auto *logs = dialogButton(tr("Open the log folder"));
     connect(logs, &QPushButton::clicked, this, [] {
         QDesktopServices::openUrl(QUrl::fromLocalFile(LogFile::directory()));
     });
@@ -212,27 +261,49 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     auto line = [](const QString &what, const QString &how) {
         return QStringLiteral("%1: %2<br>").arg(what.toHtmlEscaped(), how.isEmpty() ? QStringLiteral("—") : how.toHtmlEscaped());
     };
-    info += line(tr("Capture"), platform.capture ? platform.capture->name() : QString());
+    info += line(tr("Screen capture"), platform.capture ? platform.capture->name() : QString());
     info += line(tr("Hotkeys"), platform.hotkeys ? platform.hotkeys->name() : QString());
     info += line(tr("Clipboard"), platform.clipboard ? platform.clipboard->name() : QString());
     info += line(tr("Ctrl+V emulation"), platform.injector ? platform.injector->name() : QString());
-    for (const QString &n : platform.notes)
-        info += QStringLiteral("<br>⚠ %1").arg(n.toHtmlEscaped());
+    auto *infoCard = new Card;
+    auto *infoLayout = new QVBoxLayout(infoCard);
+    infoLayout->setContentsMargins(14, 12, 14, 12);
+    infoLayout->setSpacing(8);
     auto *infoLabel = new QLabel(info);
     infoLabel->setWordWrap(true);
     infoLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    sl->addWidget(infoLabel);
+    infoLayout->addWidget(infoLabel);
+    for (const QString &n : platform.notes) {
+        auto *note = new StatusLine;
+        note->setState(StatusLine::State::Warning, n);
+        infoLayout->addWidget(note);
+    }
+    sl->addWidget(infoCard);
     sl->addStretch();
-    tabs->addTab(sys, tr("System"));
+    addPage(sys, tr("System"));
 
-    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
-    connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    // «Отмена» и главная «Сохранить»; Enter — сохранить, Esc — отмена
+    auto *cancel = dialogButton(tr("Cancel"));
+    auto *save = new ActionButton(tr("Save"), ActionButton::Kind::Primary);
+    save->setFocusPolicy(Qt::StrongFocus);
+    save->setDefault(true);
+    connect(save, &QPushButton::clicked, this, &QDialog::accept);
+    connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
+    auto *buttons = new QHBoxLayout;
+    buttons->setSpacing(8);
+    buttons->addStretch();
+    buttons->addWidget(cancel);
+    buttons->addWidget(save);
 
     auto *layout = new QVBoxLayout(this);
-    layout->addWidget(tabs);
-    layout->addWidget(buttons);
-    resize(560, 420);
+    layout->setContentsMargins(16, 16, 16, 16);
+    layout->setSpacing(4);
+    tabRow->addStretch();
+    layout->addLayout(tabRow);
+    layout->addWidget(pages, 1);
+    layout->addSpacing(8);
+    layout->addLayout(buttons);
+    resize(640, 460);
 }
 
 bool SettingsDialog::autostart() const

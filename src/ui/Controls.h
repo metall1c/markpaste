@@ -7,6 +7,8 @@
 
 #include <optional>
 
+class QLabel;
+
 namespace mp {
 
 // Кнопки и мелкие элементы окон программы. Рисуются сами, а не стилем системы: на Breeze,
@@ -55,6 +57,7 @@ public:
     void setKind(Kind kind);
     Kind kind() const { return m_kind; }
     void setGlyph(std::optional<Icon> glyph);
+    void setSwatch(const QColor &color);   // кружок цвета вместо значка (цвет меток в настройках)
     void setKeyHint(const QString &keys);
     void setButtonHeight(int height);
 
@@ -63,6 +66,8 @@ public:
 
 protected:
     void paintEvent(QPaintEvent *) override;
+    void focusInEvent(QFocusEvent *) override;
+    void focusOutEvent(QFocusEvent *) override;
 
 private:
     QFont textFont() const;
@@ -70,8 +75,60 @@ private:
 
     Kind m_kind;
     std::optional<Icon> m_glyph;
+    QColor m_swatch;
     QString m_keys;
     int m_height = 36;
+    bool m_keyboardFocus = false;   // рамку фокуса — только при переходе Tab, не от щелчка
+};
+
+// Вкладка-«пилюля» (окно настроек): выбранная подкрашена акцентом
+class PillButton : public QPushButton
+{
+    Q_OBJECT
+public:
+    explicit PillButton(const QString &text, QWidget *parent = nullptr);
+    QSize sizeHint() const override;
+
+protected:
+    void paintEvent(QPaintEvent *) override;
+    void focusInEvent(QFocusEvent *) override;
+    void focusOutEvent(QFocusEvent *) override;
+
+private:
+    bool m_keyboardFocus = false;
+};
+
+// Карточка: скруглённый блок с рамкой (шаги мастера, текст в предпросмотре, сведения о системе)
+class Card : public QWidget
+{
+    Q_OBJECT
+public:
+    explicit Card(QWidget *parent = nullptr);
+
+protected:
+    void paintEvent(QPaintEvent *) override;
+};
+
+// Результат проверки: значок (✓, ⚠, ✗, часы) и текст цветом результата
+class StatusLine : public QWidget
+{
+    Q_OBJECT
+public:
+    enum class State { None, Pending, Ok, Warning, Failed };
+    explicit StatusLine(QWidget *parent = nullptr);
+    void setState(State state, const QString &text);
+    State state() const { return m_state; }
+    QString text() const;
+
+protected:
+    void paintEvent(QPaintEvent *) override;
+    void changeEvent(QEvent *) override;
+
+private:
+    void applyColor();
+
+    State m_state = State::None;
+    QLabel *m_label;
 };
 
 // Подсказка сочетания: «[Ctrl+Z] отменить»

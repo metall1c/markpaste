@@ -30,7 +30,7 @@ add_library(markpaste_ui STATIC
 )
 target_link_libraries(markpaste_ui PUBLIC markpaste_core markpaste_platform Qt6::Widgets Qt6::Svg)
 # Значки интерфейса: :/icons/ui/<имя>.svg
-file(GLOB MARKPASTE_UI_ICONS ${PROJECT_SOURCE_DIR}/data/icons/ui/*.svg)
+file(GLOB MARKPASTE_UI_ICONS CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/data/icons/ui/*.svg)
 qt_add_resources(markpaste_ui ui_icons
     PREFIX /icons/ui
     BASE ${PROJECT_SOURCE_DIR}/data/icons/ui

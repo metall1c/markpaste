@@ -9,6 +9,7 @@ class QPainter;
 class QPalette;
 class QRectF;
 class QFontMetricsF;
+class QWidget;
 
 namespace mp {
 
@@ -31,6 +32,10 @@ struct UiColors {
     QColor accent;     // как задан в настройках: рамки, обводка выбранного
     QColor accentFill; // затемнённый до контраста 4.5:1 с белым: заливки под белым текстом
     QColor onAccent;
+    // Результаты проверок (мастер): читаемые на карточке и в тёмной, и в светлой теме
+    QColor success;
+    QColor warning;
+    QColor danger;
 
     static UiColors from(const QPalette &palette);
 };
@@ -41,9 +46,16 @@ QColor uiAccent();
 
 QColor mixColors(const QColor &a, const QColor &b, qreal t);
 
+// Выделение, флажки и рамка фокуса системных виджетов окна — цветом акцента, а не системным
+// (окна настроек, мастера, предпросмотра)
+void useAccentSelection(QWidget *window);
+// Подсказки и пояснения — бледным цветом темы
+void setMutedText(QWidget *widget);
+
 enum class Icon {
     Mark, Arrow, Pen, Point, Blur, Crop, Undo, Redo, Trash, Camera, Check,
-    ChevronDown, More, Minimize, Copy, Comment, Grip
+    ChevronDown, More, Minimize, Copy, Comment, Grip,
+    StatusOk, StatusWarning, StatusFailed, StatusPending
 };
 
 // Значок из набора data/icons/ui нужного цвета; size — в логических пикселях

@@ -141,13 +141,6 @@ FlatButton *toolButton(Icon glyph, const QString &name, const QString &key, cons
     return b;
 }
 
-void setMuted(QWidget *w, const UiColors &c)
-{
-    QPalette pal = w->palette();
-    pal.setColor(QPalette::WindowText, c.muted);
-    w->setPalette(pal);
-}
-
 } // namespace
 
 ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
@@ -383,10 +376,9 @@ void ShotEditor::changeEvent(QEvent *e)
 void ShotEditor::applyColors()
 {
     m_applyingColors = true;
-    const UiColors c = UiColors::from(palette());
     for (QWidget *w : {static_cast<QWidget *>(m_hint), static_cast<QWidget *>(m_commentsCount),
                        static_cast<QWidget *>(m_commentsFooter)})
-        setMuted(w, c);
+        setMutedText(w);
     m_penPicker->setPen(m_penPicker->pen());   // образцы цвета и линии — по новой теме
     m_applyingColors = false;
     updateTools();

@@ -13,6 +13,8 @@ class QSpinBox;
 
 namespace mp {
 
+class ActionButton;
+
 // Настройки (APP-3). Минимальный набор для 1.0: клавиши, вставка, сообщение, вид.
 class SettingsDialog : public QDialog
 {
@@ -43,7 +45,7 @@ private:
     QLineEdit *m_intro;
     QLineEdit *m_outro;
     QCheckBox *m_textFirst;
-    QPushButton *m_accent;
+    ActionButton *m_accent;
     QColor m_accentColor;
     QCheckBox *m_autostart = nullptr;
     QCheckBox *m_hideEmpty;

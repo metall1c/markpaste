@@ -13,6 +13,8 @@ class QPushButton;
 
 namespace mp {
 
+class StatusLine;
+
 // Мастер первого запуска (APP-4): одно окно на все проверки и разрешения (ТЗ разд. 9).
 //
 // Проверки настоящие, а не по названию окружения:
@@ -48,7 +50,7 @@ signals:
     void openSettingsRequested();
 
 private:
-    void setStatus(QLabel *label, Result result, const QString &text);
+    void setStatus(StatusLine *label, Result result, const QString &text);
     void updateHotkeys();
     void finishPaste(const Status &status, const QString &expected);
 
@@ -59,10 +61,10 @@ private:
     int m_pasteWaitMs = 600;
     bool m_pasteRunning = false;
 
-    QLabel *m_captureStatus;
+    StatusLine *m_captureStatus;
     QPushButton *m_captureButton;
-    QLabel *m_hotkeyStatus;
-    QLabel *m_pasteStatus;
+    StatusLine *m_hotkeyStatus;
+    StatusLine *m_pasteStatus;
     QPushButton *m_pasteButton;
     QLineEdit *m_pasteField;
     QCheckBox *m_autostart = nullptr;
