@@ -57,6 +57,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Markpaste %1 is available. Update it with your package manager.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Markpaste runs under XWayland: global hotkeys and capture will not work.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -105,11 +109,35 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>The saved set could not be read: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save the set to a folder</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not save the set: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Saved to %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Capture</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Show set</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Preview message…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save to folder…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -265,6 +293,60 @@
     </message>
 </context>
 <context>
+    <name>mp::PreviewDialog</name>
+    <message>
+        <source>Message preview</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy text</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save to folder…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Preparing…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>combined image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>shot %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1. Image — %2, %3×%4, %5 %6</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1. Text</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The set is empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>This goes to the chat: %n image(s) (%1)%2</source>
+        <translation>
+            <numerusform>This goes to the chat: %n image (%1)%2</numerusform>
+            <numerusform>This goes to the chat: %n images (%1)%2</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>, no text</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> and text</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>mp::SettingsDialog</name>
     <message>
         <source>Markpaste settings</source>
@@ -403,6 +485,26 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Keep the set after restart</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Shots and marks are stored in %1 (only you can read it)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Check for a new version once a day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The only network request of the program. Updates are installed by the package manager.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open the log folder</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Hotkeys</source>
         <translation type="unfinished"></translation>
     </message>
@@ -515,9 +617,9 @@
     </message>
     <message numerus="yes">
         <source>%n screen(s): %1 · %2 ms</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
+        <translation>
+            <numerusform>%n screen: %1 · %2 ms</numerusform>
+            <numerusform>%n screens: %1 · %2 ms</numerusform>
         </translation>
     </message>
     <message>
@@ -723,6 +825,18 @@ Drag over the shot to add one.</source>
     <name>mp::StripWindow</name>
     <message>
         <source>Markpaste — set</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Menu</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Preview message…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save to folder…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

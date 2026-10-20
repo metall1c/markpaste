@@ -289,8 +289,16 @@ StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
     title->setAttribute(Qt::WA_TransparentForMouseEvents);   // тянем за весь заголовок
     auto *menuButton = headerButton(themedIcon({QStringLiteral("configure"), QStringLiteral("settings-configure")},
                                                HeaderGlyph::Gear, palette().color(QPalette::WindowText)),
-                                    tr("Settings"));
-    connect(menuButton, &QToolButton::clicked, this, &StripWindow::settingsRequested);
+                                    tr("Menu"));
+    // Меню, а не сразу настройки: здесь же предпросмотр (PST-6) и сохранение в папку (APP-6)
+    auto *menu = new QMenu(menuButton);
+    m_previewAction = menu->addAction(tr("Preview message…"), this, &StripWindow::previewRequested);
+    m_saveAction = menu->addAction(tr("Save to folder…"), this, &StripWindow::saveToFolderRequested);
+    menu->addSeparator();
+    menu->addAction(tr("Settings"), this, &StripWindow::settingsRequested);
+    menuButton->setMenu(menu);
+    menuButton->setPopupMode(QToolButton::InstantPopup);
+    menuButton->setStyleSheet(QStringLiteral("QToolButton::menu-indicator { image: none; }"));
     auto *hideButton = headerButton(themedIcon({QStringLiteral("window-minimize-symbolic"), QStringLiteral("window-minimize")},
                                                HeaderGlyph::Minimize, palette().color(QPalette::WindowText)),
                                     tr("Hide to tray"));
@@ -445,6 +453,8 @@ void StripWindow::rebuild()
     m_paste->setEnabled(!empty);
     m_copy->setEnabled(!empty);
     m_clear->setEnabled(!empty);
+    m_previewAction->setEnabled(!empty);
+    m_saveAction->setEnabled(!empty);
     m_dragHandle->setVisible(shots > 1);
     m_newShot->setEnabled(!set.isFull());
 

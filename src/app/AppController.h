@@ -9,12 +9,15 @@
 #include <QPointer>
 
 class QSystemTrayIcon;
+class QTimer;
 class QMimeData;
 
 namespace mp {
 
 class CaptureSession;
+class PreviewDialog;
 class SetupWizard;
+class UpdateChecker;
 class ShotEditor;
 class StripWindow;
 
@@ -40,6 +43,8 @@ public slots:
     void showStrip();
     void showSettings();
     void showSetupWizard();   // APP-4: при первом запуске и из меню трея
+    void showPreview();       // PST-6
+    void saveSetToFolder();   // APP-6
 
 private:
     void bindHotkeys();
@@ -51,6 +56,8 @@ private:
     void notify(const QString &text);
     QMimeData *dragData(const QList<QUuid> &shots);
     void updatePasteCaption();
+    void restoreSession();
+    void saveSession();
 
     Settings m_settings;
     Platform m_platform;
@@ -60,6 +67,9 @@ private:
     ShotEditor *m_editor = nullptr;
     QPointer<CaptureSession> m_capture;
     QPointer<SetupWizard> m_wizard;
+    QPointer<PreviewDialog> m_preview;
+    UpdateChecker *m_updates = nullptr;
+    QTimer *m_saveTimer = nullptr;   // набор пишется на диск не на каждую правку, а через секунду тишины
     QSystemTrayIcon *m_tray = nullptr;
     QHash<Action, QString> m_boundTriggers;   // фактические сочетания от системы
     bool m_capturing = false;

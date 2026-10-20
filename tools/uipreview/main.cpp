@@ -2,6 +2,7 @@
 // и сохраняет PNG. Нужна, чтобы проверять вёрстку, не снимая настоящий экран.
 
 #include "core/CaptureSetModel.h"
+#include "ui/PreviewDialog.h"
 #include "ui/SetupWizard.h"
 #include "ui/ShotEditor.h"
 #include "ui/StripWindow.h"
@@ -11,8 +12,10 @@
 #include <QDir>
 #include <QIcon>
 #include <QMenu>
+#include <QToolButton>
 #include <QPainter>
 #include <QTranslator>
+#include <QTest>
 #include <QtMath>
 
 #include <cmath>
@@ -107,5 +110,24 @@ int main(int argc, char **argv)
     wizard.show();
     app.processEvents();
     wizard.grab().save(out + QStringLiteral("/setup-wizard.png"));
+
+    // Предпросмотр сообщения (PST-6)
+    PreviewDialog preview;
+    PasteOptions opt;
+    opt.messageTemplate = MessageTemplate::defaultFor(QLocale(QLocale::Russian));
+    preview.showSet(model.set(), opt);
+    QTest::qWaitFor([&] { return preview.isReady(); }, 10000);
+    preview.show();
+    app.processEvents();
+    preview.grab().save(out + QStringLiteral("/preview.png"));
+
+    // Меню ленты: предпросмотр, сохранение в папку, настройки
+    for (QToolButton *b : strip.findChildren<QToolButton *>())
+        if (b->menu()) {
+            b->menu()->popup(QPoint(0, 0));
+            app.processEvents();
+            b->menu()->grab().save(out + QStringLiteral("/strip-menu.png"));
+            b->menu()->close();
+        }
     return 0;
 }

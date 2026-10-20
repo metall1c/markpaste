@@ -6,6 +6,12 @@ project(Markpaste VERSION 0.1.0 LANGUAGES C CXX)
 # Идентификатор после релиза не меняется: от него зависят разрешения порталов.
 set(MARKPASTE_APP_NAME "Markpaste")
 set(MARKPASTE_APP_ID "su._525.Markpaste")
+# Проверка новой версии (APP-7): API последнего релиза GitLab. Пустая строка — проверки нет
+# (например, для сборок дистрибутивов, которые обновляются своим путём).
+set(MARKPASTE_UPDATE_URL "https://gitlab.525.su/api/v4/projects/che%2Fmain%2Fmarkpaste/releases/permalink/latest"
+    CACHE STRING "URL of the latest release JSON (GitLab API); empty disables update checks")
+set(MARKPASTE_RELEASES_URL "https://gitlab.525.su/che/main/markpaste/-/releases"
+    CACHE STRING "Releases page shown in the update notification")
 set(MARKPASTE_EXECUTABLE "markpaste")
 
 include(GNUInstallDirs)

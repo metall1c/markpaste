@@ -1,13 +1,13 @@
 # Как устроена программа (фактическое состояние)
 
-Обновлено: 2026-10-19.
+Обновлено: 2026-10-20.
 
 ## Слои и цели CMake
 
 ```
-markpaste (app/)             контроллер, настройки, один экземпляр, трей
+markpaste (app/)             контроллер, настройки, один экземпляр, трей, журнал, проверка версии
   └ markpaste_ui (ui/)       оверлей, редактор, лента — без кода под ОС
-      ├ markpaste_core       core/ модель · render/ запекание · paste/ оркестратор вставки
+      ├ markpaste_core       core/ модель, набор на диске · render/ запекание · paste/ оркестратор вставки
       │   └ markpaste_platform_api   PlatformTypes + 4 интерфейса
       └ markpaste_platform   PlatformFactory, WindowRoles, Paths, реализации:
             common/          QtClipboard, QtScreenCapture, FallbackCapture
@@ -26,6 +26,15 @@ markpaste (app/)             контроллер, настройки, один 
 | IHotkeys | портал GlobalShortcuts (сочетание назначает система, ADR 0012) | нет — тогда CLI `markpaste --capture` |
 | IClipboard | ext-data-control-v1 | QClipboard (без записи из фона: режим 1 выключается) |
 | IInputInjector | портал RemoteDesktop | нет — режим 2 |
+
+## Файлы программы на Linux
+
+| Что | Где | Права |
+| --- | --- | --- |
+| Настройки | `~/.config/markpaste/markpaste.conf` (QSettings, INI) | обычные |
+| Набор между перезапусками (NFR-5, ADR 0013) | `~/.local/share/markpaste/session/` — `set.json` + исходники `<uuid>.png` | 0700 / 0600 |
+| Журнал (ADR 0014) | `~/.local/share/markpaste/logs/markpaste.log`, 1 МБ × 3 | 0700 / 0600 |
+| Временные картинки для «файлы + текст» и перетаскивания | `$XDG_RUNTIME_DIR/markpaste/` | 0700 / 0600 |
 
 ## Координаты и масштаб
 

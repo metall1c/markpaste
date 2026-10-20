@@ -57,6 +57,10 @@
         <translation>Лента свёрнута в трей. Нажмите на значок, чтобы вернуть её.</translation>
     </message>
     <message>
+        <source>Markpaste %1 is available. Update it with your package manager.</source>
+        <translation>Вышла Markpaste %1. Обновите её через менеджер пакетов.</translation>
+    </message>
+    <message>
         <source>Markpaste runs under XWayland: global hotkeys and capture will not work.</source>
         <translation>Markpaste запущен через XWayland: глобальные клавиши и захват работать не будут.</translation>
     </message>
@@ -105,12 +109,36 @@
         <translation>Новые клавиши заработают после перезапуска</translation>
     </message>
     <message>
+        <source>The saved set could not be read: %1</source>
+        <translation>Не удалось прочитать сохранённый набор: %1</translation>
+    </message>
+    <message>
+        <source>Save the set to a folder</source>
+        <translation>Сохранить набор в папку</translation>
+    </message>
+    <message>
+        <source>Could not save the set: %1</source>
+        <translation>Не удалось сохранить набор: %1</translation>
+    </message>
+    <message>
+        <source>Saved to %1</source>
+        <translation>Сохранено в %1</translation>
+    </message>
+    <message>
         <source>Capture</source>
         <translation>Снять</translation>
     </message>
     <message>
         <source>Show set</source>
         <translation>Показать ленту</translation>
+    </message>
+    <message>
+        <source>Preview message…</source>
+        <translation>Предпросмотр сообщения…</translation>
+    </message>
+    <message>
+        <source>Save to folder…</source>
+        <translation>Сохранить в папку…</translation>
     </message>
     <message>
         <source>Settings</source>
@@ -265,6 +293,61 @@
     </message>
 </context>
 <context>
+    <name>mp::PreviewDialog</name>
+    <message>
+        <source>Message preview</source>
+        <translation>Предпросмотр сообщения</translation>
+    </message>
+    <message>
+        <source>Copy text</source>
+        <translation>Копировать текст</translation>
+    </message>
+    <message>
+        <source>Save to folder…</source>
+        <translation>Сохранить в папку…</translation>
+    </message>
+    <message>
+        <source>Preparing…</source>
+        <translation>Готовлю…</translation>
+    </message>
+    <message>
+        <source>combined image</source>
+        <translation>склейка</translation>
+    </message>
+    <message>
+        <source>shot %1</source>
+        <translation>снимок %1</translation>
+    </message>
+    <message>
+        <source>%1. Image — %2, %3×%4, %5 %6</source>
+        <translation>%1. Картинка — %2, %3×%4, %5 %6</translation>
+    </message>
+    <message>
+        <source>%1. Text</source>
+        <translation>%1. Текст</translation>
+    </message>
+    <message>
+        <source>The set is empty</source>
+        <translation>Набор пуст</translation>
+    </message>
+    <message numerus="yes">
+        <source>This goes to the chat: %n image(s) (%1)%2</source>
+        <translation>
+            <numerusform>В чат уйдёт %n картинка (%1)%2</numerusform>
+            <numerusform>В чат уйдут %n картинки (%1)%2</numerusform>
+            <numerusform>В чат уйдут %n картинок (%1)%2</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>, no text</source>
+        <translation>, без текста</translation>
+    </message>
+    <message>
+        <source> and text</source>
+        <translation> и текст</translation>
+    </message>
+</context>
+<context>
     <name>mp::SettingsDialog</name>
     <message>
         <source>Markpaste settings</source>
@@ -401,6 +484,26 @@
     <message>
         <source>Start Markpaste when I log in</source>
         <translation>Запускать Markpaste при входе в систему</translation>
+    </message>
+    <message>
+        <source>Keep the set after restart</source>
+        <translation>Сохранять набор между перезапусками</translation>
+    </message>
+    <message>
+        <source>Shots and marks are stored in %1 (only you can read it)</source>
+        <translation>Снимки и метки хранятся в %1 (доступ только у вас)</translation>
+    </message>
+    <message>
+        <source>Check for a new version once a day</source>
+        <translation>Раз в день проверять, вышла ли новая версия</translation>
+    </message>
+    <message>
+        <source>The only network request of the program. Updates are installed by the package manager.</source>
+        <translation>Единственный сетевой запрос программы. Обновление ставится через менеджер пакетов.</translation>
+    </message>
+    <message>
+        <source>Open the log folder</source>
+        <translation>Открыть папку журнала</translation>
     </message>
     <message>
         <source>Hotkeys</source>
@@ -727,6 +830,18 @@ Drag over the shot to add one.</source>
     <message>
         <source>Markpaste — set</source>
         <translation>Markpaste — набор</translation>
+    </message>
+    <message>
+        <source>Menu</source>
+        <translation>Меню</translation>
+    </message>
+    <message>
+        <source>Preview message…</source>
+        <translation>Предпросмотр сообщения…</translation>
+    </message>
+    <message>
+        <source>Save to folder…</source>
+        <translation>Сохранить в папку…</translation>
     </message>
     <message>
         <source>Settings</source>

@@ -1,6 +1,7 @@
 #include "Settings.h"
 
 #include <QSettings>
+#include <QStandardPaths>
 
 #include <algorithm>
 
@@ -29,6 +30,8 @@ Settings Settings::load()
     s.accent = QColor(q.value(QStringLiteral("appearance/accent"), d.accent.name()).toString());
     if (!s.accent.isValid())
         s.accent = d.accent;
+    s.keepSetOnRestart = q.value(QStringLiteral("session/keep"), d.keepSetOnRestart).toBool();
+    s.checkUpdates = q.value(QStringLiteral("updates/check"), d.checkUpdates).toBool();
     s.hideStripWhenEmpty = q.value(QStringLiteral("strip/hideWhenEmpty"), d.hideStripWhenEmpty).toBool();
     s.markPen.color = QColor(q.value(QStringLiteral("editor/markColor")).toString());   // пусто — акцент
     s.markPen.width = std::clamp(q.value(QStringLiteral("editor/markWidth"), 0.0).toDouble(), 0.0, 20.0);
@@ -59,6 +62,8 @@ void Settings::save() const
     q.setValue(QStringLiteral("message/textBeforeImages"), textBeforeImages);
     q.setValue(QStringLiteral("appearance/accent"), accent.name());
     q.setValue(QStringLiteral("strip/hideWhenEmpty"), hideStripWhenEmpty);
+    q.setValue(QStringLiteral("session/keep"), keepSetOnRestart);
+    q.setValue(QStringLiteral("updates/check"), checkUpdates);
     q.setValue(QStringLiteral("editor/markColor"), markPen.color.isValid() ? markPen.color.name() : QString());
     q.setValue(QStringLiteral("editor/markWidth"), markPen.width);
     q.setValue(QStringLiteral("editor/markLine"), markPen.line == LineStyle::Dash  ? QStringLiteral("dash")
@@ -107,6 +112,11 @@ PasteOptions Settings::pasteOptions() const
     o.timing.afterImageMs = imageDelayMs;
     o.timing.afterTextMs = std::max(400, imageDelayMs);
     return o;
+}
+
+QString sessionDirectory()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + QStringLiteral("/session");
 }
 
 } // namespace mp

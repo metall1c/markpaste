@@ -6,6 +6,7 @@ add_executable(markpaste_core_tests
     test_message_builder.cpp
     test_renderer.cpp
     test_paste_orchestrator.cpp
+    test_set_storage.cpp
 )
 target_link_libraries(markpaste_core_tests PRIVATE markpaste_core GTest::gtest)
 
@@ -19,8 +20,13 @@ add_executable(markpaste_ui_tests
     test_editor_ui.cpp
     test_platform.cpp
     test_setup_wizard.cpp
+    test_app_parts.cpp
+    # Части программы без зависимостей от контроллера
+    ${PROJECT_SOURCE_DIR}/src/app/LogFile.cpp
+    ${PROJECT_SOURCE_DIR}/src/app/UpdateChecker.cpp
 )
-target_link_libraries(markpaste_ui_tests PRIVATE markpaste_ui Qt6::Test GTest::gtest)
+target_include_directories(markpaste_ui_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(markpaste_ui_tests PRIVATE markpaste_ui Qt6::Network Qt6::Test GTest::gtest)
 gtest_discover_tests(markpaste_ui_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 # Только .qm, без цели lupdate: иначе update_translations запускает два lupdate
 # над одним markpaste_ru.ts одновременно и портит файл (docs/problems.md).

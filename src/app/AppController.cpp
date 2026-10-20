@@ -2,22 +2,30 @@
 
 #include "AppIcon.h"
 #include "SettingsDialog.h"
+#include "UpdateChecker.h"
+#include "core/SetStorage.h"
 #include "paste/TempFiles.h"
 #include "platform/Autostart.h"
 #include "ui/CaptureOverlay.h"
 #include "ui/MoveGhost.h"
+#include "ui/PreviewDialog.h"
 #include "ui/SetupWizard.h"
 #include "ui/ShotEditor.h"
 #include "ui/StripWindow.h"
 
 #include <QApplication>
 #include <QBuffer>
+#include <QDateTime>
+#include <QDesktopServices>
+#include <QDir>
+#include <QFileDialog>
 #include <QElapsedTimer>
 #include <QLoggingCategory>
 #include <QMenu>
 #include <QScreen>
 #include <QMimeData>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QSystemTrayIcon>
 #include <QTimer>
 #include <QUrl>
@@ -45,6 +53,9 @@ AppController::AppController(QObject *parent)
 
 AppController::~AppController()
 {
+    if (m_saveTimer && m_saveTimer->isActive())
+        saveSession();   // последние правки — до выхода
+    delete m_preview;
     delete m_editor;
     delete m_strip;
     TempFiles::clear();   // временные PNG — при выходе (ТЗ разд. 10)
@@ -85,6 +96,8 @@ void AppController::start()
     connect(m_strip, &StripWindow::clearRequested, this, &AppController::clearSet);
     connect(m_strip, &StripWindow::cancelPasteRequested, m_paste, &PasteOrchestrator::cancel);
     connect(m_strip, &StripWindow::settingsRequested, this, &AppController::showSettings);
+    connect(m_strip, &StripWindow::previewRequested, this, &AppController::showPreview);
+    connect(m_strip, &StripWindow::saveToFolderRequested, this, &AppController::saveSetToFolder);
     connect(m_strip, &StripWindow::hideRequested, this, [this] {
         m_strip->hide();
         if (!m_tray)
@@ -116,6 +129,8 @@ void AppController::start()
         // Лента видна, только пока в наборе есть снимки; пустой набор — программа в трее
         // (отключается настройкой). Без трея (GNOME без расширения) ленту не прячем:
         // иначе программу не найти (APP-1).
+        if (m_settings.keepSetOnRestart && m_saveTimer)
+            m_saveTimer->start();
         if (m_strip && m_tray && m_settings.hideStripWhenEmpty && m_model.set().isEmpty() && !m_capturing)
             m_strip->hide();
     });
@@ -148,6 +163,25 @@ void AppController::start()
     }
 
     setupTray();
+
+    m_saveTimer = new QTimer(this);
+    m_saveTimer->setSingleShot(true);
+    m_saveTimer->setInterval(1000);
+    connect(m_saveTimer, &QTimer::timeout, this, &AppController::saveSession);
+    restoreSession();
+
+    m_updates = new UpdateChecker(QStringLiteral(MARKPASTE_VERSION), QUrl(QStringLiteral(MARKPASTE_UPDATE_URL)), this);
+    connect(m_updates, &UpdateChecker::updateAvailable, this, [this](const QString &version, const QUrl &page) {
+        const QUrl url = page.isValid() && !page.isEmpty() ? page : QUrl(QStringLiteral(MARKPASTE_RELEASES_URL));
+        notify(tr("Markpaste %1 is available. Update it with your package manager.").arg(version));
+        if (m_tray) {
+            // Клик по уведомлению — страница релиза
+            connect(m_tray, &QSystemTrayIcon::messageClicked, this, [url] { QDesktopServices::openUrl(url); },
+                    Qt::SingleShotConnection);
+        }
+    });
+    m_updates->setEnabled(m_settings.checkUpdates);
+
     if (m_platform.runningUnderXWayland)
         notify(tr("Markpaste runs under XWayland: global hotkeys and capture will not work."));
 }
@@ -433,6 +467,16 @@ void AppController::showSettings()
         notify(tr("Could not change autostart: %1").arg(autostartFilePath(appId)));
     m_strip->setStyle(m_settings.renderStyle());
     m_editor->setStyle(m_settings.renderStyle());
+    if (old.keepSetOnRestart != m_settings.keepSetOnRestart) {
+        if (m_settings.keepSetOnRestart)
+            saveSession();
+        else {
+            m_saveTimer->stop();
+            SetStorage::removeSession(sessionDirectory());
+        }
+    }
+    if (old.checkUpdates != m_settings.checkUpdates)
+        m_updates->setEnabled(m_settings.checkUpdates, 5000);
     if (old.hideStripWhenEmpty != m_settings.hideStripWhenEmpty && m_tray && m_model.set().isEmpty()) {
         if (m_settings.hideStripWhenEmpty)
             m_strip->hide();
@@ -457,6 +501,86 @@ void AppController::showSetupWizard()
     m_wizard->activateWindow();
 }
 
+// --- Набор на диске (NFR-5, APP-6) и предпросмотр (PST-6) ---
+
+void AppController::restoreSession()
+{
+    if (!m_settings.keepSetOnRestart) {
+        SetStorage::removeSession(sessionDirectory());   // опцию выключили — следов не оставляем
+        return;
+    }
+    QString error;
+    const std::optional<CaptureSet> set = SetStorage::loadSession(sessionDirectory(), &error);
+    if (!set) {
+        qCWarning(lcApp) << "saved set is not readable:" << error;
+        notify(tr("The saved set could not be read: %1").arg(error));
+        return;
+    }
+    qCInfo(lcApp) << "restored set:" << set->shots.size() << "shots";
+    if (!set->isEmpty())
+        m_model.resetWithoutHistory(*set);
+    m_saveTimer->stop();   // только что прочитали — писать нечего
+}
+
+void AppController::saveSession()
+{
+    m_saveTimer->stop();
+    if (!m_settings.keepSetOnRestart)
+        return;
+    QString error;
+    if (!SetStorage::saveSession(m_model.set(), sessionDirectory(), &error))
+        qCWarning(lcApp) << "saving the set failed:" << error;
+}
+
+void AppController::showPreview()
+{
+    if (m_model.set().isEmpty())
+        return;
+    if (!m_preview) {
+        m_preview = new PreviewDialog;
+        m_preview->setAttribute(Qt::WA_DeleteOnClose);
+        m_preview->setWindowIcon(appIcon());
+        connect(m_preview, &PreviewDialog::saveToFolderRequested, this, &AppController::saveSetToFolder);
+    }
+    m_preview->showSet(m_model.set(), m_settings.pasteOptions());
+    m_preview->show();
+    m_preview->raise();
+    m_preview->activateWindow();
+}
+
+void AppController::saveSetToFolder()
+{
+    if (m_model.set().isEmpty())
+        return;
+    QSettings s;
+    const QString start = s.value(QStringLiteral("export/lastDir"),
+                                  QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)).toString();
+    const QString parent = QFileDialog::getExistingDirectory(m_preview ? static_cast<QWidget *>(m_preview) : nullptr,
+                                                             tr("Save the set to a folder"), start);
+    if (parent.isEmpty())
+        return;
+    s.setValue(QStringLiteral("export/lastDir"), parent);
+    // Своя папка на каждое сохранение: A.png и message.md прошлых наборов не перезаписываются
+    const QString dir = QDir(parent).filePath(
+        QStringLiteral("Markpaste %1").arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd HH-mm-ss"))));
+    const CaptureSet set = m_model.set();
+    const RenderStyle style = m_settings.renderStyle();
+    const MessageTemplate tpl = m_settings.messageTemplate();
+    QtConcurrent::run([set, style, tpl, dir] {
+        QString error;
+        const QStringList files = SetStorage::exportSet(set, style, tpl, dir, &error);
+        return files.isEmpty() ? error : QString();
+    }).then(this, [this, dir](const QString &error) {
+        if (!error.isEmpty()) {
+            notify(tr("Could not save the set: %1").arg(error));
+            return;
+        }
+        qCInfo(lcApp) << "set saved to a folder";
+        notify(tr("Saved to %1").arg(QDir::toNativeSeparators(dir)));
+        QDesktopServices::openUrl(QUrl::fromLocalFile(dir));
+    });
+}
+
 void AppController::setupTray()
 {
     if (!QSystemTrayIcon::isSystemTrayAvailable())
@@ -466,6 +590,8 @@ void AppController::setupTray()
     auto *menu = new QMenu;
     menu->addAction(tr("Capture"), this, &AppController::capture);
     menu->addAction(tr("Show set"), this, &AppController::showStrip);
+    menu->addAction(tr("Preview message…"), this, &AppController::showPreview);
+    menu->addAction(tr("Save to folder…"), this, &AppController::saveSetToFolder);
     menu->addAction(tr("Settings"), this, &AppController::showSettings);
     menu->addAction(tr("Check setup…"), this, &AppController::showSetupWizard);
     menu->addSeparator();

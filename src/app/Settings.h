@@ -35,7 +35,9 @@ struct Settings {
 
     // Вид и картинки
     QColor accent = QColor(0xFF, 0x5A, 0x1F);
-    bool hideStripWhenEmpty = true;    // пустой набор — лента прячется в трей (ADR 0004)
+    bool hideStripWhenEmpty = true;
+    bool keepSetOnRestart = false;     // NFR-5: набор на диске, переживает перезапуск
+    bool checkUpdates = true;          // APP-7, NFR-4: единственный сетевой запрос    // пустой набор — лента прячется в трей (ADR 0004)
     MarkPen markPen;                   // последнее перо редактора; пустые поля — по умолчанию
     int maxLongSide = 4096;
     int jpegThresholdMb = 5;
@@ -48,5 +50,9 @@ struct Settings {
     PasteOptions pasteOptions() const;
     RenderStyle renderStyle() const;
 };
+
+// Каталог сохранённого набора (NFR-5): <AppLocalDataLocation>/session, на Linux —
+// ~/.local/share/markpaste/session, права 0700
+QString sessionDirectory();
 
 } // namespace mp

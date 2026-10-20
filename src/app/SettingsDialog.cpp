@@ -1,10 +1,12 @@
 #include "SettingsDialog.h"
 
+#include "LogFile.h"
 #include "platform/Autostart.h"
 
 #include <QCheckBox>
 #include <QColorDialog>
 #include <QComboBox>
+#include <QDesktopServices>
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QGroupBox>
@@ -13,6 +15,7 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTabWidget>
+#include <QUrl>
 #include <QVBoxLayout>
 
 namespace mp {
@@ -146,6 +149,20 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
         sl->addWidget(m_autostart);
         sl->addSpacing(8);
     }
+    m_keepSet = new QCheckBox(tr("Keep the set after restart"));
+    m_keepSet->setToolTip(tr("Shots and marks are stored in %1 (only you can read it)").arg(sessionDirectory()));
+    m_keepSet->setChecked(settings.keepSetOnRestart);
+    sl->addWidget(m_keepSet);
+    m_checkUpdates = new QCheckBox(tr("Check for a new version once a day"));
+    m_checkUpdates->setToolTip(tr("The only network request of the program. Updates are installed by the package manager."));
+    m_checkUpdates->setChecked(settings.checkUpdates);
+    sl->addWidget(m_checkUpdates);
+    auto *logs = new QPushButton(tr("Open the log folder"));
+    connect(logs, &QPushButton::clicked, this, [] {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(LogFile::directory()));
+    });
+    sl->addWidget(logs, 0, Qt::AlignLeft);
+    sl->addSpacing(8);
     QString info = QStringLiteral("<b>%1</b><br>").arg(platform.environment.toHtmlEscaped());
     auto line = [](const QString &what, const QString &how) {
         return QStringLiteral("%1: %2<br>").arg(what.toHtmlEscaped(), how.isEmpty() ? QStringLiteral("—") : how.toHtmlEscaped());
@@ -199,6 +216,8 @@ Settings SettingsDialog::settings() const
     s.textBeforeImages = m_textFirst->isChecked();
     s.accent = m_accentColor;
     s.hideStripWhenEmpty = m_hideEmpty->isChecked();
+    s.keepSetOnRestart = m_keepSet->isChecked();
+    s.checkUpdates = m_checkUpdates->isChecked();
     return s;
 }
 

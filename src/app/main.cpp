@@ -1,5 +1,6 @@
 #include "AppController.h"
 #include "AppIcon.h"
+#include "LogFile.h"
 #include "SingleInstance.h"
 
 #include <QApplication>
@@ -70,6 +71,9 @@ int main(int argc, char **argv)
     }
     if (command == u"quit")
         return 0;
+    // Журнал в файл — только у основного экземпляра: второй живёт миг и только передаёт команду
+    mp::LogFile::install();
+    qInfo("Markpaste %s started", MARKPASTE_VERSION);
 
     mp::AppController controller;
     QObject::connect(&instance, &mp::SingleInstance::commandReceived, &controller, &mp::AppController::handleCommand);

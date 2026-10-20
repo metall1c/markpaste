@@ -1,5 +1,6 @@
 add_executable(markpaste-uipreview main.cpp)
-target_link_libraries(markpaste-uipreview PRIVATE markpaste_ui)
+find_package(Qt6 REQUIRED COMPONENTS Test)
+target_link_libraries(markpaste-uipreview PRIVATE markpaste_ui Qt6::Test)
 # Только .qm: цель lupdate у .ts должна быть одна (docs/problems.md)
 qt_add_lrelease(markpaste-uipreview
     TS_FILES ${PROJECT_SOURCE_DIR}/i18n/markpaste_ru.ts

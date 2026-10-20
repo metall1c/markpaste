@@ -10,6 +10,7 @@
 
 #include <functional>
 
+class QAction;
 class QLabel;
 class QMimeData;
 class QPushButton;
@@ -53,6 +54,8 @@ signals:
     void clearRequested();
     void cancelPasteRequested();
     void settingsRequested();
+    void previewRequested();        // PST-6
+    void saveToFolderRequested();   // APP-6
     void hideRequested();   // «свернуть в трей»
 
 private:
@@ -86,6 +89,8 @@ private:
     QPushButton *m_copy;
     QPushButton *m_newShot;
     QPushButton *m_clear;
+    QAction *m_previewAction;
+    QAction *m_saveAction;
     QPushButton *m_cancel;
     QWidget *m_dragHandle;
     DragProvider m_dragProvider;

@@ -47,6 +47,8 @@ private:
     QColor m_accentColor;
     QCheckBox *m_autostart = nullptr;
     QCheckBox *m_hideEmpty;
+    QCheckBox *m_keepSet;
+    QCheckBox *m_checkUpdates;
 };
 
 } // namespace mp

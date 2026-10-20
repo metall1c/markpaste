@@ -4,6 +4,7 @@ add_library(markpaste_core STATIC
     core/Geometry.h core/Geometry.cpp
     core/CaptureSetModel.h core/CaptureSetModel.cpp
     core/MessageBuilder.h core/MessageBuilder.cpp
+    core/SetStorage.h core/SetStorage.cpp
     render/ShotRenderer.h render/ShotRenderer.cpp
     paste/PasteOrchestrator.h paste/PasteOrchestrator.cpp
     paste/TempFiles.h paste/TempFiles.cpp
@@ -23,6 +24,7 @@ add_library(markpaste_ui STATIC
     ui/ShotEditor.h ui/ShotEditor.cpp
     ui/StripWindow.h ui/StripWindow.cpp
     ui/MoveGhost.h ui/MoveGhost.cpp
+    ui/PreviewDialog.h ui/PreviewDialog.cpp
 )
 target_link_libraries(markpaste_ui PUBLIC markpaste_core markpaste_platform Qt6::Widgets)
 
@@ -30,9 +32,11 @@ add_executable(markpaste
     app/main.cpp
     app/AppController.h app/AppController.cpp
     app/AppIcon.h app/AppIcon.cpp
+    app/LogFile.h app/LogFile.cpp
     app/Settings.h app/Settings.cpp
     app/SettingsDialog.h app/SettingsDialog.cpp
     app/SingleInstance.h app/SingleInstance.cpp
+    app/UpdateChecker.h app/UpdateChecker.cpp
 )
 set_target_properties(markpaste PROPERTIES
     OUTPUT_NAME ${MARKPASTE_EXECUTABLE}
@@ -40,7 +44,9 @@ set_target_properties(markpaste PROPERTIES
 target_link_libraries(markpaste PRIVATE markpaste_ui Qt6::Network)
 target_compile_definitions(markpaste PRIVATE
     MARKPASTE_APP_ID="${MARKPASTE_APP_ID}"
-    MARKPASTE_VERSION="${PROJECT_VERSION}")
+    MARKPASTE_VERSION="${PROJECT_VERSION}"
+    MARKPASTE_UPDATE_URL="${MARKPASTE_UPDATE_URL}"
+    MARKPASTE_RELEASES_URL="${MARKPASTE_RELEASES_URL}")
 install(TARGETS markpaste RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # Переводы (APP-5, NFR-10): .ts в i18n/, .qm встраиваются в программу под :/i18n.

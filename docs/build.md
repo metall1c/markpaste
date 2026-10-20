@@ -40,6 +40,7 @@ sudo dnf install ./build-pkg/markpaste-0.1.0-1.fc44.x86_64.rpm
 - Пакет привязан к версии Qt сборки (`libQt6Core.so.6(Qt_6.11)`): rpm для Fedora 44 собирать на Fedora 44.
 - Проверка: `rpmlint build-pkg/*.rpm` — 0 ошибок, одно предупреждение (нет man-страницы); `desktop-file-validate`, `appstreamcli validate --no-net` — без замечаний.
 - **.deb** включается автоматически, если есть `dpkg-shlibdeps` (собирать на Ubuntu/Debian). На Fedora собирается только rpm и tar.gz. На Ubuntu 24.04 пока не проверено.
+- **Проверка новой версии** (ADR 0014) ходит по `MARKPASTE_UPDATE_URL` (по умолчанию — API последнего релиза на gitlab.525.su). Сборкам дистрибутивов, которые обновляются своим путём, — `-DMARKPASTE_UPDATE_URL=` (пусто): проверки нет. Страница в уведомлении — `MARKPASTE_RELEASES_URL`.
 - **Разработчику:** `~/.local/share/applications/su._525.Markpaste.desktop` от `dev-install-desktop` важнее системного из пакета (каталог пользователя ищется первым) и указывает на `build/`. Чтобы проверить установленный пакет, этот файл надо удалить.
 
 ## Проверка под Sway без отдельной системы
@@ -77,11 +78,11 @@ export DISPLAY=:97 QT_QPA_PLATFORM=xcb WAYLAND_DISPLAY= XDG_SESSION_TYPE=x11
 | Файл | Что это |
 | --- | --- |
 | `build/src/app/markpaste` | Программа |
-| `build/tests/markpaste_core_tests` | Тесты ядра (GoogleTest): модель, текст, запекание, оркестратор вставки |
-| `build/tests/markpaste_ui_tests` | Тесты окон (GoogleTest + QtTest, offscreen): клавиши редактора (Ctrl+Enter, Esc), рисование стрелки и карандаша мышью, панель пера, автозапуск, мастер первого запуска на заглушках платформы (`tests/FakePlatform.h`), загрузка русского перевода. `QTest::keyClicks` не умеет кириллицу — вводить текст через `insertPlainText` |
+| `build/tests/markpaste_core_tests` | Тесты ядра (GoogleTest): модель, текст, запекание, оркестратор вставки, набор на диске и сохранение в папку |
+| `build/tests/markpaste_ui_tests` | Тесты окон (GoogleTest + QtTest, offscreen): клавиши редактора (Ctrl+Enter, Esc), рисование стрелки и карандаша мышью, панель пера, автозапуск, мастер первого запуска на заглушках платформы (`tests/FakePlatform.h`), предпросмотр сообщения, загрузка русского перевода. Сюда же собраны `app/LogFile.cpp` и `app/UpdateChecker.cpp` (ротация журнала, сравнение версий). `QTest::keyClicks` не умеет кириллицу — вводить текст через `insertPlainText` |
 | `build/tools/pastetest/markpaste-pastetest` | Прототип вставки и диагностика платформы (`--check`, `--self-test`, `--capture kwin\|portal`, `--mode 1\|2`) |
 | `tools/dev/kwin-probe.py "команда" [фильтр]` | Отправляет команду работающей программе и каждые 250 мс читает у KWin геометрию её окон. Для замеров на живой сессии KDE. Отладочные команды сокета: `debug-move-strip <экран> <left\|right> <отступ>`, `debug-ghost <x> <y> <w> <h>` |
-| `build/tools/uipreview/markpaste-uipreview DIR` | Рисует ленту, редактор на тестовом наборе (рамки, стрелка, карандаш разными перьями, размытие), панели цвета и толщины и мастер первого запуска без дисплея, сохраняет PNG в DIR |
+| `build/tools/uipreview/markpaste-uipreview DIR` | Рисует ленту, редактор на тестовом наборе (рамки, стрелка, карандаш разными перьями, размытие), панели цвета и толщины, мастер первого запуска, окно предпросмотра и меню ленты без дисплея, сохраняет PNG в DIR |
 | `MARKPASTE_RENDER_SAMPLE=файл.png build/tests/markpaste_core_tests --gtest_filter='*Sample*'` | Запекает пример всех форм меток в PNG — для глазной проверки рендера |
 
 ## Подводные камни
