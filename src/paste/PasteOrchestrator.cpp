@@ -114,6 +114,7 @@ void PasteOrchestrator::start(const CaptureSet &set, const PasteOptions &options
     ++m_generation;
     m_running = true;
     m_cancelled = false;
+    m_keysInFlight = false;
     m_sessionOpen = false;
     m_released = !options.waitHotkeyRelease;
     m_onReleased = nullptr;
@@ -248,9 +249,11 @@ void PasteOrchestrator::step()
             return finish(w);
         after(m_options.timing.settleMs, [this] {
             const quint64 gen2 = m_generation;
+            m_keysInFlight = true;
             m_injector->sendPaste().then(this, [this, gen2](const Status &k) {
                 if (gen2 != m_generation || !m_running)
                     return;
+                m_keysInFlight = false;
                 if (!k.ok)
                     return finish(k);
                 ++m_index;
@@ -266,8 +269,13 @@ void PasteOrchestrator::step()
 
 void PasteOrchestrator::cancel()
 {
-    if (m_running)
-        m_cancelled = true;
+    if (!m_running)
+        return;
+    m_cancelled = true;
+    // Посреди серии клавиш не обрываем: иначе Ctrl может остаться зажатым. Шаг после
+    // неё увидит m_cancelled. Отложенные колбэки текущего запуска отсекает m_generation.
+    if (!m_keysInFlight)
+        finish(Status::failure(tr("Cancelled")));
 }
 
 void PasteOrchestrator::finish(const Status &status)

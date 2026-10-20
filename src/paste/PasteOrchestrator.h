@@ -54,6 +54,8 @@ public:
     bool canSequential() const;
 
     void start(const CaptureSet &set, const PasteOptions &options);
+    // Отмена («Стоп»). Сразу, если не нажимается Ctrl+V: ожидание буфера или сессии ввода
+    // может не закончиться никогда (композитор перезапущен), и вставка не должна висеть.
     void cancel();
 
     // Сообщить, что горячая клавиша отпущена (IHotkeys::released).
@@ -85,6 +87,7 @@ private:
     ClipboardPayload m_saved;
     bool m_running = false;
     bool m_cancelled = false;
+    bool m_keysInFlight = false;   // идёт Ctrl↓ V↓ V↑ Ctrl↑: отмену откладываем до её конца
     bool m_sessionOpen = false;
     bool m_released = false;
     std::function<void()> m_onReleased;

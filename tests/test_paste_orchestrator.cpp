@@ -10,6 +10,8 @@
 
 #include <gtest/gtest.h>
 
+#include <optional>
+
 using namespace mp;
 using namespace mp::test;
 
@@ -49,6 +51,16 @@ Status runToEnd(PasteOrchestrator &o, int timeoutMs = 5000)
     while (!done && t.elapsed() < timeoutMs)
         QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
     return result;
+}
+
+// Для отказов, которые приходят прямо из start(): подписка — до запуска
+Status startAndFinish(PasteOrchestrator &o, const CaptureSet &set, const PasteOptions &opt)
+{
+    std::optional<Status> result;
+    const auto c = QObject::connect(&o, &PasteOrchestrator::finished, [&](const Status &s, PasteMode) { result = s; });
+    o.start(set, opt);
+    QObject::disconnect(c);
+    return result.value_or(Status::success());   // не закончилось сразу — тест увидит ok и упадёт
 }
 
 bool isImage(const ClipboardPayload &p) { return p.find(QStringLiteral("image/png")) && !p.find(QStringLiteral("text/plain")); }
@@ -229,8 +241,8 @@ TEST(PasteOrchestrator, NoBackgroundClipboardRefusesSequential)
     FakeInjector inj(&cb);
     PasteOrchestrator o(&cb, &inj);
     EXPECT_FALSE(o.canSequential());
-    o.start(threeShots(), fastOptions());
-    EXPECT_FALSE(runToEnd(o).ok);
+    EXPECT_FALSE(startAndFinish(o, threeShots(), fastOptions()).ok);
+    EXPECT_FALSE(o.isRunning());
     EXPECT_EQ(inj.begins, 0);
 }
 
@@ -260,6 +272,51 @@ TEST(PasteOrchestrator, EmptySetFails)
     FakeClipboard cb;
     FakeInjector inj(&cb);
     PasteOrchestrator o(&cb, &inj);
-    o.start(CaptureSet{}, fastOptions());
-    EXPECT_FALSE(runToEnd(o).ok);
+    EXPECT_FALSE(startAndFinish(o, CaptureSet{}, fastOptions()).ok);
+    EXPECT_FALSE(o.isRunning());
+}
+
+namespace {
+// Буфер, запись в который не заканчивается никогда (подключение к композитору оборвалось)
+class HangingClipboard : public FakeClipboard
+{
+public:
+    QPromise<Status> never;
+    QFuture<Status> write(const ClipboardPayload &, ClipboardFlags) override
+    {
+        log << QStringLiteral("write");
+        never.start();
+        return never.future();
+    }
+};
+} // namespace
+
+TEST(PasteOrchestrator, CancelWorksWhileClipboardHangs)
+{
+    HangingClipboard cb;
+    FakeInjector inj(&cb);
+    PasteOrchestrator o(&cb, &inj);
+    o.start(threeShots(), fastOptions());
+    QElapsedTimer t;
+    t.start();
+    while (!cb.log.contains(QStringLiteral("write")) && t.elapsed() < 5000)
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
+    ASSERT_TRUE(o.isRunning());
+    bool finished = false;
+    QObject::connect(&o, &PasteOrchestrator::finished, [&](const Status &s, PasteMode) {
+        finished = true;
+        EXPECT_FALSE(s.ok);
+    });
+    o.cancel();   // «Стоп» — сразу, не дожидаясь буфера
+    EXPECT_TRUE(finished);
+    EXPECT_FALSE(o.isRunning());
+    EXPECT_FALSE(inj.sessionOpen);
+    EXPECT_TRUE(inj.pasted.isEmpty());
+
+    // Следующая вставка не блокируется зависшей
+    FakeClipboard cb2;
+    FakeInjector inj2(&cb2);
+    PasteOrchestrator o2(&cb2, &inj2);
+    o2.start(threeShots(), fastOptions());
+    EXPECT_TRUE(runToEnd(o2).ok);
 }

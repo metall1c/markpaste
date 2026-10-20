@@ -45,8 +45,12 @@ public:
     void onSend(ext_data_control_source_v1 *source, const char *mime, int fd);
     void onCancelled(ext_data_control_source_v1 *source);
 
+    // Подключение к композитору оборвалось: ответа на wl_display.sync не будет никогда
+    void failPendingWrites();
+
 private:
     QFuture<QByteArray> receive(const QString &mime, int timeoutMs);
+    bool connectionLost() const;
 
     WaylandConnection *m_conn;
     ext_data_control_manager_v1 *m_manager = nullptr;
@@ -57,6 +61,15 @@ private:
 
     QHash<ext_data_control_offer_v1 *, QStringList> m_offerMimes;   // ещё не ставшие selection
     ext_data_control_offer_v1 *m_selection = nullptr;
+
+    // Записи, ждущие ответа композитора на wl_display.sync. Держатель живёт в данных
+    // wl_callback и удаляется в его обработчике; device = nullptr — обещание уже выполнено.
+    struct PendingWrite {
+        DataControlDevice *device;
+        std::shared_ptr<QPromise<Status>> promise;
+    };
+    QList<PendingWrite *> m_pendingWrites;
+    bool m_lost = false;
 
     mutable QMutex m_mutex;          // защищает два поля ниже
     QStringList m_selectionMimes;
@@ -111,12 +124,35 @@ DataControlDevice::DataControlDevice(WaylandConnection *conn)
     m_manager = static_cast<ext_data_control_manager_v1 *>(conn->bind(&ext_data_control_manager_v1_interface, 1));
     m_device = ext_data_control_manager_v1_get_data_device(m_manager, conn->seat());
     ext_data_control_device_v1_add_listener(m_device, &kDeviceListener, this);
+    QObject::connect(conn, &WaylandConnection::disconnected, this, [this] { failPendingWrites(); });
     // Первый roundtrip приносит текущее содержимое буфера.
     conn->roundtrip();
 }
 
+bool DataControlDevice::connectionLost() const
+{
+    return m_lost || wl_display_get_error(m_conn->display()) != 0;
+}
+
+void DataControlDevice::failPendingWrites()
+{
+    m_lost = true;
+    // Держатели остаются у wl_callback: выполняем обещания и отвязываем держатели от устройства
+    for (PendingWrite *w : std::exchange(m_pendingWrites, {})) {
+        w->device = nullptr;
+        w->promise->addResult(Status::failure(QStringLiteral("connection to the compositor is lost")));
+        w->promise->finish();
+    }
+}
+
 DataControlDevice::~DataControlDevice()
 {
+    // Ответ на sync может прийти уже после нас: держатели не должны ссылаться на устройство
+    for (PendingWrite *w : std::exchange(m_pendingWrites, {})) {
+        w->device = nullptr;
+        w->promise->addResult(Status::failure(QStringLiteral("clipboard is shutting down")));
+        w->promise->finish();
+    }
     if (m_source)
         ext_data_control_source_v1_destroy(m_source);
     for (auto *offer : m_offerMimes.keys())
@@ -209,8 +245,9 @@ void DataControlDevice::onCancelled(ext_data_control_source_v1 *source)
 void DataControlDevice::write(ClipboardPayload payload, ClipboardFlags flags,
                               std::shared_ptr<QPromise<Status>> promise)
 {
-    if (!m_device) {
-        promise->addResult(Status::failure(QStringLiteral("data-control device is not available")));
+    if (!m_device || connectionLost()) {
+        promise->addResult(Status::failure(m_device ? QStringLiteral("connection to the compositor is lost")
+                                                    : QStringLiteral("data-control device is not available")));
         promise->finish();
         return;
     }
@@ -234,12 +271,17 @@ void DataControlDevice::write(ClipboardPayload payload, ClipboardFlags flags,
     }
 
     // Готово, когда композитор обработал set_selection: ждём ответ на wl_display.sync.
-    auto *holder = new std::shared_ptr<QPromise<Status>>(std::move(promise));
+    // Подключение оборвётся раньше — обещание выполнит failPendingWrites.
+    auto *holder = new PendingWrite{this, std::move(promise)};
+    m_pendingWrites.append(holder);
     static const wl_callback_listener kDone = {
         .done = [](void *data, wl_callback *cb, uint32_t) {
-            auto *h = static_cast<std::shared_ptr<QPromise<Status>> *>(data);
-            (*h)->addResult(Status::success());
-            (*h)->finish();
+            auto *h = static_cast<PendingWrite *>(data);
+            if (h->device) {
+                h->device->m_pendingWrites.removeOne(h);
+                h->promise->addResult(Status::success());
+                h->promise->finish();
+            }
             delete h;
             wl_callback_destroy(cb);
         },
