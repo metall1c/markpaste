@@ -26,6 +26,9 @@ public:
     void showShot(const QUuid &shotId, bool fresh = false);
     bool isFreshShot() const { return m_fresh; }
     QUuid shotId() const { return m_canvas->shotId(); }
+    // Сохранить набираемый комментарий. Нужно перед вставкой: окно прячется, а сохранение
+    // по потере фокуса приходит позже, чем набор уходит во вставку.
+    void commitPendingEdits() { m_canvas->commitComment(); }
     void setStyle(const RenderStyle &style);
     // Перо новых меток (сохраняется в настройках между запусками)
     void setPen(const MarkPen &pen);

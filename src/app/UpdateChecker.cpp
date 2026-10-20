@@ -10,6 +10,8 @@
 #include <QTimer>
 #include <QVersionNumber>
 
+#include <algorithm>
+
 Q_LOGGING_CATEGORY(lcUpdate, "markpaste.update")
 
 namespace mp {
@@ -30,7 +32,8 @@ void UpdateChecker::setEnabled(bool enabled, int startDelayMs)
         return;
     const QDateTime last = QSettings().value(QStringLiteral("updates/lastCheck")).toDateTime();
     const qint64 since = last.isValid() ? last.msecsTo(QDateTime::currentDateTime()) : kIntervalMs;
-    m_timer->start(int(std::max<qint64>(startDelayMs, kIntervalMs - since)));
+    // since < 0 — часы перевели назад: не ждём дольше суток (и не переполняем int)
+    m_timer->start(int(std::clamp<qint64>(kIntervalMs - since, startDelayMs, std::max<qint64>(startDelayMs, kIntervalMs))));
 }
 
 void UpdateChecker::checkNow()

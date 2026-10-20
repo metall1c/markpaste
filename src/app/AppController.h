@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QPointer>
+#include <QUrl>
 
 class QSystemTrayIcon;
 class QTimer;
@@ -74,6 +75,7 @@ private:
     QTimer *m_memoryTimer = nullptr;   // набор пишется на диск не на каждую правку, а через секунду тишины
     QSystemTrayIcon *m_tray = nullptr;
     QHash<Action, QString> m_boundTriggers;   // фактические сочетания от системы
+    QUrl m_trayClickUrl;   // что открыть по клику на последнее уведомление в трее
     bool m_capturing = false;
     bool m_editorWasVisible = false;
     bool m_stripWasVisible = false;

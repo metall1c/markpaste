@@ -38,9 +38,9 @@ struct Settings {
     QColor accent = QColor(0xFF, 0x5A, 0x1F);
     int badgeSize = 28;                // диаметр значка номера, логические px
     QString uiLanguage = QStringLiteral("auto");   // auto / ru / en — язык интерфейса (APP-5), после перезапуска
-    bool hideStripWhenEmpty = true;
+    bool hideStripWhenEmpty = true;    // пустой набор — лента прячется в трей (ADR 0004)
     bool keepSetOnRestart = false;     // NFR-5: набор на диске, переживает перезапуск
-    bool checkUpdates = true;          // APP-7, NFR-4: единственный сетевой запрос    // пустой набор — лента прячется в трей (ADR 0004)
+    bool checkUpdates = true;          // APP-7, NFR-4: единственный сетевой запрос
     MarkPen markPen;                   // последнее перо редактора; пустые поля — по умолчанию
     int maxLongSide = 4096;
     int jpegThresholdMb = 5;

@@ -180,11 +180,10 @@ void AppController::start()
     connect(m_updates, &UpdateChecker::updateAvailable, this, [this](const QString &version, const QUrl &page) {
         const QUrl url = page.isValid() && !page.isEmpty() ? page : QUrl(QStringLiteral(MARKPASTE_RELEASES_URL));
         notify(tr("Markpaste %1 is available. Update it with your package manager.").arg(version));
-        if (m_tray) {
-            // Клик по уведомлению — страница релиза
-            connect(m_tray, &QSystemTrayIcon::messageClicked, this, [url] { QDesktopServices::openUrl(url); },
-                    Qt::SingleShotConnection);
-        }
+        // Клик по этому уведомлению — страница релиза. Только по нему: любое следующее
+        // уведомление сбрасывает адрес (notify), иначе страницу открыл бы клик по «Ошибка вставки».
+        if (m_tray && !(m_strip && m_strip->isVisible()))
+            m_trayClickUrl = url;
     });
     m_updates->setEnabled(m_settings.checkUpdates);
 
@@ -395,8 +394,10 @@ void AppController::paste(bool fromHotkey)
 {
     if (m_paste->isRunning() || m_model.set().isEmpty())
         return;
-    if (m_editor && m_editor->isVisible())
+    if (m_editor && m_editor->isVisible()) {
+        m_editor->commitPendingEdits();   // последний комментарий — тоже в сообщение
         m_editor->hide();   // иначе фокус может остаться в редакторе, а не в чате
+    }
 
     PasteOptions opt = m_settings.pasteOptions();
     opt.waitHotkeyRelease = fromHotkey;
@@ -410,6 +411,8 @@ void AppController::copySet()
 {
     if (m_paste->isRunning() || m_model.set().isEmpty())
         return;
+    if (m_editor && m_editor->isVisible())
+        m_editor->commitPendingEdits();
     PasteOptions opt = m_settings.pasteOptions();
     opt.mode = PasteMode::FilesAndText;
     m_paste->start(m_model.set(), opt);
@@ -437,6 +440,8 @@ QMimeData *AppController::dragData(const QList<QUuid> &shots)
     QList<QUrl> urls;
     for (const QUuid &id : shots) {
         const int index = m_model.set().shotIndex(id);
+        if (index < 0)
+            continue;   // снимок успели удалить
         const QImage img = renderShot(m_model.set().shots[index], index, opt.style);
         const EncodedImage enc = encodeForPaste(img, opt.encode);
         const QString path = TempFiles::write(QStringLiteral("shot-%1.%2").arg(shotLetter(index)).arg(enc.extension), enc.data);
@@ -623,6 +628,10 @@ void AppController::setupTray()
     menu->addSeparator();
     menu->addAction(tr("Quit"), qApp, &QApplication::quit);
     m_tray->setContextMenu(menu);
+    connect(m_tray, &QSystemTrayIcon::messageClicked, this, [this] {
+        if (const QUrl url = std::exchange(m_trayClickUrl, {}); url.isValid())
+            QDesktopServices::openUrl(url);
+    });
     connect(m_tray, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason r) {
         if (r != QSystemTrayIcon::Trigger)
             return;
@@ -638,6 +647,7 @@ void AppController::setupTray()
 void AppController::notify(const QString &text)
 {
     qCInfo(lcApp) << "notify:" << text;
+    m_trayClickUrl.clear();   // клик по новому уведомлению ничего не открывает
     if (m_strip && m_strip->isVisible())
         m_strip->showMessage(text, 6000);
     else if (m_tray)
