@@ -154,9 +154,10 @@ void PasteOrchestrator::start(const CaptureSet &set, const PasteOptions &options
     // «маска», чтобы окно чата не приняло отпускание Alt за одиночное нажатие и не ушло в меню
     if (options.maskAltTap && !m_released && m_injector) {
         openSession([this] {
-            if (!m_released)
+            if (!m_released) {
+                qCInfo(lcPaste) << "Alt still held: modifier mask sent";
                 m_injector->sendModifierMask();
-            else
+            } else
                 qCInfo(lcPaste) << "Alt released before the session opened: no mask";
         });
     }
