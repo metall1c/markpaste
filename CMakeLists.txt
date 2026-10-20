@@ -150,6 +150,7 @@ if(WIN32)
     set(CPACK_SYSTEM_NAME "win64")
     set(CPACK_PACKAGE_FILE_NAME "Markpaste-${PROJECT_VERSION}-win64-portable")
     set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY ON)
+    set(CPACK_PACKAGING_INSTALL_PREFIX "")   # всё прямо в Markpaste-…-portable/, без usr/local
     set(CPACK_PACKAGE_DIRECTORY ${CMAKE_BINARY_DIR}/package)
 else()
     set(CPACK_GENERATOR "TGZ")
