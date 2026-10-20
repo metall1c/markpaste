@@ -152,6 +152,10 @@ void PortalRemoteDesktop::end()
     bus.asyncCall(close);
     m_session.clear();
     m_clipboardEnabled = false;
+    // Как и при закрытии порталом: буфер через портал (PortalClipboard) жив только в сессии.
+    // Без сигнала он считал бы себя владельцем буфера и в следующей сессии вернул бы
+    // после вставки устаревшее содержимое вместо скопированного пользователем.
+    emit sessionClosed();
 }
 
 void PortalRemoteDesktop::onSessionClosed(const QVariantMap &)

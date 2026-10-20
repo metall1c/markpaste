@@ -25,6 +25,8 @@ const QString kIface = QStringLiteral("org.freedesktop.portal.Clipboard");
 const QStringList kTextMimes = {QStringLiteral("text/plain;charset=utf-8"), QStringLiteral("text/plain"),
                                 QStringLiteral("UTF8_STRING")};
 const QStringList kImageMimes = {QStringLiteral("image/png"), QStringLiteral("image/jpeg"), QStringLiteral("image/bmp")};
+constexpr int kTextReadMs = 1000;    // как в DataControlClipboard: картинку владелец кодирует дольше
+constexpr int kImageReadMs = 3000;
 
 // fd из ответа D-Bus принадлежит QDBusUnixFileDescriptor и закрывается вместе с ним
 int takeFd(const QDBusUnixFileDescriptor &d)
@@ -128,7 +130,7 @@ void PortalClipboard::onSelectionOwnerChanged(const QDBusObjectPath &session, co
     }
 }
 
-QFuture<QByteArray> PortalClipboard::read(const QString &mimeType)
+QFuture<QByteArray> PortalClipboard::read(const QString &mimeType, int timeoutMs)
 {
     auto promise = std::make_shared<QPromise<QByteArray>>();
     promise->start();
@@ -136,7 +138,7 @@ QFuture<QByteArray> PortalClipboard::read(const QString &mimeType)
                                                     QStringLiteral("SelectionRead"));
     m << QVariant::fromValue(QDBusObjectPath(sessionHandle())) << mimeType;
     auto *watcher = new QDBusPendingCallWatcher(PortalBus::instance().connection().asyncCall(m), this);
-    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, promise](QDBusPendingCallWatcher *w) {
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, promise, timeoutMs](QDBusPendingCallWatcher *w) {
         const QDBusPendingReply<QDBusUnixFileDescriptor> reply = *w;
         w->deleteLater();
         const int fd = reply.isError() ? -1 : takeFd(reply.value());
@@ -145,7 +147,7 @@ QFuture<QByteArray> PortalClipboard::read(const QString &mimeType)
             promise->finish();
             return;
         }
-        readAllAsync(fd, 1000, this).then(this, [promise](const QByteArray &data) {
+        readAllAsync(fd, timeoutMs, this).then(this, [promise](const QByteArray &data) {
             promise->addResult(data);
             promise->finish();
         });
@@ -184,7 +186,7 @@ QFuture<ClipboardPayload> PortalClipboard::snapshot()
     auto readImage = [this, imageMime, result, finish] {
         if (imageMime.isEmpty())
             return finish();
-        read(imageMime).then(this, [imageMime, result, finish](const QByteArray &data) {
+        read(imageMime, kImageReadMs).then(this, [imageMime, result, finish](const QByteArray &data) {
             if (!data.isEmpty())
                 result->addImage(data, imageMime.toLatin1());
             finish();
@@ -193,7 +195,7 @@ QFuture<ClipboardPayload> PortalClipboard::snapshot()
     if (textMime.isEmpty()) {
         readImage();
     } else {
-        read(textMime).then(this, [result, readImage](const QByteArray &data) {
+        read(textMime, kTextReadMs).then(this, [result, readImage](const QByteArray &data) {
             if (!data.isEmpty())
                 result->addText(QString::fromUtf8(data));
             readImage();

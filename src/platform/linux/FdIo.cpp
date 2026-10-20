@@ -65,7 +65,9 @@ QFuture<QByteArray> readAllAsync(int fd, int timeoutMs, QObject *context, qint64
     st->fd = fd;
     st->promise.start();
 
-    auto finish = [st] {
+    // complete = false — таймаут или превышен maxBytes: обрывок не отдаём. Иначе после вставки
+    // в буфер вернулась бы обрезанная картинка или текст (docs/problems.md).
+    auto finish = [st](bool complete) {
         if (st->done)
             return;
         st->done = true;
@@ -74,14 +76,14 @@ QFuture<QByteArray> readAllAsync(int fd, int timeoutMs, QObject *context, qint64
         st->timer->stop();
         st->timer->deleteLater();
         ::close(st->fd);
-        st->promise.addResult(st->data);
+        st->promise.addResult(complete ? st->data : QByteArray());
         st->promise.finish();
     };
 
     st->notifier = new QSocketNotifier(fd, QSocketNotifier::Read, context);
     st->timer = new QTimer(context);
     st->timer->setSingleShot(true);
-    QObject::connect(st->timer, &QTimer::timeout, st->notifier, finish);
+    QObject::connect(st->timer, &QTimer::timeout, st->notifier, [finish] { finish(false); });
     QObject::connect(st->notifier, &QSocketNotifier::activated, st->notifier, [st, finish, maxBytes] {
         char buf[65536];
         for (;;) {
@@ -89,14 +91,14 @@ QFuture<QByteArray> readAllAsync(int fd, int timeoutMs, QObject *context, qint64
             if (n > 0) {
                 st->data.append(buf, n);
                 if (st->data.size() > maxBytes)
-                    return finish();
+                    return finish(false);
                 continue;
             }
             if (n < 0 && errno == EINTR)
                 continue;
             if (n < 0 && errno == EAGAIN)
                 return;   // ждём следующую порцию
-            return finish();   // EOF или ошибка
+            return finish(n == 0);   // EOF — всё прочитано; ошибка чтения — обрывок
         }
     });
     if (timeoutMs > 0)

@@ -64,6 +64,7 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent *) override;
     void keyPressEvent(QKeyEvent *) override;
     void showEvent(QShowEvent *) override;
+    void closeEvent(QCloseEvent *) override;
 
 private:
     enum class Mode { Idle, Selecting, Adjusting, Moving, Resizing };

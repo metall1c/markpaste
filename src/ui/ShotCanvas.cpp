@@ -80,6 +80,11 @@ void ShotCanvas::setTool(Tool tool)
         return;
     if (m_tool == Tool::Crop)
         cancelCrop();
+    // Клавиша инструмента во время перетаскивания: незаконченное действие прежнего инструмента
+    // бросаем. Иначе новый инструмент продолжил бы его с чужими точками (пустой список у обрезки).
+    m_drag = Drag::None;
+    m_live = {};
+    m_livePoints = {};
     m_tool = tool;
     emit toolChanged(tool);
     update();
@@ -494,6 +499,10 @@ void ShotCanvas::mouseReleaseEvent(QMouseEvent *e)
 {
     if (e->button() != Qt::LeftButton || m_drag == Drag::None)
         return;
+    if (!shot()) {   // снимок удалили, пока тянули (глобальная клавиша «очистить»)
+        m_drag = Drag::None;
+        return;
+    }
     const Drag drag = std::exchange(m_drag, Drag::None);
     const QRect live = m_live;
     const QList<QPoint> livePoints = std::exchange(m_livePoints, {});

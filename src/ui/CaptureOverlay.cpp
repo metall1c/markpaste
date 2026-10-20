@@ -135,6 +135,14 @@ void OverlayWidget::showEvent(QShowEvent *)
     setFocus();
 }
 
+void OverlayWidget::closeEvent(QCloseEvent *e)
+{
+    // Окно закрыли извне (Alt+F4 на GNOME и X11, где оверлей — обычное окно). Без отмены сеанс
+    // остался бы незавершённым, и следующий захват не запустился бы до перезапуска программы.
+    m_session->cancel();
+    QWidget::closeEvent(e);
+}
+
 void OverlayWidget::clearSelection()
 {
     m_mode = Mode::Idle;

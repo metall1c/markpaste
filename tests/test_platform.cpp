@@ -32,3 +32,56 @@ TEST(Autostart, WritesAndRemovesDesktopFile)
     EXPECT_TRUE(setAutostartEnabled(id, false));   // повторное выключение — не ошибка
     QStandardPaths::setTestModeEnabled(false);
 }
+
+#ifdef Q_OS_LINUX
+#include "platform/linux/FdIo.h"
+
+#include <QEventLoop>
+#include <QFuture>
+
+#include <fcntl.h>
+#include <unistd.h>
+
+namespace {
+QByteArray awaitBytes(QFuture<QByteArray> f)
+{
+    QEventLoop loop;
+    auto w = f.then(&loop, [&loop](const QByteArray &) { loop.quit(); });
+    if (!f.isFinished())
+        loop.exec();
+    return f.result();
+}
+} // namespace
+
+TEST(FdIo, ReadsAllUntilEof)
+{
+    int fds[2];
+    ASSERT_EQ(::pipe2(fds, O_CLOEXEC), 0);
+    ASSERT_EQ(::write(fds[1], "hello", 5), 5);
+    ::close(fds[1]);
+    QObject ctx;
+    EXPECT_EQ(awaitBytes(lx::readAllAsync(fds[0], 1000, &ctx)), QByteArray("hello"));
+}
+
+// Владелец буфера не дописал данные к таймауту: обрывок картинки или текста
+// не должен вернуться в буфер после вставки
+TEST(FdIo, TimeoutGivesNothingInsteadOfPartialData)
+{
+    int fds[2];
+    ASSERT_EQ(::pipe2(fds, O_CLOEXEC), 0);
+    ASSERT_EQ(::write(fds[1], "\x89PNG part", 9), 9);   // писатель «завис», конец не закрыт
+    QObject ctx;
+    EXPECT_TRUE(awaitBytes(lx::readAllAsync(fds[0], 100, &ctx)).isEmpty());
+    ::close(fds[1]);
+}
+
+TEST(FdIo, OverLimitGivesNothing)
+{
+    int fds[2];
+    ASSERT_EQ(::pipe2(fds, O_CLOEXEC), 0);
+    ASSERT_EQ(::write(fds[1], "0123456789", 10), 10);
+    ::close(fds[1]);
+    QObject ctx;
+    EXPECT_TRUE(awaitBytes(lx::readAllAsync(fds[0], 1000, &ctx, 4)).isEmpty());
+}
+#endif

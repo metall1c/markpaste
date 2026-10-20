@@ -1,8 +1,10 @@
 #include "TestUtil.h"
+#include "ui/CaptureOverlay.h"
 #include "ui/PenPicker.h"
 #include "ui/ShotEditor.h"
 
 #include <QApplication>
+#include <QScreen>
 #include <QPlainTextEdit>
 #include <QTest>
 #include <QTranslator>
@@ -112,6 +114,21 @@ TEST(ShotEditorUi, DoneMakesShotNotFresh)
     FreshFixture f;
     QTest::keyClick(f.canvas(), Qt::Key_Return, Qt::ControlModifier);
     EXPECT_FALSE(f.editor.isFreshShot());
+}
+
+// Свежий снимок удалили кнопкой или отменой (Ctrl+Z) — редактор переходит к предыдущему.
+// Тот уже принят: Esc должен только закрыть окно, а не молча удалить его из набора.
+TEST(ShotEditorUi, OlderShotShownAfterFreshIsRemovedIsNotFresh)
+{
+    EditorFixture f;                                    // A принят
+    const QUuid b = f.model.addShot(makeShot(400, 300));
+    f.editor.showShot(b, true);                         // B только что снят
+    QTest::qWait(20);
+    f.model.removeShot(b);                              // «Удалить снимок» или Ctrl+Z
+    ASSERT_EQ(f.editor.shotId(), f.shot);
+    EXPECT_FALSE(f.editor.isFreshShot());
+    QTest::keyClick(f.canvas(), Qt::Key_Escape);
+    EXPECT_NE(f.model.shot(f.shot), nullptr);
 }
 
 TEST(Translations, RussianLoadsForEditor)
@@ -239,4 +256,45 @@ TEST(ShotEditorUi, PointToolPlacesPointByClick)
     s = f.model.shot(f.shot);
     ASSERT_EQ(s->marks.size(), 1);
     EXPECT_EQ(s->marks[0].points, QList<QPoint>{QPoint(195, 128)});
+}
+
+// Клавиша инструмента посреди перетаскивания обрезки: раньше стрелка брала первую точку
+// из пустого списка и программа падала
+TEST(ShotEditorUi, SwitchingToolDuringDragIsSafe)
+{
+    EditorFixture f;
+    f.editor.resize(900, 600);
+    QTest::qWait(20);
+    ShotCanvas *c = f.canvas();
+    c->setTool(ShotCanvas::Tool::Crop);
+    const QPoint origin((c->width() - 400) / 2, (c->height() - 300) / 2);
+    QTest::mousePress(c, Qt::LeftButton, {}, origin + QPoint(20, 20));
+    c->setTool(ShotCanvas::Tool::Arrow);   // как клавиша A, кнопка ещё зажата
+    QMouseEvent move(QEvent::MouseMove, QPointF(origin + QPoint(120, 90)), c->mapToGlobal(QPointF(origin + QPoint(120, 90))),
+                     Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(c, &move);
+    QTest::mouseRelease(c, Qt::LeftButton, {}, origin + QPoint(120, 90));
+    EXPECT_TRUE(f.model.shot(f.shot)->marks.isEmpty());
+}
+
+// Оверлей закрыли извне (Alt+F4): сеанс захвата должен завершиться отменой,
+// иначе следующий захват не запустится
+TEST(CaptureOverlayUi, ClosingOverlayWindowCancelsSession)
+{
+    ScreenFrame frame;
+    frame.screenName = QGuiApplication::primaryScreen()->name();
+    frame.logicalGeometry = QGuiApplication::primaryScreen()->geometry();
+    frame.image = noiseImage(200, 100);
+    CaptureSession session({frame}, false);
+    int cancelled = 0;
+    QObject::connect(&session, &CaptureSession::cancelled, [&] { ++cancelled; });
+    session.start();
+    QTest::qWait(20);
+    OverlayWidget *overlay = nullptr;
+    for (QWidget *w : QApplication::topLevelWidgets())
+        if (auto *o = qobject_cast<OverlayWidget *>(w); o && o->isVisible())
+            overlay = o;
+    ASSERT_NE(overlay, nullptr);
+    overlay->close();
+    EXPECT_EQ(cancelled, 1);
 }

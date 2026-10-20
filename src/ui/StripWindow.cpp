@@ -485,10 +485,15 @@ QPixmap StripWindow::thumbnailFor(int index)
 
 void StripWindow::rebuild()
 {
-    // Чистим старые миниатюры (последний элемент — растяжка)
+    // Чистим старые миниатюры (последний элемент — растяжка). Удаляем отложенно: перестройку
+    // часто вызывает сама миниатюра — щелчок, пункт её меню (меню в exec() — её дочерний объект
+    // на стеке), перетаскивание. Прямой delete здесь ронял программу (docs/problems.md).
     while (m_list->count() > 1) {
         QLayoutItem *item = m_list->takeAt(0);
-        delete item->widget();
+        if (QWidget *w = item->widget()) {
+            w->hide();
+            w->deleteLater();
+        }
         delete item;
     }
     const CaptureSet &set = m_model->set();

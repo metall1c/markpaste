@@ -41,7 +41,7 @@ private slots:
     void onSelectionOwnerChanged(const QDBusObjectPath &session, const QVariantMap &options);
 
 private:
-    QFuture<QByteArray> read(const QString &mimeType);
+    QFuture<QByteArray> read(const QString &mimeType, int timeoutMs);
     QString sessionHandle() const;
 
     QPointer<PortalRemoteDesktop> m_session;

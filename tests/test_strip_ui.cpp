@@ -4,9 +4,12 @@
 
 #include <QApplication>
 #include <QDropEvent>
+#include <QLayout>
+#include <QMenu>
 #include <QMimeData>
 #include <QScrollArea>
 #include <QTest>
+#include <QTimer>
 
 #include <gtest/gtest.h>
 
@@ -82,4 +85,45 @@ TEST(StripUi, DropOnOwnPlaceOrFromOtherProcessChangesNothing)
     f.drop("1 " + f.ids[0].toByteArray(QUuid::WithoutBraces), f.list()->height() - 1);   // чужой pid
     EXPECT_EQ(f.order(), f.ids);
     EXPECT_EQ(f.model.undoStack()->count(), undoBefore);
+}
+
+namespace {
+// Выбрать пункт контекстного меню миниатюры так, как это делает человек: меню открыто
+// своим exec(), пункт выбирается клавишей Enter.
+void chooseFromThumbMenu(StripFixture &f, int thumbIndex, const QString &actionText)
+{
+    QWidget *thumb = f.list()->layout()->itemAt(thumbIndex)->widget();
+    ASSERT_NE(thumb, nullptr);
+    bool chosen = false;
+    QTimer::singleShot(50, [&] {
+        auto *menu = qobject_cast<QMenu *>(QApplication::activePopupWidget());
+        ASSERT_NE(menu, nullptr);
+        for (QAction *a : menu->actions())
+            if (a->text() == actionText) {
+                menu->setActiveAction(a);
+                QTest::keyClick(menu, Qt::Key_Return);
+                chosen = true;
+                return;
+            }
+    });
+    QTest::mouseClick(thumb, Qt::RightButton, {}, QPoint(20, 20));
+    QTest::qWait(20);
+    EXPECT_TRUE(chosen);
+}
+} // namespace
+
+// Пункт меню меняет набор → лента перестраивается и удаляет миниатюру, пока её меню
+// ещё в exec(). Раньше это роняло программу: меню — дочерний объект миниатюры на стеке.
+TEST(StripUi, ThumbMenuDeleteDoesNotCrash)
+{
+    StripFixture f;
+    chooseFromThumbMenu(f, 1, QStringLiteral("Delete"));
+    EXPECT_EQ(f.order(), (QList<QUuid>{f.ids[0], f.ids[2]}));
+}
+
+TEST(StripUi, ThumbMenuMoveDoesNotCrash)
+{
+    StripFixture f;
+    chooseFromThumbMenu(f, 0, QStringLiteral("Move down"));
+    EXPECT_EQ(f.order(), (QList<QUuid>{f.ids[1], f.ids[0], f.ids[2]}));
 }

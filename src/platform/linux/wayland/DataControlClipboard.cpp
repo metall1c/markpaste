@@ -46,7 +46,7 @@ public:
     void onCancelled(ext_data_control_source_v1 *source);
 
 private:
-    QFuture<QByteArray> receive(const QString &mime);
+    QFuture<QByteArray> receive(const QString &mime, int timeoutMs);
 
     WaylandConnection *m_conn;
     ext_data_control_manager_v1 *m_manager = nullptr;
@@ -96,6 +96,10 @@ const QStringList kTextMimes = {QStringLiteral("text/plain;charset=utf-8"), QStr
                                 QStringLiteral("UTF8_STRING")};
 const QStringList kImageMimes = {QStringLiteral("image/png"), QStringLiteral("image/jpeg"),
                                  QStringLiteral("image/bmp")};
+// Сколько ждать данные чужого буфера при сохранении. Картинку владелец часто кодирует по
+// запросу (браузер, редактор): 4K PNG — до секунды и больше. Не дождались — не восстанавливаем.
+constexpr int kTextReadMs = 1000;
+constexpr int kImageReadMs = 3000;
 
 } // namespace
 
@@ -244,7 +248,7 @@ void DataControlDevice::write(ClipboardPayload payload, ClipboardFlags flags,
     m_conn->flush();
 }
 
-QFuture<QByteArray> DataControlDevice::receive(const QString &mime)
+QFuture<QByteArray> DataControlDevice::receive(const QString &mime, int timeoutMs)
 {
     int fds[2];
     if (::pipe2(fds, O_CLOEXEC) != 0)
@@ -252,7 +256,7 @@ QFuture<QByteArray> DataControlDevice::receive(const QString &mime)
     ext_data_control_offer_v1_receive(m_selection, mime.toUtf8().constData(), fds[1]);
     m_conn->flush();
     ::close(fds[1]);
-    return readAllAsync(fds[0], 1000, this);
+    return readAllAsync(fds[0], timeoutMs, this);
 }
 
 void DataControlDevice::snapshot(std::shared_ptr<QPromise<ClipboardPayload>> promise)
@@ -283,7 +287,7 @@ void DataControlDevice::snapshot(std::shared_ptr<QPromise<ClipboardPayload>> pro
     auto readImage = [this, imageMime, result, finishWith] {
         if (imageMime.isEmpty())
             return finishWith(*result);
-        receive(imageMime).then(this, [imageMime, result, finishWith](const QByteArray &data) {
+        receive(imageMime, kImageReadMs).then(this, [imageMime, result, finishWith](const QByteArray &data) {
             if (!data.isEmpty())
                 result->addImage(data, imageMime.toLatin1());
             finishWith(*result);
@@ -291,7 +295,7 @@ void DataControlDevice::snapshot(std::shared_ptr<QPromise<ClipboardPayload>> pro
     };
     if (textMime.isEmpty())
         return readImage();
-    receive(textMime).then(this, [result, readImage](const QByteArray &data) {
+    receive(textMime, kTextReadMs).then(this, [result, readImage](const QByteArray &data) {
         if (!data.isEmpty())
             result->addText(QString::fromUtf8(data));
         readImage();
