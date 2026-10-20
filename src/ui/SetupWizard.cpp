@@ -289,9 +289,9 @@ void SetupWizard::updateHotkeys()
         QString name;
         bool required;
     };
-    const QList<Line> actions{{Action::Capture, tr("Capture"), true},
+    const QList<Line> actions{{Action::Capture, tr("Shot with editor"), true},
                               {Action::PasteSet, tr("Paste set"), true},
-                              {Action::CaptureToStrip, tr("Shot to the strip"), false}};
+                              {Action::CaptureToStrip, tr("Shot without editor"), false}};
     QStringList lines;
     bool allPressed = true, anyMissing = false;
     for (const auto &[action, name, required] : actions) {

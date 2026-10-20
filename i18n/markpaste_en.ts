@@ -238,7 +238,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Capture</source>
+        <source>Shot with editor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Shot without editor</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -486,19 +490,23 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Capture:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Paste the set:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Shot to the strip:</source>
+        <source>Shot with editor:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Select an area — the shot goes to the strip without opening the editor</source>
+        <source>Shot without editor:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select an area — the editor opens for marks and comments</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select an area — the shot goes straight to the strip, the editor does not open</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -852,11 +860,15 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Capture</source>
+        <source>Shot with editor</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Paste set</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Shot without editor</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -869,10 +881,6 @@
     </message>
     <message>
         <source>Global hotkeys are not available here. Assign the commands “markpaste --capture”, “markpaste --paste” and “markpaste --capture-to-strip” to keys in the system keyboard settings.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Shot to the strip</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1194,7 +1202,7 @@ Drag over the shot to add one.</source>
 <context>
     <name>mp::lx::PortalGlobalShortcuts</name>
     <message>
-        <source>Capture screen area</source>
+        <source>Shot with editor</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1210,7 +1218,7 @@ Drag over the shot to add one.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Capture an area straight to the strip</source>
+        <source>Shot without editor</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

@@ -142,7 +142,7 @@ TEST(SetupWizard, ShotToStripKeyIsOptional)
     WizardFixture f;
     f.platform.hotkeys = std::make_unique<FakeHotkeys>();
     SetupWizard w(&f.platform, QStringLiteral("su._525.MarkpasteTest"));
-    // Снимок в ленту назначен, но не нажат — проверка всё равно проходит по двум главным клавишам
+    // Снимок без редактора назначен, но не нажат — проверка всё равно проходит по двум главным клавишам
     w.setTriggers({{Action::Capture, QStringLiteral("Print")},
                    {Action::PasteSet, QStringLiteral("Ctrl+Alt+V")},
                    {Action::CaptureToStrip, QStringLiteral("Ctrl+Print")}});

@@ -163,12 +163,12 @@ QFuture<QHash<Action, BindResult>> PortalGlobalShortcuts::bindAll(const QHash<Ac
                 PortalShortcut sc;
                 sc.id = shortcutId(it.key());
                 switch (it.key()) {
-                case Action::Capture: sc.properties[QStringLiteral("description")] = tr("Capture screen area"); break;
+                case Action::Capture: sc.properties[QStringLiteral("description")] = tr("Shot with editor"); break;
                 case Action::PasteSet: sc.properties[QStringLiteral("description")] = tr("Paste the set into the chat"); break;
                 case Action::NewShot: sc.properties[QStringLiteral("description")] = tr("New shot"); break;
                 case Action::ClearSet: sc.properties[QStringLiteral("description")] = tr("Clear the set"); break;
                 case Action::CaptureToStrip:
-                    sc.properties[QStringLiteral("description")] = tr("Capture an area straight to the strip");
+                    sc.properties[QStringLiteral("description")] = tr("Shot without editor");
                     break;
                 }
                 if (!it.value().isEmpty())

@@ -4,13 +4,13 @@
 
 ---
 
-## 2026-10-20 · KDE: новое сочетание «Снимок в ленту» осталось без клавиши
+## 2026-10-20 · KDE: новое сочетание «Снимок в ленту» (теперь «Снимок без редактора») осталось без клавиши
 
 - **Окружение:** Fedora 44 KDE Plasma 6.7.5, Wayland, xdg-desktop-portal 1.22.1 + -kde 6.7.5, GlobalShortcuts v2. Программа 0.1.1 → 0.1.2, в `BindShortcuts` добавился третий id `capture-to-strip` (ADR 0022).
 - **Симптом:** после обновления в журнале нет строк `shortcut … bound`: ответ `BindShortcuts` не приходит. На экране — окно KDE «Запрос глобальных комбинаций клавиш» (видно через `qdbus --literal org.kde.KWin /WindowsRunner org.kde.krunner1.Match комбинац`). Программу перезапустили, не ответив в диалоге: он закрылся, а новая копия сразу получила `capture-to-strip bound to "<none>"`.
 - **Причина:** для `id`, которых KDE ещё не знает, он спрашивает пользователя и до ответа держит `BindShortcuts`. Когда сессия портала закрывается вместе с программой, KDE записывает действие без клавиши: `capture-to-strip=none,Ctrl+Print,Снять область сразу в ленту` (действующее, по умолчанию, описание). Дальше действие считается известным, и диалога больше нет.
 - **Решение:** при обновлении — ответить в диалоге KDE, не перезапуская программу. Если клавиша уже потеряна — «Изменить сочетания…» в настройках Markpaste или «Комбинации клавиш» KDE. Разработчику без мыши:
-  `gdbus call --session --dest org.kde.kglobalaccel --object-path /kglobalaccel --method org.kde.KGlobalAccel.setForeignShortcut "['su._525.Markpaste','capture-to-strip','Markpaste','Снять область сразу в ленту']" "[83886089]"` (83886089 = `Qt::CTRL | Qt::Key_Print`). Программа получила `ShortcutsChanged` и подхватила Ctrl+Print без перезапуска.
+  `gdbus call --session --dest org.kde.kglobalaccel --object-path /kglobalaccel --method org.kde.KGlobalAccel.setForeignShortcut "['su._525.Markpaste','capture-to-strip','Markpaste','Снимок без редактора']" "[83886089]"` (83886089 = `Qt::CTRL | Qt::Key_Print`). Программа получила `ShortcutsChanged` и подхватила Ctrl+Print без перезапуска.
 - **Статус:** обойдено. Предупреждение — в ADR 0022.
 
 ## 2026-10-20 · X11: каждое второе нажатие Print (и Ctrl+Print) не срабатывало

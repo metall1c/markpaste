@@ -93,10 +93,11 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
             edit->setReadOnly(true);
         }
     }
-    kf->addRow(tr("Capture:"), m_captureKey);
+    kf->addRow(tr("Shot with editor:"), m_captureKey);
+    kf->addRow(tr("Shot without editor:"), m_toStripKey);
     kf->addRow(tr("Paste the set:"), m_pasteKey);
-    kf->addRow(tr("Shot to the strip:"), m_toStripKey);
-    m_toStripKey->setToolTip(tr("Select an area — the shot goes to the strip without opening the editor"));
+    m_captureKey->setToolTip(tr("Select an area — the editor opens for marks and comments"));
+    m_toStripKey->setToolTip(tr("Select an area — the shot goes straight to the strip, the editor does not open"));
     auto *keysNote = noteLabel(
         m_systemKeys
             ? tr("Shortcuts are assigned by the desktop. Change them with the button below "

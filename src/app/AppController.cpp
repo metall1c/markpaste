@@ -699,7 +699,8 @@ void AppController::setupTray()
     m_tray = new QSystemTrayIcon(appIcon(), this);
     m_tray->setToolTip(QStringLiteral("Markpaste"));
     auto *menu = new QMenu;
-    menu->addAction(tr("Capture"), this, &AppController::capture);
+    menu->addAction(tr("Shot with editor"), this, &AppController::capture);
+    menu->addAction(tr("Shot without editor"), this, &AppController::captureToStrip);
     menu->addAction(tr("Show set"), this, &AppController::showStrip);
     menu->addAction(tr("Preview message…"), this, &AppController::showPreview);
     menu->addAction(tr("Save to folder…"), this, &AppController::saveSetToFolder);

@@ -238,8 +238,12 @@
         <translation>Сохранено в %1</translation>
     </message>
     <message>
-        <source>Capture</source>
-        <translation>Снять</translation>
+        <source>Shot with editor</source>
+        <translation>Снимок с редактором</translation>
+    </message>
+    <message>
+        <source>Shot without editor</source>
+        <translation>Снимок без редактора</translation>
     </message>
     <message>
         <source>Show set</source>
@@ -487,20 +491,24 @@
         <translation>не назначена</translation>
     </message>
     <message>
-        <source>Capture:</source>
-        <translation>Захват:</translation>
-    </message>
-    <message>
         <source>Paste the set:</source>
         <translation>Вставка набора:</translation>
     </message>
     <message>
-        <source>Shot to the strip:</source>
-        <translation>Снимок в ленту:</translation>
+        <source>Shot with editor:</source>
+        <translation>Снимок с редактором:</translation>
     </message>
     <message>
-        <source>Select an area — the shot goes to the strip without opening the editor</source>
-        <translation>Выделите область — снимок попадёт в ленту, редактор не откроется</translation>
+        <source>Shot without editor:</source>
+        <translation>Снимок без редактора:</translation>
+    </message>
+    <message>
+        <source>Select an area — the editor opens for marks and comments</source>
+        <translation>Выделите область — откроется редактор для меток и комментариев</translation>
+    </message>
+    <message>
+        <source>Select an area — the shot goes straight to the strip, the editor does not open</source>
+        <translation>Выделите область — снимок сразу попадёт в ленту, редактор не откроется</translation>
     </message>
     <message>
         <source>Shortcuts are assigned by the desktop. Change them with the button below or in the system shortcut settings.</source>
@@ -854,12 +862,16 @@
         <translation>окружение может показывать свой диалог при каждом снимке</translation>
     </message>
     <message>
-        <source>Capture</source>
-        <translation>Снимок</translation>
+        <source>Shot with editor</source>
+        <translation>Снимок с редактором</translation>
     </message>
     <message>
         <source>Paste set</source>
         <translation>Вставка набора</translation>
+    </message>
+    <message>
+        <source>Shot without editor</source>
+        <translation>Снимок без редактора</translation>
     </message>
     <message>
         <source>not assigned</source>
@@ -872,10 +884,6 @@
     <message>
         <source>Global hotkeys are not available here. Assign the commands “markpaste --capture”, “markpaste --paste” and “markpaste --capture-to-strip” to keys in the system keyboard settings.</source>
         <translation>Глобальных клавиш здесь нет. Назначьте команды «markpaste --capture», «markpaste --paste» и «markpaste --capture-to-strip» на клавиши в настройках клавиатуры системы.</translation>
-    </message>
-    <message>
-        <source>Shot to the strip</source>
-        <translation>Снимок в ленту</translation>
     </message>
     <message>
         <source>press %1 to test</source>
@@ -1200,8 +1208,8 @@ Drag over the shot to add one.</source>
 <context>
     <name>mp::lx::PortalGlobalShortcuts</name>
     <message>
-        <source>Capture screen area</source>
-        <translation>Снять область экрана</translation>
+        <source>Shot with editor</source>
+        <translation>Снимок с редактором</translation>
     </message>
     <message>
         <source>Paste the set into the chat</source>
@@ -1216,8 +1224,8 @@ Drag over the shot to add one.</source>
         <translation>Очистить набор</translation>
     </message>
     <message>
-        <source>Capture an area straight to the strip</source>
-        <translation>Снять область сразу в ленту</translation>
+        <source>Shot without editor</source>
+        <translation>Снимок без редактора</translation>
     </message>
 </context>
 </TS>
