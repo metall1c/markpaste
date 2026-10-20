@@ -1,6 +1,7 @@
 #include "ShotCanvas.h"
 
 #include "CommentPopup.h"
+#include "Theme.h"
 #include "core/Geometry.h"
 
 #include <QKeyEvent>
@@ -29,7 +30,7 @@ ShotCanvas::ShotCanvas(CaptureSetModel *model, QWidget *parent)
         refreshImage();
         // Выделенный объект мог исчезнуть после отмены
         if (m_selected.valid() && rectOf(m_selected).isNull())
-            m_selected = {};
+            setSelection(Hit{});
         if (m_popup->isVisible() && shot() && shot()->markIndex(m_popup->markId()) < 0)
             m_popup->dismiss();
         update();
@@ -65,7 +66,7 @@ void ShotCanvas::setShot(const QUuid &shotId)
     if (m_popup->isVisible())
         m_popup->commit();
     m_shotId = shotId;
-    m_selected = {};
+    setSelection(Hit{});
     m_crop = {};
     m_drag = Drag::None;
     m_imageSource.clear();
@@ -105,9 +106,17 @@ void ShotCanvas::setPen(const MarkPen &pen)
         m_model->setMarkPen(m_shotId, m->id, pen);
 }
 
+void ShotCanvas::setSelection(const Hit &hit)
+{
+    const QUuid before = selectedMark();
+    m_selected = hit;
+    if (selectedMark() != before)
+        emit selectedMarkChanged(selectedMark());
+}
+
 void ShotCanvas::selectMark(const QUuid &markId)
 {
-    m_selected = Hit{true, markId, HNone};
+    setSelection(Hit{true, markId, HNone});
     if (const Mark *m = markOf(m_selected)) {
         m_pen = m->pen;   // следующая метка — тем же пером, что видно в панели
         emit markSelected(m->pen, m->shape);
@@ -271,14 +280,32 @@ ShotCanvas::Hit ShotCanvas::hitTest(const QPointF &pos) const
 void ShotCanvas::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
-    p.fillRect(rect(), palette().window());
+    const UiColors colors = UiColors::from(palette());
+    p.fillRect(rect(), colors.backdrop);
     const Shot *s = shot();
     if (!s || m_image.isNull()) {
+        p.setPen(colors.muted);
         p.drawText(rect(), Qt::AlignCenter, tr("No shot selected"));
         return;
     }
     const QRect vis = s->visibleRect();
     const QTransform t = toWidget();
+
+    // Тень и тонкая рамка: снимок отделён от подложки и в тёмной, и в светлой теме
+    {
+        const QRectF shotRect = t.mapRect(QRectF(vis));
+        p.save();
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(Qt::NoPen);
+        for (int i = 1; i <= 8; ++i) {
+            p.setBrush(QColor(0, 0, 0, colors.dark ? 14 : 7));
+            p.drawRoundedRect(shotRect.adjusted(-i, -i + 3, i, i + 3), i, i);
+        }
+        p.setBrush(Qt::NoBrush);
+        p.setPen(QPen(colors.border, 1));
+        p.drawRect(shotRect.adjusted(-0.5, -0.5, 0.5, 0.5));
+        p.restore();
+    }
 
     // Снимок и метки — в координатах исходника
     Shot preview = *s;
@@ -350,8 +377,17 @@ void ShotCanvas::paintEvent(QPaintEvent *)
             if (m && m->shape == MarkShape::Arrow)
                 handles = {t.map(QPointF(m->points[0]) + QPointF(0.5, 0.5)),
                            t.map(QPointF(m->points[1]) + QPointF(0.5, 0.5))};
+            // Ручка под значком метки закрывала номер — её не рисуем; тянуть угол можно и так
+            QPointF badgeCenter;
+            qreal badgeRadius = -1;
+            if (m) {
+                const qreal dpr = shot()->devicePixelRatio > 0 ? shot()->devicePixelRatio : 1.0;
+                badgeCenter = t.map(QPointF(m->badgeAnchor()));
+                badgeRadius = m_style.badgeDiameter * dpr * t.m11() / 2;
+            }
             for (QPointF c : handles)
-                p.drawEllipse(c, 4, 4);
+                if (QLineF(c, badgeCenter).length() > badgeRadius)
+                    p.drawEllipse(c, 4, 4);
         }
     }
 
@@ -413,7 +449,7 @@ void ShotCanvas::mousePressEvent(QMouseEvent *e)
         if (h.isMark)
             selectMark(h.id);
         else
-            m_selected = Hit{false, h.id, HNone};
+            setSelection(Hit{false, h.id, HNone});
         m_dragTarget = h;
         m_dragOrigin = rectOf(h);
         m_live = m_dragOrigin;
@@ -422,7 +458,7 @@ void ShotCanvas::mousePressEvent(QMouseEvent *e)
         m_livePoints = m_dragOriginPoints;
         m_drag = h.resizes() ? Drag::Resize : Drag::Move;
     } else {
-        m_selected = {};
+        setSelection(Hit{});
         m_dragTarget = {};
         m_drag = Drag::Create;
         m_live = {};
@@ -526,7 +562,7 @@ void ShotCanvas::mouseReleaseEvent(QMouseEvent *e)
         if (m_tool == Tool::Arrow || m_tool == Tool::Pen || m_tool == Tool::Point) {
             const QUuid id = m_model->addLinearMark(m_shotId, *creatingShape(), livePoints, {}, m_pen);
             if (!id.isNull()) {
-                m_selected = Hit{true, id, HNone};
+                setSelection(Hit{true, id, HNone});
                 openComment(id);
             }
         } else if (m_tool == Tool::Crop) {
@@ -535,13 +571,13 @@ void ShotCanvas::mouseReleaseEvent(QMouseEvent *e)
         } else if (m_tool == Tool::Mark) {
             const QUuid id = m_model->addMark(m_shotId, live, {}, m_pen);
             if (!id.isNull()) {
-                m_selected = Hit{true, id, HNone};
+                setSelection(Hit{true, id, HNone});
                 openComment(id);
             }
         } else {
             const QUuid id = m_model->addRedaction(m_shotId, live);
             if (!id.isNull())
-                m_selected = Hit{false, id, HNone};
+                setSelection(Hit{false, id, HNone});
         }
     } else if (const Mark *m = markOf(m_dragTarget); m && m->isLinear()) {
         if (livePoints != m_dragOriginPoints)
@@ -594,7 +630,7 @@ void ShotCanvas::deleteSelection()
         m_model->removeMark(m_shotId, m_selected.id);
     else
         m_model->removeRedaction(m_shotId, m_selected.id);
-    m_selected = {};
+    setSelection(Hit{});
     update();
 }
 
@@ -634,7 +670,7 @@ void ShotCanvas::keyPressEvent(QKeyEvent *e)
         if (hasPendingCrop())
             cancelCrop();
         else if (m_selected.valid()) {
-            m_selected = {};
+            setSelection(Hit{});
             update();
         } else
             QWidget::keyPressEvent(e);   // окно закроется

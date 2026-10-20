@@ -2,14 +2,36 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="ru_RU">
 <context>
-    <name>DragHandle</name>
+    <name>CommentDelegate</name>
     <message>
-        <source>⠿ Drag the whole set</source>
-        <translation>⠿ Перетащить весь набор</translation>
+        <source>Add a comment</source>
+        <translation>Добавить комментарий</translation>
     </message>
+    <message>
+        <source>without it the mark is not in the text</source>
+        <translation>без него метки нет в тексте</translation>
+    </message>
+</context>
+<context>
+    <name>DragHandle</name>
     <message>
         <source>Drag into a chat: all shots as files, the text is copied to the clipboard</source>
         <translation>Перетащите в чат: все снимки уйдут файлами, а текст скопируется в буфер</translation>
+    </message>
+    <message>
+        <source>Drag the set into a chat</source>
+        <translation>Перетащите набор в чат</translation>
+    </message>
+</context>
+<context>
+    <name>EmptyHint</name>
+    <message>
+        <source>— capture an area</source>
+        <translation>— снять область</translation>
+    </message>
+    <message>
+        <source>The set is empty</source>
+        <translation>Набор пуст</translation>
     </message>
 </context>
 <context>
@@ -83,22 +105,6 @@
     <message>
         <source>Capture failed: %1</source>
         <translation>Не удалось снять экран: %1</translation>
-    </message>
-    <message>
-        <source>Paste set</source>
-        <translation>Вставить набор</translation>
-    </message>
-    <message>
-        <source>Pastes all shots and the text into the active chat window</source>
-        <translation>Вставляет все снимки и текст в активное окно чата</translation>
-    </message>
-    <message>
-        <source>Copy set</source>
-        <translation>Скопировать набор</translation>
-    </message>
-    <message>
-        <source>Copies files and text — then press Ctrl+V in the chat</source>
-        <translation>Копирует файлы и текст — затем нажмите Ctrl+V в чате</translation>
     </message>
     <message>
         <source>Click into the chat first: a Markpaste window is active</source>
@@ -235,8 +241,12 @@
 <context>
     <name>mp::CommentPopup</name>
     <message>
-        <source>Comment (Enter — save, Shift+Enter — new line)</source>
-        <translation>Комментарий (Enter — сохранить, Shift+Enter — новая строка)</translation>
+        <source>Comment</source>
+        <translation>Комментарий</translation>
+    </message>
+    <message>
+        <source>Enter — save · Shift+Enter — new line</source>
+        <translation>Enter — сохранить · Shift+Enter — новая строка</translation>
     </message>
 </context>
 <context>
@@ -771,48 +781,68 @@
 <context>
     <name>mp::ShotEditor</name>
     <message>
-        <source>▭ Mark</source>
-        <translation>▭ Метка</translation>
-    </message>
-    <message>
-        <source>● Point</source>
-        <translation>● Точка</translation>
-    </message>
-    <message>
-        <source>Put a numbered point on the spot and comment it (D)</source>
-        <translation>Поставить нумерованную точку на место и прокомментировать (D)</translation>
-    </message>
-    <message>
-        <source>▦ Blur</source>
-        <translation>▦ Размыть</translation>
-    </message>
-    <message>
-        <source>Pixelate passwords and personal data (B)</source>
-        <translation>Скрыть пароли и личные данные (B)</translation>
-    </message>
-    <message>
-        <source>⛶ Crop</source>
-        <translation>⛶ Обрезать</translation>
-    </message>
-    <message>
-        <source>Crop the shot (C)</source>
-        <translation>Обрезать снимок (C)</translation>
-    </message>
-    <message>
         <source>Apply crop</source>
         <translation>Применить обрезку</translation>
-    </message>
-    <message>
-        <source>↶</source>
-        <translation>↶</translation>
     </message>
     <message>
         <source>Undo (Ctrl+Z)</source>
         <translation>Отменить (Ctrl+Z)</translation>
     </message>
     <message>
-        <source>↷</source>
-        <translation>↷</translation>
+        <source>Mark</source>
+        <translation>Метка</translation>
+    </message>
+    <message>
+        <source>Outline an area and comment it</source>
+        <translation>Обведите область и прокомментируйте её</translation>
+    </message>
+    <message>
+        <source>Arrow</source>
+        <translation>Стрелка</translation>
+    </message>
+    <message>
+        <source>Point with an arrow and comment it</source>
+        <translation>Укажите стрелкой и прокомментируйте</translation>
+    </message>
+    <message>
+        <source>Pen</source>
+        <translation>Карандаш</translation>
+    </message>
+    <message>
+        <source>Draw freehand — circle or underline — and comment it</source>
+        <translation>Нарисуйте от руки — обведите или подчеркните — и прокомментируйте</translation>
+    </message>
+    <message>
+        <source>Point</source>
+        <translation>Точка</translation>
+    </message>
+    <message>
+        <source>Put a numbered point on the spot and comment it</source>
+        <translation>Поставьте на место точку с номером и прокомментируйте её</translation>
+    </message>
+    <message>
+        <source>Blur</source>
+        <translation>Размыть</translation>
+    </message>
+    <message>
+        <source>Pixelate passwords and personal data</source>
+        <translation>Скройте пароли и личные данные пикселями</translation>
+    </message>
+    <message>
+        <source>Crop</source>
+        <translation>Обрезать</translation>
+    </message>
+    <message>
+        <source>Crop the shot</source>
+        <translation>Обрезать снимок</translation>
+    </message>
+    <message>
+        <source>Undo</source>
+        <translation>Отменить</translation>
+    </message>
+    <message>
+        <source>Redo</source>
+        <translation>Повторить</translation>
     </message>
     <message>
         <source>Redo (Ctrl+Shift+Z)</source>
@@ -831,6 +861,10 @@
         <translation>Новый снимок</translation>
     </message>
     <message>
+        <source>Capture one more area</source>
+        <translation>Снять ещё одну область</translation>
+    </message>
+    <message>
         <source>Done</source>
         <translation>Готово</translation>
     </message>
@@ -839,8 +873,28 @@
         <translation>Закрыть снимок (Ctrl+Enter)</translation>
     </message>
     <message>
+        <source>Comments</source>
+        <translation>Комментарии</translation>
+    </message>
+    <message>
         <source>Click a comment to edit it</source>
         <translation>Нажмите на комментарий, чтобы изменить его</translation>
+    </message>
+    <message>
+        <source>Click a comment or double-click a mark to edit it. Delete removes the selected mark.</source>
+        <translation>Щёлкните комментарий или дважды щёлкните метку, чтобы изменить. Delete — удалить выделенную метку.</translation>
+    </message>
+    <message>
+        <source>undo</source>
+        <translation>отменить</translation>
+    </message>
+    <message>
+        <source>done</source>
+        <translation>готово</translation>
+    </message>
+    <message>
+        <source>close</source>
+        <translation>закрыть</translation>
     </message>
     <message>
         <source>No marks yet.
@@ -849,32 +903,40 @@ Drag over the shot to add one.</source>
 Обведите область на снимке.</translation>
     </message>
     <message>
-        <source>(no comment)</source>
-        <translation>(без комментария)</translation>
+        <source>in the text: %1 of %2</source>
+        <translation>в тексте %1 из %2</translation>
+    </message>
+    <message>
+        <source>drag over an area — a comment field opens</source>
+        <translation>обведите область — появится поле комментария</translation>
+    </message>
+    <message>
+        <source>drag from the tail to the tip; drag an end to adjust it</source>
+        <translation>тяните от хвоста к острию, концы можно поправить</translation>
+    </message>
+    <message>
+        <source>draw around or under the spot</source>
+        <translation>обведите или подчеркните место</translation>
+    </message>
+    <message>
+        <source>click the spot — a numbered point appears</source>
+        <translation>щёлкните по месту — появится номер</translation>
+    </message>
+    <message>
+        <source>drag over passwords and personal data — the chat gets a pixelated copy</source>
+        <translation>проведите по паролям и личным данным — в чат уйдёт размытая копия</translation>
+    </message>
+    <message>
+        <source>drag the area to keep · Enter — apply · Esc — cancel</source>
+        <translation>выделите, что оставить · Enter — применить · Esc — отмена</translation>
+    </message>
+    <message>
+        <source>discard the shot</source>
+        <translation>отменить снимок</translation>
     </message>
     <message>
         <source>Shot %1 — Markpaste</source>
         <translation>Снимок %1 — Markpaste</translation>
-    </message>
-    <message>
-        <source>Drag to mark · Double-click — edit comment · Ctrl+Z — undo · Ctrl+Enter — done · Esc — discard the shot</source>
-        <translation>Обведите, чтобы отметить · Двойной клик — комментарий · Ctrl+Z — отменить · Ctrl+Enter — готово · Esc — отменить снимок</translation>
-    </message>
-    <message>
-        <source>Drag to mark · Double-click — edit comment · Delete — remove · Ctrl+Z — undo · Ctrl+Enter or Esc — close</source>
-        <translation>Обведите, чтобы отметить · Двойной клик — комментарий · Delete — удалить · Ctrl+Z — отменить · Ctrl+Enter или Esc — закрыть</translation>
-    </message>
-    <message>
-        <source>Drag from the tail to the tip · Drag an end to adjust · Double-click — edit comment</source>
-        <translation>Тяните от хвоста к острию · Конец стрелки можно перетащить · Двойной клик — комментарий</translation>
-    </message>
-    <message>
-        <source>Draw around or under the spot · Double-click a line — edit comment</source>
-        <translation>Обведите или подчеркните нужное · Двойной клик по линии — комментарий</translation>
-    </message>
-    <message>
-        <source>Click the spot — a numbered point appears · Drag a point to move it · Double-click — edit comment</source>
-        <translation>Щёлкните по месту — появится точка с номером · Точку можно перетащить · Двойной клик — комментарий</translation>
     </message>
     <message>
         <source>Cancel shot</source>
@@ -885,32 +947,8 @@ Drag over the shot to add one.</source>
         <translation>Удалить снимок %1 вместе с метками?</translation>
     </message>
     <message>
-        <source>Drag over passwords, card numbers, names — the chat gets a pixelated copy</source>
-        <translation>Проведите по паролям, номерам карт, именам — в чат уйдёт размытая копия</translation>
-    </message>
-    <message>
-        <source>Mark an area and comment it (R)</source>
-        <translation>Отметить область и подписать (R)</translation>
-    </message>
-    <message>
         <source>➚ Arrow</source>
         <translation>➚ Стрелка</translation>
-    </message>
-    <message>
-        <source>Point with an arrow and comment it (A)</source>
-        <translation>Указать стрелкой и подписать (A)</translation>
-    </message>
-    <message>
-        <source>✎ Pen</source>
-        <translation>✎ Карандаш</translation>
-    </message>
-    <message>
-        <source>Draw freehand — circle or underline — and comment it (P)</source>
-        <translation>Нарисовать от руки — обвести или подчеркнуть — и подписать (P)</translation>
-    </message>
-    <message>
-        <source>Drag the area to keep · Enter — apply · Esc — cancel</source>
-        <translation>Обведите то, что оставить · Enter — применить · Esc — отмена</translation>
     </message>
 </context>
 <context>
@@ -918,6 +956,10 @@ Drag over the shot to add one.</source>
     <message>
         <source>Markpaste — set</source>
         <translation>Markpaste — набор</translation>
+    </message>
+    <message>
+        <source>Clear the set</source>
+        <translation>Очистить набор</translation>
     </message>
     <message>
         <source>Menu</source>
@@ -940,10 +982,6 @@ Drag over the shot to add one.</source>
         <translation>Свернуть в трей</translation>
     </message>
     <message>
-        <source>＋ New shot</source>
-        <translation>＋ Новый снимок</translation>
-    </message>
-    <message>
         <source>Paste set</source>
         <translation>Вставить набор</translation>
     </message>
@@ -952,16 +990,28 @@ Drag over the shot to add one.</source>
         <translation>Скопировать набор</translation>
     </message>
     <message>
-        <source>Put files and text into the clipboard, then press Ctrl+V in the chat</source>
-        <translation>Положить файлы и текст в буфер, затем нажмите Ctrl+V в чате</translation>
-    </message>
-    <message>
         <source>Clear</source>
         <translation>Очистить</translation>
     </message>
     <message>
+        <source>New shot</source>
+        <translation>Новый снимок</translation>
+    </message>
+    <message>
+        <source>Copy set: files and text go to the clipboard, then press Ctrl+V in the chat</source>
+        <translation>Скопировать набор: файлы и текст — в буфер обмена, затем Ctrl+V в чате</translation>
+    </message>
+    <message>
         <source>Stop</source>
         <translation>Стоп</translation>
+    </message>
+    <message>
+        <source>Pastes all shots and the text into the active chat window</source>
+        <translation>Вставляет все снимки и текст в активное окно чата</translation>
+    </message>
+    <message>
+        <source>Copies files and text — then press Ctrl+V in the chat</source>
+        <translation>Копирует файлы и текст — затем нажмите Ctrl+V в чате</translation>
     </message>
     <message>
         <source>Pasting %1 of %2…</source>
@@ -970,10 +1020,6 @@ Drag over the shot to add one.</source>
     <message>
         <source>Pasted</source>
         <translation>Вставлено</translation>
-    </message>
-    <message>
-        <source>The set is empty</source>
-        <translation>Набор пуст</translation>
     </message>
     <message numerus="yes">
         <source>%n shot(s)</source>

@@ -2,13 +2,35 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en_US">
 <context>
-    <name>DragHandle</name>
+    <name>CommentDelegate</name>
     <message>
-        <source>⠿ Drag the whole set</source>
+        <source>Add a comment</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>without it the mark is not in the text</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>DragHandle</name>
+    <message>
         <source>Drag into a chat: all shots as files, the text is copied to the clipboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Drag the set into a chat</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>EmptyHint</name>
+    <message>
+        <source>— capture an area</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The set is empty</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -82,22 +104,6 @@
     </message>
     <message>
         <source>Capture failed: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Paste set</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Pastes all shots and the text into the active chat window</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Copy set</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Copies files and text — then press Ctrl+V in the chat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -235,7 +241,11 @@
 <context>
     <name>mp::CommentPopup</name>
     <message>
-        <source>Comment (Enter — save, Shift+Enter — new line)</source>
+        <source>Comment</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enter — save · Shift+Enter — new line</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -768,39 +778,7 @@
 <context>
     <name>mp::ShotEditor</name>
     <message>
-        <source>▭ Mark</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>● Point</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Put a numbered point on the spot and comment it (D)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>▦ Blur</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Pixelate passwords and personal data (B)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>⛶ Crop</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Crop the shot (C)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Apply crop</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>↶</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -808,7 +786,59 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>↷</source>
+        <source>Mark</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Outline an area and comment it</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Arrow</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Point with an arrow and comment it</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Draw freehand — circle or underline — and comment it</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Point</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Put a numbered point on the spot and comment it</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Blur</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pixelate passwords and personal data</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Crop</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Crop the shot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Undo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Redo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -828,6 +858,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Capture one more area</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Done</source>
         <translation type="unfinished"></translation>
     </message>
@@ -836,7 +870,27 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Comments</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Click a comment to edit it</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Click a comment or double-click a mark to edit it. Delete removes the selected mark.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>undo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>done</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>close</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -845,31 +899,39 @@ Drag over the shot to add one.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>(no comment)</source>
+        <source>in the text: %1 of %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>drag over an area — a comment field opens</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>drag from the tail to the tip; drag an end to adjust it</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>draw around or under the spot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>click the spot — a numbered point appears</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>drag over passwords and personal data — the chat gets a pixelated copy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>drag the area to keep · Enter — apply · Esc — cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>discard the shot</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Shot %1 — Markpaste</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Drag to mark · Double-click — edit comment · Ctrl+Z — undo · Ctrl+Enter — done · Esc — discard the shot</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Drag to mark · Double-click — edit comment · Delete — remove · Ctrl+Z — undo · Ctrl+Enter or Esc — close</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Drag from the tail to the tip · Drag an end to adjust · Double-click — edit comment</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Draw around or under the spot · Double-click a line — edit comment</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Click the spot — a numbered point appears · Drag a point to move it · Double-click — edit comment</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -881,31 +943,7 @@ Drag over the shot to add one.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Drag over passwords, card numbers, names — the chat gets a pixelated copy</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Mark an area and comment it (R)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>➚ Arrow</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Point with an arrow and comment it (A)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>✎ Pen</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Draw freehand — circle or underline — and comment it (P)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Drag the area to keep · Enter — apply · Esc — cancel</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -913,6 +951,10 @@ Drag over the shot to add one.</source>
     <name>mp::StripWindow</name>
     <message>
         <source>Markpaste — set</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clear the set</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -936,10 +978,6 @@ Drag over the shot to add one.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>＋ New shot</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Paste set</source>
         <translation type="unfinished"></translation>
     </message>
@@ -948,15 +986,27 @@ Drag over the shot to add one.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Put files and text into the clipboard, then press Ctrl+V in the chat</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Clear</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>New shot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy set: files and text go to the clipboard, then press Ctrl+V in the chat</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Stop</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pastes all shots and the text into the active chat window</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copies files and text — then press Ctrl+V in the chat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -965,10 +1015,6 @@ Drag over the shot to add one.</source>
     </message>
     <message>
         <source>Pasted</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The set is empty</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">

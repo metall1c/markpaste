@@ -2,7 +2,8 @@
 add_executable(markpaste-uipreview main.cpp
     ${PROJECT_SOURCE_DIR}/src/app/Settings.cpp
     ${PROJECT_SOURCE_DIR}/src/app/SettingsDialog.cpp
-    ${PROJECT_SOURCE_DIR}/src/app/LogFile.cpp)
+    ${PROJECT_SOURCE_DIR}/src/app/LogFile.cpp
+    ${PROJECT_SOURCE_DIR}/src/app/AppIcon.cpp)
 target_include_directories(markpaste-uipreview PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_compile_definitions(markpaste-uipreview PRIVATE MARKPASTE_APP_ID="su._525.MarkpastePreview")
 find_package(Qt6 REQUIRED COMPONENTS Test)

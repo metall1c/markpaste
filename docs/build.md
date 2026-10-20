@@ -8,6 +8,7 @@
 sudo dnf install -y --setopt=install_weak_deps=False \
   gcc-c++ cmake ninja-build \
   qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtwayland-devel qt6-qttools-devel qt6-linguist \
+  qt6-qtsvg-devel \
   layer-shell-qt-devel wayland-devel wayland-protocols-devel libxkbcommon-devel \
   gtest-devel gmock-devel \
   xcb-util-keysyms-devel libXtst-devel        # для будущей X11-реализации
@@ -19,7 +20,7 @@ cmake --build build --target dev-install-desktop   # обязательно, с�
 ./build/src/app/markpaste
 ```
 
-`libxkbcommon-devel` нужен для раскладки virtual-keyboard-v1 (Sway, Hyprland). `spdlog-devel` и `python3-dbusmock` поставлены, но пока не используются: логи идут через `QLoggingCategory`, тестов порталов в CI ещё нет.
+`libxkbcommon-devel` нужен для раскладки virtual-keyboard-v1 (Sway, Hyprland). `qt6-qtsvg-devel` — значки интерфейса (с 2026-10-20, [ADR 0019](decisions/0019-ui-style.md)); в Debian/Ubuntu — `libqt6svg6-dev`. `spdlog-devel` и `python3-dbusmock` поставлены, но пока не используются: логи идут через `QLoggingCategory`, тестов порталов в CI ещё нет.
 
 ## Пакет .rpm (и .tar.gz)
 
@@ -149,7 +150,8 @@ tools/dev/winvm/vm.sh tests                                   # три набо�
 | `tools/dev/kwin-probe.py "команда" [фильтр]` | Отправляет команду работающей программе и каждые 250 мс читает у KWin геометрию её окон. Для замеров на живой сессии KDE. Отладочные команды сокета: `debug-move-strip <экран> <left\|right> <отступ>`, `debug-ghost <x> <y> <w> <h>` |
 | `build/tools/bench/markpaste-bench [--shots 26] [--paste 5]` | Замеры NFR-1 и NFR-2 без экрана: память набора из снимков 4K, пик и время вставки, возврат памяти (docs/platform-matrix.md, «Замеры») |
 | `build-win/tests/markpaste_windows_tests.exe` | Windows-реализации платформы на настоящем модуле Qt `windows` (под Wine или на Windows): разбор сочетаний, форматы буфера (PNG, CF_DIB, CF_HDROP, пометки «не в историю»), CF_DIB чужой программы → PNG, `RegisterHotKey` и занятое сочетание, хук Print Screen, GDI-захват |
-| `build/tools/uipreview/markpaste-uipreview DIR` | Рисует ленту, редактор на тестовом наборе (рамки, стрелка, карандаш разными перьями, размытие), панели цвета и толщины, мастер первого запуска, окно предпросмотра, меню ленты, вкладки настроек и снимок с подписями на картинке без дисплея, сохраняет PNG в DIR |
+| `build/tools/uipreview/markpaste-uipreview [--dark] DIR` | Рисует ленту (с набором и пустую), редактор на тестовом наборе (рамки, стрелка, карандаш разными перьями, размытие; отдельно — открытое поле комментария), панели цвета и толщины, мастер первого запуска, окно предпросмотра, меню ленты, вкладки настроек и снимок с подписями на картинке без дисплея, сохраняет PNG в DIR. `--dark` — палитра Breeze Dark |
+| `build/tools/uipreview/markpaste-uipreview --live [СЕК [FILE.png]]` | Показывает ленту (layer-shell) и окно снимка в настоящей сессии на СЕК секунд; с FILE.png через 2,5 с снимает экран через spectacle (KDE). Работающую программу не трогает |
 | `MARKPASTE_RENDER_SAMPLE=файл.png build/tests/markpaste_core_tests --gtest_filter='*Sample*'` | Запекает пример всех форм меток в PNG — для глазной проверки рендера |
 
 ## Подводные камни

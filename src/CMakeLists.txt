@@ -25,8 +25,16 @@ add_library(markpaste_ui STATIC
     ui/StripWindow.h ui/StripWindow.cpp
     ui/MoveGhost.h ui/MoveGhost.cpp
     ui/PreviewDialog.h ui/PreviewDialog.cpp
+    ui/Theme.h ui/Theme.cpp
+    ui/Controls.h ui/Controls.cpp
 )
-target_link_libraries(markpaste_ui PUBLIC markpaste_core markpaste_platform Qt6::Widgets)
+target_link_libraries(markpaste_ui PUBLIC markpaste_core markpaste_platform Qt6::Widgets Qt6::Svg)
+# Значки интерфейса: :/icons/ui/<имя>.svg
+file(GLOB MARKPASTE_UI_ICONS ${PROJECT_SOURCE_DIR}/data/icons/ui/*.svg)
+qt_add_resources(markpaste_ui ui_icons
+    PREFIX /icons/ui
+    BASE ${PROJECT_SOURCE_DIR}/data/icons/ui
+    FILES ${MARKPASTE_UI_ICONS})
 
 add_executable(markpaste
     app/main.cpp

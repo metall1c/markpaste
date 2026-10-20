@@ -14,6 +14,7 @@
 #include "ui/SetupWizard.h"
 #include "ui/ShotEditor.h"
 #include "ui/StripWindow.h"
+#include "ui/Theme.h"
 
 #include <QApplication>
 #include <QBuffer>
@@ -162,6 +163,7 @@ void AppController::start()
             m_boundTriggers.insert(a, trigger);
             if (m_wizard)
                 m_wizard->setTriggers(m_boundTriggers);
+            updatePasteCaption();   // сочетания на кнопке вставки и в подсказке пустой ленты
         });
         connect(m_platform.hotkeys.get(), &IHotkeys::released, this, [this](Action a) {
             if (a == Action::PasteSet)
@@ -209,6 +211,7 @@ void AppController::bindHotkeys()
         }
         if (m_wizard)
             m_wizard->setTriggers(m_boundTriggers);
+        updatePasteCaption();
     });
 }
 
@@ -386,10 +389,8 @@ void AppController::updatePasteCaption()
     // На Wayland кнопка вставки работает в режиме 1, только если лента не забирает фокус
     // (layer-shell); иначе она копирует набор (ТЗ разд. 10).
     const bool buttonCanSequence = sequential && (!m_platform.nativeWayland || m_platform.supportsLayerShell);
-    if (buttonCanSequence)
-        m_strip->setPasteCaption(tr("Paste set"), tr("Pastes all shots and the text into the active chat window"));
-    else
-        m_strip->setPasteCaption(tr("Copy set"), tr("Copies files and text — then press Ctrl+V in the chat"));
+    m_strip->setPasteMode(buttonCanSequence, shortcutLabel(m_boundTriggers.value(Action::PasteSet)));
+    m_strip->setCaptureHotkey(shortcutLabel(m_boundTriggers.value(Action::Capture)));
 }
 
 void AppController::paste(bool fromHotkey)

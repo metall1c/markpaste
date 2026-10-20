@@ -45,6 +45,8 @@ public:
     void commitComment();
     // Выделить метку и открыть её комментарий (из списка комментариев)
     void editMark(const QUuid &markId);
+    // Выделенная метка; пусто, если выделено размытие или ничего
+    QUuid selectedMark() const { return m_selected.isMark ? m_selected.id : QUuid(); }
 
     QSize sizeHint() const override;
 
@@ -54,6 +56,7 @@ signals:
     void markSelected(const mp::MarkPen &pen, mp::MarkShape shape);
     void cropPendingChanged(bool pending);
     void finishRequested();
+    void selectedMarkChanged(const QUuid &markId);   // список комментариев подсвечивает её карточку
 
 protected:
     void paintEvent(QPaintEvent *) override;
@@ -91,6 +94,7 @@ private:
     std::optional<MarkShape> creatingShape() const;   // форма, которую рисует текущий инструмент
     void openComment(const QUuid &markId);
     void selectMark(const QUuid &markId);
+    void setSelection(const Hit &hit);
     void updateCursor(const QPointF &widgetPos);
 
     CaptureSetModel *m_model;

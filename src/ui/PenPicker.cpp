@@ -1,5 +1,6 @@
 #include "PenPicker.h"
 
+#include "Controls.h"
 #include "render/ShotRenderer.h"
 
 #include <QButtonGroup>
@@ -117,24 +118,24 @@ QToolButton *panelButton(QWidget *parent)
 PenPicker::PenPicker(QWidget *parent)
     : QWidget(parent), m_accent(RenderStyle().accent), m_defaultWidth(RenderStyle().frameWidth)
 {
-    m_colorButton = new QToolButton;
+    m_colorButton = new FlatButton;
+    m_colorButton->setText(tr("Mark color"));
     m_colorButton->setToolTip(tr("Mark color"));
     m_colorButton->setPopupMode(QToolButton::InstantPopup);
-    m_colorButton->setAutoRaise(true);
-    m_colorButton->setFocusPolicy(Qt::NoFocus);
+    m_colorButton->setIconSize(QSize(18, 18));
+    m_colorButton->setChevron(true);
     m_colorMenu = new QMenu(m_colorButton);
     auto *colorAction = new QWidgetAction(m_colorMenu);
     colorAction->setDefaultWidget(buildColorPanel());
     m_colorMenu->addAction(colorAction);
     m_colorButton->setMenu(m_colorMenu);
 
-    m_widthButton = new QToolButton;
+    m_widthButton = new FlatButton;
     m_widthButton->setToolTip(tr("Line width and style"));
     m_widthButton->setPopupMode(QToolButton::InstantPopup);
-    m_widthButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    m_widthButton->setAutoRaise(true);
-    m_widthButton->setFocusPolicy(Qt::NoFocus);
     m_widthButton->setIconSize(QSize(28, 12));
+    m_widthButton->setTextVisible(true);
+    m_widthButton->setChevron(true);
     m_widthMenu = new QMenu(m_widthButton);
     auto *widthAction = new QWidgetAction(m_widthMenu);
     widthAction->setDefaultWidget(buildWidthPanel());
@@ -310,7 +311,8 @@ void PenPicker::refresh()
 {
     const QColor color = shownColor();
     const qreal width = shownWidth();
-    const QColor border = palette().mid().color();
+    const UiColors ui = UiColors::from(palette());
+    const QColor border = ui.border;
 
     m_colorButton->setIcon(circleIcon(color, border));
     for (int i = 0; i < m_swatches.size(); ++i) {
@@ -319,7 +321,7 @@ void PenPicker::refresh()
     }
 
     m_widthButton->setText(widthText(width));
-    m_widthButton->setIcon(lineIcon(palette().text().color(), std::min<qreal>(width, 6), m_pen.line, {28, 12}));
+    m_widthButton->setIcon(lineIcon(ui.icon, std::min<qreal>(width, 6), m_pen.line, {28, 12}));
     m_widthValue->setText(widthText(width));
     const QList<qreal> presets = presetWidths();
     const QList<QAbstractButton *> buttons = m_presets->buttons();

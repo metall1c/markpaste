@@ -43,7 +43,8 @@ option(MARKPASTE_BUILD_TESTS "Собирать тесты" ON)
 option(MARKPASTE_BUILD_TOOLS "Собирать отладочные утилиты (прототип вставки)" ON)
 
 # Минимум — Qt 6.4 (системный Qt в Ubuntu 24.04 и Debian 12, ТЗ разд. 7).
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets Concurrent Network LinguistTools)
+# Svg — значки интерфейса (docs/decisions/0019-ui-style.md)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets Svg Concurrent Network LinguistTools)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(MARKPASTE_LINUX ON)

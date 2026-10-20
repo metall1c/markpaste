@@ -1,5 +1,6 @@
 #include "StripWindow.h"
 
+#include "Controls.h"
 #include "MoveGhost.h"
 #include "platform/WindowRoles.h"
 
@@ -21,7 +22,6 @@
 #include <QScreen>
 #include <QScrollArea>
 #include <QSettings>
-#include <QStyleOption>
 #include <QWindow>
 #include <QTimer>
 #include <QToolButton>
@@ -30,8 +30,8 @@
 namespace mp {
 
 namespace {
-constexpr int kThumbWidth = 168;
-constexpr int kThumbMaxHeight = 120;
+constexpr int kThumbWidth = 212;
+constexpr int kThumbMaxHeight = 130;
 } // namespace
 
 // Миниатюра снимка: клик — открыть в редакторе, перетаскивание — наружу как файл (STR-6).
@@ -44,7 +44,9 @@ public:
         : m_strip(strip), m_id(id), m_index(index), m_pixmap(pixmap), m_comments(comments), m_marks(marks),
           m_current(current)
     {
-        setFixedSize(kThumbWidth, int(pixmap.height() / pixmap.devicePixelRatio()) + 8);
+        // Ширина — по списку (меньше на полосу прокрутки, если она есть), высота — по снимку
+        setFixedHeight(std::max(48, int(pixmap.height() / pixmap.devicePixelRatio()) + 2));
+        setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
         setCursor(Qt::PointingHandCursor);
         setToolTip(tr("Click — edit · Drag — into a chat as a file or within the strip to reorder · Right click — menu"));
     }
@@ -52,20 +54,34 @@ public:
 protected:
     void paintEvent(QPaintEvent *) override
     {
+        const UiColors c = UiColors::from(palette());
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing);
-        const QRectF frame = QRectF(rect()).adjusted(2, 2, -2, -2);
-        p.setPen(QPen(m_current ? m_strip->m_style.accent : palette().mid().color(), m_current ? 2 : 1));
-        p.setBrush(palette().base());
-        p.drawRoundedRect(frame, 6, 6);
-        const QSizeF ps = m_pixmap.deviceIndependentSize();
-        p.drawPixmap(QPointF((width() - ps.width()) / 2, 4), m_pixmap);
+        const QRectF frame = QRectF(rect()).adjusted(1, 1, -1, -1);
+        QPainterPath clip;
+        clip.addRoundedRect(frame, 8, 8);
 
-        // Буква снимка
-        const QRectF badge(8, 8, 26, 22);
-        p.setPen(Qt::NoPen);
-        p.setBrush(badgeFillColor(m_strip->m_style.accent));
-        p.drawRoundedRect(badge, 5, 5);
+        // Миниатюра в скруглённой карточке; узкий снимок — по центру на фоне карточки
+        p.save();
+        p.setClipPath(clip);
+        p.fillRect(frame, c.raised);
+        const QSizeF ps = m_pixmap.deviceIndependentSize();
+        p.drawPixmap(QPointF((width() - ps.width()) / 2, (height() - ps.height()) / 2), m_pixmap);
+        p.restore();
+        p.setBrush(Qt::NoBrush);
+        if (m_current) {
+            p.setPen(QPen(c.accent, 2));
+            p.drawRoundedRect(QRectF(rect()).adjusted(1, 1, -1, -1), 8, 8);
+        } else {
+            p.setPen(QPen(c.border, 1));
+            p.drawRoundedRect(frame.adjusted(0.5, 0.5, -0.5, -0.5), 8, 8);
+        }
+
+        // Буква снимка — кружок, как значок метки
+        const QRectF badge(8, 8, 24, 24);
+        p.setPen(QPen(Qt::white, 2));
+        p.setBrush(c.accentFill);
+        p.drawEllipse(badge.adjusted(1, 1, -1, -1));
         QFont f = font();
         f.setBold(true);
         p.setFont(f);
@@ -74,15 +90,18 @@ protected:
 
         // Число комментариев
         if (m_marks > 0) {
-            const QString n = QStringLiteral("💬 %1").arg(m_comments);
-            const QRectF box(width() - 56, height() - 30, 48, 20);
+            QFont small = smallerFont(font());
+            small.setBold(true);
+            const QString n = QString::number(m_comments);
+            const qreal textW = QFontMetricsF(small).horizontalAdvance(n);
+            const QRectF box(width() - 8 - (textW + 32), height() - 28, textW + 32, 20);
             p.setPen(Qt::NoPen);
             p.setBrush(QColor(0, 0, 0, 160));
-            p.drawRoundedRect(box, 5, 5);
+            p.drawRoundedRect(box, 6, 6);
+            p.drawPixmap(QPointF(box.left() + 7, box.top() + 3), iconPixmap(Icon::Comment, Qt::white, 14, devicePixelRatioF()));
+            p.setFont(small);
             p.setPen(Qt::white);
-            f.setBold(false);
-            p.setFont(f);
-            p.drawText(box, Qt::AlignCenter, n);
+            p.drawText(box.adjusted(25, 0, -7, 0), Qt::AlignVCenter | Qt::AlignLeft, n);
         }
     }
 
@@ -195,21 +214,34 @@ private:
 };
 
 // Ручка «перетащить весь набор»
-class DragHandle : public QLabel
+class DragHandle : public QWidget
 {
     Q_DECLARE_TR_FUNCTIONS(DragHandle)
 public:
     explicit DragHandle(std::function<void()> onDrag)
         : m_onDrag(std::move(onDrag))
     {
-        setText(tr("⠿ Drag the whole set"));
-        setAlignment(Qt::AlignCenter);
+        setFixedHeight(26);
         setCursor(Qt::OpenHandCursor);
         setToolTip(tr("Drag into a chat: all shots as files, the text is copied to the clipboard"));
-        setForegroundRole(QPalette::PlaceholderText);
+        setAccessibleName(text());
     }
 
+    static QString text() { return tr("Drag the set into a chat"); }
+
 protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        const UiColors c = UiColors::from(palette());
+        QPainter p(this);
+        const QFont f = smallerFont(font());
+        p.setFont(f);
+        const qreal textW = QFontMetricsF(f).horizontalAdvance(text());
+        const qreal x = (width() - (14 + 6 + textW)) / 2;
+        p.drawPixmap(QPointF(x, (height() - 14) / 2.0), iconPixmap(Icon::Grip, c.muted, 14, devicePixelRatioF()));
+        p.setPen(c.muted);
+        p.drawText(QRectF(x + 20, 0, textW + 1, height()), Qt::AlignVCenter | Qt::AlignLeft, text());
+    }
     void mousePressEvent(QMouseEvent *e) override { m_press = e->position().toPoint(); }
     void mouseMoveEvent(QMouseEvent *e) override
     {
@@ -225,71 +257,122 @@ private:
     QPoint m_press;
 };
 
-// Кнопки заголовка: иконка из темы (на KDE — Breeze), без темы — нарисованная кодом
-enum class HeaderGlyph { Gear, Minimize };
-
-static QIcon drawnGlyph(HeaderGlyph glyph, const QColor &color)
+// Число снимков в заголовке; полный счётчик «3 снимка · 4 комментария» (STR-2) — в подсказке
+class CountPill : public QWidget
 {
-    QIcon icon;
-    for (int size : {16, 20, 24, 32, 48}) {
-        QPixmap pm(size, size);
-        pm.fill(Qt::transparent);
-        QPainter p(&pm);
-        p.setRenderHint(QPainter::Antialiasing);
-        const qreal s = size;
-        if (glyph == HeaderGlyph::Gear) {
-            // Шестерёнка: 8 зубцов и кольцо
-            QPainterPath gear;
-            const QPointF c(s / 2, s / 2);
-            const qreal rOuter = s * 0.46, rInner = s * 0.34;
-            for (int i = 0; i < 16; ++i) {
-                const qreal a0 = (i - 0.5) * M_PI / 8, a1 = (i + 0.5) * M_PI / 8;
-                const qreal r = (i % 2 == 0) ? rOuter : rInner;
-                const QPointF p0 = c + QPointF(std::cos(a0), std::sin(a0)) * r;
-                const QPointF p1 = c + QPointF(std::cos(a1), std::sin(a1)) * r;
-                if (i == 0)
-                    gear.moveTo(p0);
-                else
-                    gear.lineTo(p0);
-                gear.lineTo(p1);
-            }
-            gear.closeSubpath();
-            gear.addEllipse(c, s * 0.15, s * 0.15);   // отверстие (правило even-odd)
-            gear.setFillRule(Qt::OddEvenFill);
-            p.setPen(Qt::NoPen);
-            p.setBrush(color);
-            p.drawPath(gear);
-        } else {
-            p.setPen(QPen(color, std::max(1.5, s * 0.1), Qt::SolidLine, Qt::RoundCap));
-            p.drawLine(QPointF(s * 0.22, s * 0.68), QPointF(s * 0.78, s * 0.68));
-        }
-        p.end();
-        icon.addPixmap(pm);
+public:
+    void setCount(int count, const QString &tooltip)
+    {
+        m_text = QString::number(count);
+        setToolTip(tooltip);
+        setAccessibleName(tooltip);
+        updateGeometry();
+        update();
     }
-    return icon;
-}
+    QSize sizeHint() const override
+    {
+        QFont f = smallerFont(font());
+        f.setBold(true);
+        return {std::max(20, int(QFontMetricsF(f).horizontalAdvance(m_text)) + 12), 20};
+    }
 
-static QIcon themedIcon(const QStringList &names, HeaderGlyph fallback, const QColor &color)
-{
-    for (const QString &n : names)
-        if (QIcon::hasThemeIcon(n))
-            return QIcon::fromTheme(n);
-    return drawnGlyph(fallback, color);
-}
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        const UiColors c = UiColors::from(palette());
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing);
+        const qreal top = (height() - 20) / 2.0;
+        const QRectF r(0.5, top + 0.5, width() - 1, 19);
+        p.setPen(QPen(c.border, 1));
+        p.setBrush(c.raised);
+        p.drawRoundedRect(r, r.height() / 2, r.height() / 2);
+        QFont f = smallerFont(font());
+        f.setBold(true);
+        p.setFont(f);
+        p.setPen(c.text);
+        p.drawText(r, Qt::AlignCenter, m_text);
+    }
 
-static QToolButton *headerButton(const QIcon &icon, const QString &tooltip)
+private:
+    QString m_text;
+};
+
+// Пустой набор: что сделать, чтобы появился снимок
+class EmptyHint : public QWidget
 {
-    auto *b = new QToolButton;
-    b->setIcon(icon);
-    b->setIconSize(QSize(20, 20));
-    b->setFixedSize(30, 30);
-    b->setAutoRaise(true);
-    b->setToolTip(tooltip);
-    b->setFocusPolicy(Qt::NoFocus);
-    // Иначе кнопка наследует «руку» заголовка, за который ленту переносят
-    b->setCursor(Qt::ArrowCursor);
-    return b;
-}
+    Q_DECLARE_TR_FUNCTIONS(EmptyHint)
+public:
+    EmptyHint() { setFixedHeight(150); }
+    void setCaptureKey(const QString &key)
+    {
+        m_key = key;
+        update();
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        const UiColors c = UiColors::from(palette());
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(QPen(c.border, 1.5, Qt::DashLine));
+        p.setBrush(Qt::NoBrush);
+        p.drawRoundedRect(QRectF(rect()).adjusted(1, 1, -1, -1), 10, 10);
+
+        const QFontMetricsF fm(font());
+        const QFont small = smallerFont(font());
+        const QFontMetricsF sm(small);
+        const QSizeF key = keyCapSize(sm, m_key);
+        const QString after = tr("— capture an area");
+        const qreal blockH = 28 + 8 + fm.height() + (m_key.isEmpty() ? 0 : 8 + key.height());
+        qreal y = (height() - blockH) / 2;
+        p.drawPixmap(QPointF((width() - 28) / 2.0, y), iconPixmap(Icon::Camera, c.muted, 28, devicePixelRatioF()));
+        y += 28 + 8;
+        QFont title = font();
+        title.setWeight(QFont::DemiBold);
+        p.setFont(title);
+        p.setPen(c.text);
+        p.drawText(QRectF(0, y, width(), fm.height()), Qt::AlignCenter, tr("The set is empty"));
+        y += fm.height() + 8;
+        if (!m_key.isEmpty()) {
+            p.setFont(small);
+            const qreal afterW = sm.horizontalAdvance(after);
+            const qreal x = (width() - (key.width() + 6 + afterW)) / 2;
+            drawKeyCap(p, QRectF(x, y, key.width(), key.height()), m_key, c.text, c.raised, c.border);
+            p.setPen(c.muted);
+            p.drawText(QRectF(x + key.width() + 6, y, afterW + 1, key.height()), Qt::AlignVCenter | Qt::AlignLeft, after);
+        }
+    }
+
+private:
+    QString m_key;
+};
+
+// Сообщение ленты («Вставлено», «Сначала щёлкните в окне чата») — на скруглённой плашке
+class MessageLabel : public QLabel
+{
+public:
+    MessageLabel()
+    {
+        setWordWrap(true);
+        setContentsMargins(10, 7, 10, 7);
+    }
+
+protected:
+    void paintEvent(QPaintEvent *e) override
+    {
+        const UiColors c = UiColors::from(palette());
+        {
+            QPainter p(this);
+            p.setRenderHint(QPainter::Antialiasing);
+            p.setPen(QPen(c.border, 1));
+            p.setBrush(c.raised);
+            p.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), 8, 8);
+        }
+        QLabel::paintEvent(e);
+    }
+};
 
 // Заголовок ленты — ручка перетаскивания
 class StripHeader : public QWidget
@@ -330,26 +413,51 @@ private:
     StripWindow *m_strip;
 };
 
+// Значок программы в заголовке ленты
+class WindowIconView : public QWidget
+{
+public:
+    WindowIconView() { setFixedSize(18, 18); }
+
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        QPainter p(this);
+        window()->windowIcon().paint(&p, rect());
+    }
+};
+
 StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
     : QWidget(parent), m_model(model)
 {
     setWindowTitle(tr("Markpaste — set"));
     setAttribute(Qt::WA_DeleteOnClose, false);
-    setObjectName(QStringLiteral("Strip"));
-    setStyleSheet(QStringLiteral("#Strip { background: palette(window); border: 1px solid palette(mid); border-radius: 10px; }"));
 
     auto *layout = new QVBoxLayout(this);
-    layout->setContentsMargins(8, 8, 8, 8);
-    layout->setSpacing(6);
+    layout->setContentsMargins(10, 10, 10, 10);
+    layout->setSpacing(8);
 
     auto *header = new StripHeader(this);
+    header->setFixedHeight(32);
     auto *headerLayout = new QHBoxLayout(header);
-    headerLayout->setContentsMargins(0, 0, 0, 0);
-    auto *title = new QLabel(QStringLiteral("⠿ <b>Markpaste</b>"));
-    title->setAttribute(Qt::WA_TransparentForMouseEvents);   // тянем за весь заголовок
-    auto *menuButton = headerButton(themedIcon({QStringLiteral("configure"), QStringLiteral("settings-configure")},
-                                               HeaderGlyph::Gear, palette().color(QPalette::WindowText)),
-                                    tr("Menu"));
+    headerLayout->setContentsMargins(4, 0, 0, 0);
+    headerLayout->setSpacing(6);
+    auto *icon = new WindowIconView;
+    auto *title = new QLabel(QStringLiteral("Markpaste"));
+    QFont titleFont = title->font();
+    titleFont.setWeight(QFont::DemiBold);
+    title->setFont(titleFont);
+    m_count = new CountPill;
+    for (QWidget *w : {static_cast<QWidget *>(icon), static_cast<QWidget *>(title), static_cast<QWidget *>(m_count)})
+        w->setAttribute(Qt::WA_TransparentForMouseEvents);   // тянем за весь заголовок
+    m_count->setAttribute(Qt::WA_TransparentForMouseEvents, false);   // подсказка со счётчиком
+
+    // «Очистить» (STR-2) — корзина в заголовке, рядом с меню
+    m_clear = new FlatButton(Icon::Trash, tr("Clear"));
+    m_clear->setToolTip(tr("Clear the set"));
+    m_clear->setSide(28, 18);
+    auto *menuButton = new FlatButton(Icon::More, tr("Menu"));
+    menuButton->setSide(28, 18);
     // Меню, а не сразу настройки: здесь же предпросмотр (PST-6) и сохранение в папку (APP-6)
     auto *menu = new QMenu(menuButton);
     m_previewAction = menu->addAction(tr("Preview message…"), this, &StripWindow::previewRequested);
@@ -358,32 +466,36 @@ StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
     menu->addAction(tr("Settings"), this, &StripWindow::settingsRequested);
     menuButton->setMenu(menu);
     menuButton->setPopupMode(QToolButton::InstantPopup);
-    menuButton->setStyleSheet(QStringLiteral("QToolButton::menu-indicator { image: none; }"));
-    auto *hideButton = headerButton(themedIcon({QStringLiteral("window-minimize-symbolic"), QStringLiteral("window-minimize")},
-                                               HeaderGlyph::Minimize, palette().color(QPalette::WindowText)),
-                                    tr("Hide to tray"));
+    auto *hideButton = new FlatButton(Icon::Minimize, tr("Hide to tray"));
+    hideButton->setSide(28, 16);
     connect(hideButton, &QToolButton::clicked, this, &StripWindow::hideRequested);
+    headerLayout->addWidget(icon);
     headerLayout->addWidget(title);
+    headerLayout->addWidget(m_count);
     headerLayout->addStretch();
+    headerLayout->addWidget(m_clear);
     headerLayout->addWidget(menuButton);
     headerLayout->addWidget(hideButton);
     layout->addWidget(header);
 
-    m_counter = new QLabel;
-    m_counter->setForegroundRole(QPalette::PlaceholderText);
-    layout->addWidget(m_counter);
+    m_empty = new EmptyHint;
+    m_empty->setFixedWidth(kThumbWidth);
+    layout->addWidget(m_empty);
 
     auto *listHost = new ShotListHost(this);
     m_list = new QVBoxLayout(listHost);
     m_list->setContentsMargins(0, 0, 0, 0);
-    m_list->setSpacing(6);
+    m_list->setSpacing(8);
     m_list->addStretch();
     m_scroll = new QScrollArea;
     m_scroll->setWidget(listHost);
     m_scroll->setWidgetResizable(true);
     m_scroll->setFrameShape(QFrame::NoFrame);
     m_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    m_scroll->setFixedWidth(kThumbWidth + 14);
+    m_scroll->setFixedWidth(kThumbWidth);
+    // Фон списка — фон ленты: у прозрачного окна (скруглённые углы) он рисуется в paintEvent
+    m_scroll->viewport()->setAutoFillBackground(false);
+    listHost->setAutoFillBackground(false);
     layout->addWidget(m_scroll, 1);
 
     m_dragHandle = new DragHandle([this] {
@@ -394,31 +506,34 @@ StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
     });
     layout->addWidget(m_dragHandle);
 
-    m_message = new QLabel;
-    m_message->setWordWrap(true);
+    m_message = new MessageLabel;
     // Не шире списка: иначе длинное сообщение раздувало ленту, и на Windows она уходила за край экрана
-    m_message->setMaximumWidth(kThumbWidth + 14);
+    m_message->setMaximumWidth(kThumbWidth);
     m_message->setVisible(false);
-    m_message->setStyleSheet(QStringLiteral("QLabel { background: palette(highlight); color: palette(highlighted-text);"
-                                            " border-radius: 5px; padding: 4px 6px; }"));
     layout->addWidget(m_message);
 
-    m_newShot = new QPushButton(tr("＋ New shot"));
-    m_paste = new QPushButton(tr("Paste set"));
-    m_paste->setDefault(true);
-    m_copy = new QPushButton(tr("Copy set"));
-    m_copy->setToolTip(tr("Put files and text into the clipboard, then press Ctrl+V in the chat"));
-    m_clear = new QPushButton(tr("Clear"));
-    m_cancel = new QPushButton(tr("Stop"));
+    // Главная кнопка — «Вставить набор»; в пустом наборе её место занимает «Новый снимок»
+    m_paste = new ActionButton(tr("Paste set"), ActionButton::Kind::Primary);
+    m_paste->setButtonHeight(40);
+    m_newShot = new ActionButton(tr("New shot"));
+    m_newShot->setGlyph(Icon::Camera);
+    m_copy = new ActionButton(QString());
+    m_copy->setGlyph(Icon::Copy);
+    m_copy->setAccessibleName(tr("Copy set"));
+    m_copy->setToolTip(tr("Copy set: files and text go to the clipboard, then press Ctrl+V in the chat"));
+    m_cancel = new ActionButton(tr("Stop"));
     m_cancel->setVisible(false);
-    for (QPushButton *b : {m_newShot, m_paste, m_copy, m_clear, m_cancel}) {
-        b->setFocusPolicy(Qt::NoFocus);
-        layout->addWidget(b);
-    }
+    auto *row = new QHBoxLayout;
+    row->setSpacing(8);
+    row->addWidget(m_newShot, 1);
+    row->addWidget(m_copy);
+    layout->addWidget(m_paste);
+    layout->addLayout(row);
+    layout->addWidget(m_cancel);
     connect(m_newShot, &QPushButton::clicked, this, &StripWindow::newShotRequested);
     connect(m_paste, &QPushButton::clicked, this, &StripWindow::pasteRequested);
     connect(m_copy, &QPushButton::clicked, this, &StripWindow::copyRequested);
-    connect(m_clear, &QPushButton::clicked, this, &StripWindow::clearRequested);
+    connect(m_clear, &QToolButton::clicked, this, &StripWindow::clearRequested);
     connect(m_cancel, &QPushButton::clicked, this, &StripWindow::cancelPasteRequested);
 
     connect(m_model, &CaptureSetModel::changed, this, &StripWindow::rebuild);
@@ -428,8 +543,10 @@ StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
 void StripWindow::setStyle(const RenderStyle &style)
 {
     m_style = style;
+    setUiAccent(style.accent);
     m_thumbs.clear();
     rebuild();
+    update();
 }
 
 void StripWindow::setCurrentShot(const QUuid &shotId)
@@ -438,10 +555,24 @@ void StripWindow::setCurrentShot(const QUuid &shotId)
     rebuild();
 }
 
-void StripWindow::setPasteCaption(const QString &caption, const QString &tooltip)
+void StripWindow::setPasteMode(bool sequential, const QString &hotkey)
 {
-    m_paste->setText(caption);
-    m_paste->setToolTip(tooltip);
+    m_pasteCopies = !sequential;
+    if (sequential) {
+        m_paste->setText(tr("Paste set"));
+        m_paste->setToolTip(tr("Pastes all shots and the text into the active chat window"));
+        m_paste->setKeyHint(hotkey);
+    } else {
+        m_paste->setText(tr("Copy set"));
+        m_paste->setToolTip(tr("Copies files and text — then press Ctrl+V in the chat"));
+        m_paste->setKeyHint({});
+    }
+    rebuild();   // отдельная кнопка «Скопировать» не нужна, если главная уже копирует
+}
+
+void StripWindow::setCaptureHotkey(const QString &hotkey)
+{
+    m_empty->setCaptureKey(hotkey);
 }
 
 void StripWindow::showMessage(const QString &text, int timeoutMs)
@@ -478,7 +609,7 @@ QPixmap StripWindow::thumbnailFor(int index)
     // Миниатюра — запечённый снимок: видно метки и размытие так, как их увидит чат
     const QImage baked = renderShot(shot, index, m_style);
     const qreal dpr = devicePixelRatioF();
-    QImage scaled = baked.scaled(QSize(int((kThumbWidth - 8) * dpr), int(kThumbMaxHeight * dpr)), Qt::KeepAspectRatio,
+    QImage scaled = baked.scaled(QSize(int((kThumbWidth - 2) * dpr), int(kThumbMaxHeight * dpr)), Qt::KeepAspectRatio,
                                  Qt::SmoothTransformation);
     QPixmap pm = QPixmap::fromImage(scaled);
     pm.setDevicePixelRatio(dpr);
@@ -511,15 +642,22 @@ void StripWindow::rebuild()
     for (auto it = m_thumbs.begin(); it != m_thumbs.end();)
         it = alive.contains(it.key()) ? std::next(it) : m_thumbs.erase(it);
 
-    // «3 снимка · 4 комментария» (STR-2)
+    // «3 снимка · 4 комментария» (STR-2) — подсказка к числу снимков в заголовке
     const int shots = int(set.shots.size());
-    m_counter->setText(set.isEmpty() ? tr("The set is empty")
-                                     : tr("%n shot(s)", nullptr, shots) + QStringLiteral(" · ")
-                                           + tr("%n comment(s)", nullptr, set.totalComments()));
     const bool empty = set.isEmpty();
-    m_paste->setEnabled(!empty);
-    m_copy->setEnabled(!empty);
-    m_clear->setEnabled(!empty);
+    m_count->setCount(shots, tr("%n shot(s)", nullptr, shots) + QStringLiteral(" · ")
+                                 + tr("%n comment(s)", nullptr, set.totalComments()));
+    m_count->setVisible(!empty);
+    m_clear->setVisible(!empty);
+    m_empty->setVisible(empty);
+    m_scroll->setVisible(!empty);
+    const bool pasting = !m_cancel->isHidden();
+    m_paste->setVisible(!empty);
+    m_paste->setEnabled(!pasting);
+    m_copy->setVisible(!empty && !m_pasteCopies);
+    m_copy->setEnabled(!pasting);
+    m_newShot->setKind(empty ? ActionButton::Kind::Primary : ActionButton::Kind::Secondary);
+    m_newShot->setButtonHeight(empty ? 40 : 36);
     m_previewAction->setEnabled(!empty);
     m_saveAction->setEnabled(!empty);
     m_dragHandle->setVisible(shots > 1);
@@ -648,14 +786,16 @@ void StripWindow::resizeEvent(QResizeEvent *event)
 
 void StripWindow::paintEvent(QPaintEvent *)
 {
-    // Прозрачное окно (Windows, ради скруглённых углов): Qt не рисует ему фон сам —
-    // рисуем по таблице стилей (#Strip). Непрозрачному окну фон рисует Qt.
+    // Прозрачное окно (layer-shell, Windows): фон со скруглёнными углами и рамкой рисуем сами.
+    // Непрозрачному — обычному окну с рамкой системы — фон рисует Qt.
     if (!testAttribute(Qt::WA_TranslucentBackground))
         return;
-    QStyleOption opt;
-    opt.initFrom(this);
+    const UiColors c = UiColors::from(palette());
     QPainter p(this);
-    style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(QPen(c.border, 1));
+    p.setBrush(c.surface);
+    p.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), 12, 12);
 }
 
 void StripWindow::snapToEdge()

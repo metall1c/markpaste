@@ -117,7 +117,7 @@ bool applyPanelRole(QWidget *widget, QScreen *screen, const PanelPlacement &plac
     Q_UNUSED(placement);
     // Панель без рамки, поверх окон и без активации: клик по ленте не забирает фокус у чата,
     // и «Вставить» работает в режиме 1 (ТЗ разд. 10). Положение задаёт StripWindow.
-    // Скруглённые углы ленты: окно прозрачное, фон с рамкой рисует таблица стилей виджета
+    // Скруглённые углы ленты: окно прозрачное, фон с рамкой рисует StripWindow
     widget->setAttribute(Qt::WA_TranslucentBackground);
     widget->setAttribute(Qt::WA_StyledBackground);
     widget->setWindowFlags(widget->windowFlags() | Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint
@@ -129,6 +129,9 @@ bool applyPanelRole(QWidget *widget, QScreen *screen, const PanelPlacement &plac
 #elif defined(MARKPASTE_HAVE_LAYERSHELLQT)
     if (!layerShellAvailable())
         return false;
+    // Скруглённые углы ленты: поверхность с альфа-каналом, фон с рамкой рисует StripWindow.
+    // До создания окна: формат поверхности выбирается при её создании.
+    widget->setAttribute(Qt::WA_TranslucentBackground);
     auto *lw = layerWindow(widget);
     if (!lw)
         return false;

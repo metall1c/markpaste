@@ -28,13 +28,16 @@ signals:
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
+    void paintEvent(QPaintEvent *) override;
 
 private:
     void updateCounter();
+    void applyColors();
 
     QUuid m_markId;
     QLabel *m_label;
     QLabel *m_counter;
+    QLabel *m_keys;
     QPlainTextEdit *m_edit;
 };
 

@@ -13,12 +13,16 @@
 class QAction;
 class QLabel;
 class QMimeData;
-class QPushButton;
 class QVBoxLayout;
 class QScrollArea;
 
 namespace mp {
 
+class ActionButton;
+class CountPill;
+class EmptyHint;
+class FlatButton;
+class MessageLabel;
 class ShotThumb;
 
 // Лента набора (ТЗ 5.3): миниатюры с буквой и числом комментариев, кнопки и счётчик.
@@ -33,8 +37,11 @@ public:
 
     void setStyle(const RenderStyle &style);
     void setCurrentShot(const QUuid &shotId);
-    // Подписи кнопки вставки зависят от возможностей платформы
-    void setPasteCaption(const QString &caption, const QString &tooltip);
+    // Главная кнопка вставляет набор (режим 1) или, где это недоступно, копирует его.
+    // hotkey — сочетание вставки для подписи на кнопке («Alt+V»), пустое — без подписи
+    void setPasteMode(bool sequential, const QString &hotkey);
+    // Сочетание захвата для подсказки в пустом наборе
+    void setCaptureHotkey(const QString &hotkey);
     void showMessage(const QString &text, int timeoutMs = 4000);
     void setProgress(int done, int total);   // total = 0 — вставка закончилась
 
@@ -101,18 +108,20 @@ private:
     CaptureSetModel *m_model;
     RenderStyle m_style;
     QUuid m_current;
-    QLabel *m_counter;
-    QLabel *m_message;
+    CountPill *m_count;
+    EmptyHint *m_empty;
+    MessageLabel *m_message;
     QVBoxLayout *m_list;
     QScrollArea *m_scroll;
-    QPushButton *m_paste;
-    QPushButton *m_copy;
-    QPushButton *m_newShot;
-    QPushButton *m_clear;
+    ActionButton *m_paste;
+    ActionButton *m_copy;
+    ActionButton *m_newShot;
+    FlatButton *m_clear;
     QAction *m_previewAction;
     QAction *m_saveAction;
-    QPushButton *m_cancel;
+    ActionButton *m_cancel;
     QWidget *m_dragHandle;
+    bool m_pasteCopies = false;
     DragProvider m_dragProvider;
     bool m_roleApplied = false;
     bool m_layerShell = false;

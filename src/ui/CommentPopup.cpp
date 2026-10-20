@@ -1,10 +1,12 @@
 #include "CommentPopup.h"
 
+#include "Theme.h"
 #include "core/CaptureSet.h"
 
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QPainter>
 #include <QPlainTextEdit>
 #include <QVBoxLayout>
 
@@ -13,33 +15,35 @@ namespace mp {
 CommentPopup::CommentPopup(QWidget *parent)
     : QFrame(parent)
 {
-    setFrameShape(QFrame::StyledPanel);
-    setAutoFillBackground(true);
-    setObjectName(QStringLiteral("CommentPopup"));
-    setStyleSheet(QStringLiteral("#CommentPopup { border: 1px solid palette(mid); border-radius: 6px; background: palette(base); }"));
+    setFrameShape(QFrame::NoFrame);
 
     auto *layout = new QVBoxLayout(this);
-    layout->setContentsMargins(8, 6, 8, 6);
-    layout->setSpacing(4);
+    layout->setContentsMargins(10, 8, 10, 8);
+    layout->setSpacing(6);
     auto *top = new QHBoxLayout;
     m_label = new QLabel;
     QFont f = m_label->font();
     f.setBold(true);
     m_label->setFont(f);
     m_counter = new QLabel;
-    m_counter->setForegroundRole(QPalette::PlaceholderText);
     top->addWidget(m_label);
     top->addStretch();
     top->addWidget(m_counter);
     layout->addLayout(top);
 
     m_edit = new QPlainTextEdit;
-    m_edit->setPlaceholderText(tr("Comment (Enter — save, Shift+Enter — new line)"));
+    m_edit->setPlaceholderText(tr("Comment"));
     m_edit->setTabChangesFocus(true);
     m_edit->installEventFilter(this);
     m_edit->setFixedHeight(64);
     layout->addWidget(m_edit);
     connect(m_edit, &QPlainTextEdit::textChanged, this, &CommentPopup::updateCounter);
+
+    m_keys = new QLabel(tr("Enter — save · Shift+Enter — new line"));
+    const QFont small = smallerFont(m_keys->font());
+    m_keys->setFont(small);
+    m_counter->setFont(small);
+    layout->addWidget(m_keys);
 
     setFixedWidth(300);
     hide();
@@ -49,6 +53,7 @@ void CommentPopup::open(const QUuid &markId, const QString &label, const QString
 {
     m_markId = markId;
     m_label->setText(label);
+    applyColors();
     m_edit->setPlainText(text);
     m_edit->moveCursor(QTextCursor::End);
     adjustSize();
@@ -65,6 +70,30 @@ void CommentPopup::open(const QUuid &markId, const QString &label, const QString
     raise();
     m_edit->setFocus();
     updateCounter();
+}
+
+void CommentPopup::applyColors()
+{
+    // Цвета — на каждое открытие: акцент мог смениться в настройках, тема — в системе
+    const UiColors c = UiColors::from(parentWidget()->palette());
+    for (QLabel *l : {m_counter, m_keys}) {
+        QPalette pal = l->palette();
+        pal.setColor(QPalette::WindowText, c.muted);
+        l->setPalette(pal);
+    }
+    m_edit->setStyleSheet(QStringLiteral("QPlainTextEdit { border: 1px solid %1; border-radius: 6px; padding: 2px 3px;"
+                                         " background: palette(base); }")
+                              .arg(c.accent.name()));
+}
+
+void CommentPopup::paintEvent(QPaintEvent *)
+{
+    const UiColors c = UiColors::from(palette());
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.setPen(QPen(c.border, 1));
+    p.setBrush(c.raised);
+    p.drawRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5), 10, 10);
 }
 
 void CommentPopup::commit()

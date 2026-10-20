@@ -6,15 +6,16 @@
 
 class QLabel;
 class QListWidget;
-class QToolButton;
-class QPushButton;
 
 namespace mp {
 
+class ActionButton;
+class FlatButton;
+class KeyHint;
 class PenPicker;
 
 // Окно редактирования снимка (ТЗ разд. 4, шаги 3–4). Один снимок за раз;
-// переключение между снимками — из ленты.
+// переключение между снимками — из ленты. Оформление — docs/decisions/0019-ui-style.md.
 class ShotEditor : public QWidget
 {
     Q_OBJECT
@@ -41,29 +42,37 @@ signals:
 protected:
     void closeEvent(QCloseEvent *) override;
     void keyPressEvent(QKeyEvent *) override;
+    void changeEvent(QEvent *) override;
 
 private:
     void updateTitle();
     void updateTools();
     void updateComments();
+    void updateCommentSelection();
+    void applyColors();
     void cancelShot();
     void updatePenDefaults(MarkShape shape);
 
     CaptureSetModel *m_model;
     ShotCanvas *m_canvas;
-    QToolButton *m_markTool;
-    QToolButton *m_arrowTool;
-    QToolButton *m_penTool;
-    QToolButton *m_pointTool;
-    QToolButton *m_blurTool;
-    QToolButton *m_cropTool;
-    QPushButton *m_applyCrop;
+    FlatButton *m_markTool;
+    FlatButton *m_arrowTool;
+    FlatButton *m_penTool;
+    FlatButton *m_pointTool;
+    FlatButton *m_blurTool;
+    FlatButton *m_cropTool;
+    ActionButton *m_applyCrop;
     PenPicker *m_penPicker;
-    QToolButton *m_undo;
-    QToolButton *m_redo;
+    FlatButton *m_undo;
+    FlatButton *m_redo;
     QLabel *m_hint;
+    KeyHint *m_escHint;
+    QLabel *m_commentsTitle;
+    QLabel *m_commentsCount;
+    QLabel *m_commentsFooter;
     QListWidget *m_comments;
     bool m_fresh = false;
+    bool m_applyingColors = false;
 };
 
 } // namespace mp

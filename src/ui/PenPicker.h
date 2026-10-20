@@ -12,6 +12,8 @@ class QToolButton;
 
 namespace mp {
 
+class FlatButton;
+
 // Цвет, толщина и тип линии меток: две кнопки панели редактора с выпадающими панелями.
 //
 // Панели — QMenu с QWidgetAction: на Wayland программа не может сама поставить окно у кнопки,
@@ -47,8 +49,8 @@ private:
     QColor m_accent;          // из RenderStyle по умолчанию, см. конструктор
     qreal m_defaultWidth;
 
-    QToolButton *m_colorButton;
-    QToolButton *m_widthButton;
+    FlatButton *m_colorButton;
+    FlatButton *m_widthButton;
     QMenu *m_colorMenu;
     QMenu *m_widthMenu;
     QList<QToolButton *> m_swatches;

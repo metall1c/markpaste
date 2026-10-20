@@ -1,6 +1,10 @@
 // Рисует окна программы на тестовом наборе без дисплея (QT_QPA_PLATFORM=offscreen)
 // и сохраняет PNG. Нужна, чтобы проверять вёрстку, не снимая настоящий экран.
+//   markpaste-uipreview [--dark] [каталог]
+//   markpaste-uipreview --live [секунды [файл.png]] — показать ленту (layer-shell) и окно
+//     снимка в настоящей сессии; с файлом — через 2,5 с снять экран через spectacle (KDE)
 
+#include "app/AppIcon.h"
 #include "app/SettingsDialog.h"
 #include "core/CaptureSetModel.h"
 #include "render/ShotRenderer.h"
@@ -11,10 +15,13 @@
 
 #include <QApplication>
 #include <QBuffer>
+#include <QPalette>
 #include <QDir>
 #include <QIcon>
 #include <QMenu>
 #include <QTabWidget>
+#include <QProcess>
+#include <QTimer>
 #include <QToolButton>
 #include <QPainter>
 #include <QTranslator>
@@ -50,15 +57,46 @@ static QByteArray fakeScreen(int w, int h, const QColor &bg, const QString &titl
 
 int main(int argc, char **argv)
 {
-    qputenv("QT_QPA_PLATFORM", "offscreen");
+    const bool live = argc > 1 && qstrcmp(argv[1], "--live") == 0;
+    if (!live)
+        qputenv("QT_QPA_PLATFORM", "offscreen");
     QApplication app(argc, argv);
     // offscreen не грузит тему KDE: просим Breeze явно, чтобы видеть те же иконки
     QIcon::setThemeName(QStringLiteral("breeze"));
     QTranslator tr;
     if (tr.load(QStringLiteral(":/i18n/markpaste_ru.qm")))
         QCoreApplication::installTranslator(&tr);
-    const QString out = argc > 1 ? QString::fromLocal8Bit(argv[1]) : QStringLiteral("ui-preview");
-    QDir().mkpath(out);
+    QString out = QStringLiteral("ui-preview");
+    for (int i = 1; i < argc; ++i) {
+        const QString arg = QString::fromLocal8Bit(argv[i]);
+        if (arg == u"--live") {
+            continue;
+        } else if (live) {
+            break;   // секунды показа
+        } else if (arg == u"--dark") {
+            // Цвета Breeze Dark (Plasma 6): offscreen не берёт системную тему
+            QPalette pal;
+            pal.setColor(QPalette::Window, QColor(0x20, 0x23, 0x26));
+            pal.setColor(QPalette::WindowText, QColor(0xfc, 0xfc, 0xfc));
+            pal.setColor(QPalette::Base, QColor(0x14, 0x16, 0x18));
+            pal.setColor(QPalette::AlternateBase, QColor(0x1d, 0x1f, 0x22));
+            pal.setColor(QPalette::Text, QColor(0xfc, 0xfc, 0xfc));
+            pal.setColor(QPalette::Button, QColor(0x29, 0x2c, 0x30));
+            pal.setColor(QPalette::ButtonText, QColor(0xfc, 0xfc, 0xfc));
+            pal.setColor(QPalette::Highlight, QColor(0x3d, 0xae, 0xe9));
+            pal.setColor(QPalette::HighlightedText, QColor(0xfc, 0xfc, 0xfc));
+            pal.setColor(QPalette::ToolTipBase, QColor(0x29, 0x2c, 0x30));
+            pal.setColor(QPalette::ToolTipText, QColor(0xfc, 0xfc, 0xfc));
+            pal.setColor(QPalette::PlaceholderText, QColor(0xa1, 0xa9, 0xb1));
+            pal.setColor(QPalette::Mid, QColor(0x3a, 0x3e, 0x42));
+            QApplication::setPalette(pal);
+        } else {
+            out = arg;
+        }
+    }
+    if (!live)
+        QDir().mkpath(out);
+    QGuiApplication::setWindowIcon(appIcon());
 
     CaptureSetModel model;
     Shot a;
@@ -84,6 +122,26 @@ int main(int argc, char **argv)
     const QUuid idb = model.addShot(b);
     model.addMark(idb, QRect(30, 80, 300, 80), QString());
 
+    if (live) {
+        const int seconds = argc > 2 ? QString::fromLocal8Bit(argv[2]).toInt() : 6;
+        StripWindow strip(&model);
+        strip.setCurrentShot(idb);
+        strip.setPasteMode(true, QStringLiteral("Alt+V"));
+        strip.present();
+        ShotEditor editor(&model);
+        editor.showShot(idb, true);
+        editor.findChild<ShotCanvas *>()->editMark(model.set().shots[1].marks[0].id);
+        if (argc > 3) {
+            const QString file = QString::fromLocal8Bit(argv[3]);
+            QTimer::singleShot(2500, &app, [file] {
+                QProcess::startDetached(QStringLiteral("spectacle"), {QStringLiteral("-b"), QStringLiteral("-n"),
+                                                                      QStringLiteral("-f"), QStringLiteral("-o"), file});
+            });
+        }
+        QTimer::singleShot(seconds * 1000, &app, &QApplication::quit);
+        return app.exec();
+    }
+
     // Подписи комментариев на картинке (EDT-10)
     {
         RenderStyle captions;
@@ -91,19 +149,42 @@ int main(int argc, char **argv)
         renderShot(model.set().shots[0], 0, captions).save(out + QStringLiteral("/captions.png"));
     }
 
+    // Лента — прозрачное окно со скруглёнными углами, как на layer-shell и Windows
     StripWindow strip(&model);
+    strip.setAttribute(Qt::WA_TranslucentBackground);
     strip.setCurrentShot(ida);
+    strip.setPasteMode(true, QStringLiteral("Alt+V"));
     strip.showMessage(QStringLiteral("Набор скопирован — нажмите Ctrl+V в чате"), 0);
     strip.adjustSize();
     strip.show();
     app.processEvents();
     strip.grab().save(out + QStringLiteral("/strip.png"));
 
+    CaptureSetModel emptyModel;
+    StripWindow emptyStrip(&emptyModel);
+    emptyStrip.setAttribute(Qt::WA_TranslucentBackground);
+    emptyStrip.setCaptureHotkey(QStringLiteral("Print"));
+    emptyStrip.adjustSize();
+    emptyStrip.show();
+    app.processEvents();
+    emptyStrip.grab().save(out + QStringLiteral("/strip-empty.png"));
+
     ShotEditor editor(&model);
     editor.showShot(ida);
     editor.resize(1000, 680);
     app.processEvents();
     editor.grab().save(out + QStringLiteral("/editor.png"));
+
+    // Снимок B: метка без комментария, её поле открыто, карточка выделена
+    editor.showShot(idb, true);
+    editor.resize(1000, 600);
+    app.processEvents();
+    editor.findChild<ShotCanvas *>()->editMark(model.set().shots[1].marks[0].id);
+    app.processEvents();
+    editor.grab().save(out + QStringLiteral("/editor-comment.png"));
+    editor.showShot(ida);
+    editor.resize(1000, 680);
+    app.processEvents();
 
     // Выпадающие панели пера: цвет и толщина
     int n = 0;
