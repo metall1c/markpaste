@@ -251,7 +251,7 @@ int main(int argc, char **argv)
 
     // О программе
     {
-        AboutInfo info{QStringLiteral("0.1.0"), QStringLiteral("https://gitlab.525.su/che/main/markpaste"),
+        AboutInfo info{QStringLiteral(MARKPASTE_VERSION), QStringLiteral("https://gitlab.525.su/che/main/markpaste"),
                        platform.environment, QStringLiteral("KWin ScreenShot2"), QStringLiteral("XDG GlobalShortcuts"),
                        QStringLiteral("Wayland data-control"), QStringLiteral("RemoteDesktop portal")};
         AboutDialog about(info);

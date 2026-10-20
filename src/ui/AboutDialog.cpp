@@ -97,7 +97,7 @@ AboutDialog::AboutDialog(const AboutInfo &info, QWidget *parent)
     titles->addWidget(version);
     titles->addSpacing(4);
     auto *tagline = new QLabel(tr("Screenshots with numbered marks and comments — into any chat in one action. "
-                                  "An open alternative to Snapik for Linux and Windows."));
+                                  "For Linux and Windows."));
     tagline->setWordWrap(true);
     titles->addWidget(tagline);
     top->addLayout(titles, 1);

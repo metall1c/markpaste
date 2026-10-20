@@ -75,8 +75,8 @@
         <translation>Версия %1</translation>
     </message>
     <message>
-        <source>Screenshots with numbered marks and comments — into any chat in one action. An open alternative to Snapik for Linux and Windows.</source>
-        <translation>Снимки экрана с нумерованными метками и комментариями — в любой чат одним действием. Открытый аналог Snapik для Linux и Windows.</translation>
+        <source>Screenshots with numbered marks and comments — into any chat in one action. For Linux and Windows.</source>
+        <translation>Снимки экрана с нумерованными метками и комментариями — в любой чат одним действием. Для Linux и Windows.</translation>
     </message>
     <message>
         <source>Authors</source>

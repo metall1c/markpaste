@@ -75,7 +75,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Screenshots with numbered marks and comments — into any chat in one action. An open alternative to Snapik for Linux and Windows.</source>
+        <source>Screenshots with numbered marks and comments — into any chat in one action. For Linux and Windows.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
