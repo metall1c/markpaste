@@ -92,7 +92,8 @@ ClipboardPayload PasteOrchestrator::filesAndTextPayload(const CaptureSet &set, c
         p.entries.append({QStringLiteral("x-special/gnome-copied-files"),
                           (QStringLiteral("copy\n") + uris.join(u'\n')).toUtf8()});
     }
-    p.addText(buildMessage(set, options.messageTemplate));
+    if (const QString text = buildMessage(set, options.messageTemplate); !text.isEmpty())
+        p.addText(text);   // без комментариев — только файлы и картинка
     if (!baked.isEmpty())
         p.addImage(baked.first().data, baked.first().mimeType);   // для программ, которым нужна одна картинка
     return p;

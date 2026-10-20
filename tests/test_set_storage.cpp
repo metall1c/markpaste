@@ -126,7 +126,7 @@ TEST(SetStorage, ExportWritesBakedPngsAndMarkdown)
     QFile md(tmp.filePath(QStringLiteral("message.md")));
     ASSERT_TRUE(md.open(QIODevice::ReadOnly));
     const QString text = QString::fromUtf8(md.readAll());
-    EXPECT_EQ(text, QStringLiteral("![A](A.png)\n![B](B.png)\n\nShot A\nA1 Кнопка\nярче\nA2 сюда\n\nShot B\nB1\nB2 точка\n"));
+    EXPECT_EQ(text, QStringLiteral("![A](A.png)\n![B](B.png)\n\nShot A\nA1 Кнопка\nярче\nA2 сюда\n\nShot B\nB2 точка\n"));
 
     tpl.textBeforeImages = true;
     EXPECT_TRUE(SetStorage::exportMarkdown(set, tpl).endsWith(QStringLiteral("B2 точка\n\n![A](A.png)\n![B](B.png)\n")));

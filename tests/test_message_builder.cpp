@@ -34,24 +34,34 @@ TEST(MessageBuilder, EnglishDefault)
               QStringLiteral("Shot A\nA1 x"));
 }
 
-TEST(MessageBuilder, EmptyCommentGivesOnlyId)
+TEST(MessageBuilder, MarksWithoutCommentAreSkipped)
 {
     CaptureSet set;
-    set.shots << shotWith({"", "  "});
-    MessageTemplate tpl = MessageTemplate::defaultFor(QLocale(QLocale::English));
-    EXPECT_EQ(buildMessage(set, tpl), QStringLiteral("Shot A\nA1\nA2"));
-
-    tpl.markLine = QStringLiteral("{id}: {text}");
-    EXPECT_EQ(buildMessage(set, tpl), QStringLiteral("Shot A\nA1\nA2"));
-
-    tpl.markLine = QStringLiteral("**{id}** {text}");
-    EXPECT_EQ(buildMessage(set, tpl), QStringLiteral("Shot A\n**A1**\n**A2**"));
+    set.shots << shotWith({"", "кнопка", "  "});
+    const MessageTemplate tpl = MessageTemplate::defaultFor(QLocale(QLocale::Russian));
+    // Номер — как на картинке: A2, хотя A1 в тексте нет
+    EXPECT_EQ(buildMessage(set, tpl), QStringLiteral("Снимок A\nA2 кнопка"));
 }
 
-TEST(MessageBuilder, ShotWithoutMarksGivesHeaderOnly)
+TEST(MessageBuilder, SingleShotWithoutCommentsGivesNoText)
 {
     CaptureSet set;
-    set.shots << shotWith({}) << shotWith({"b"});
+    set.shots << shotWith({"", " "});   // стрелка, рамка — без слов
+    MessageTemplate tpl = MessageTemplate::defaultFor(QLocale(QLocale::Russian));
+    EXPECT_EQ(buildMessage(set, tpl), QString());
+
+    set.shots = {shotWith({})};
+    EXPECT_EQ(buildMessage(set, tpl), QString());
+
+    // Вводная и заключительная фразы — от пользователя: остаются
+    tpl.intro = QStringLiteral("Посмотри:");
+    EXPECT_EQ(buildMessage(set, tpl), QStringLiteral("Посмотри:"));
+}
+
+TEST(MessageBuilder, ShotWithoutCommentsAmongSeveralGivesHeaderOnly)
+{
+    CaptureSet set;
+    set.shots << shotWith({""}) << shotWith({"b"});
     EXPECT_EQ(buildMessage(set, MessageTemplate::defaultFor(QLocale(QLocale::English))),
               QStringLiteral("Shot A\n\nShot B\nB1 b"));
 }
