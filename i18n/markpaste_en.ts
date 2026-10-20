@@ -77,6 +77,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Markpaste was updated while running. Restart it to capture without delays and dialogs.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Capture failed: %1</source>
         <translation type="unfinished"></translation>
     </message>

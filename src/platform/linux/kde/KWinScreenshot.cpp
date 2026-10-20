@@ -8,6 +8,7 @@
 #include <QDBusPendingCallWatcher>
 #include <QDBusPendingReply>
 #include <QDBusUnixFileDescriptor>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QLoggingCategory>
 #include <QScreen>
@@ -46,6 +47,7 @@ struct Pending {
     QList<ScreenFrame> frames;
     int left = 0;
     QString error;
+    bool programReplaced = false;
 };
 
 void finishOne(const std::shared_ptr<Pending> &p)
@@ -56,6 +58,7 @@ void finishOne(const std::shared_ptr<Pending> &p)
     if (!p->error.isEmpty())
         r.status = Status::failure(p->error);
     r.frames = p->frames;
+    r.programReplaced = p->programReplaced;
     p->promise.addResult(r);
     p->promise.finish();
 }
@@ -136,7 +139,11 @@ QFuture<CaptureResult> KWinScreenshot::captureAllScreens()
             w->deleteLater();
             if (reply.isError()) {
                 pending->error = QStringLiteral("KWin ScreenShot2: %1").arg(reply.error().message());
-                qCWarning(lcKWin) << pending->error;
+                // KWin пускает к ScreenShot2 по пути исполняемого файла из .desktop. Если файл
+                // заменили на ходу, /proc/self/exe указывает на «… (deleted)» и проверка не проходит.
+                if (QFileInfo(QStringLiteral("/proc/self/exe")).symLinkTarget().endsWith(QStringLiteral(" (deleted)")))
+                    pending->programReplaced = true;
+                qCWarning(lcKWin) << pending->error << (pending->programReplaced ? "(program file was replaced)" : "");
             } else {
                 *meta = reply.value();
             }

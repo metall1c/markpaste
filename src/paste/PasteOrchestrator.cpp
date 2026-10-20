@@ -283,6 +283,7 @@ void PasteOrchestrator::finish(const Status &status)
         m_sessionOpen = false;
     }
     m_saved = {};
+    m_items.clear();   // готовые картинки больше не нужны: не держим их до следующей вставки
     m_running = false;
     m_onReleased = nullptr;
     ++m_generation;

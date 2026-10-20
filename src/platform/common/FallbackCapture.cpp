@@ -23,7 +23,11 @@ QFuture<CaptureResult> FallbackCapture::captureAllScreens()
             qCWarning(lcCapture) << m_primary->name() << "failed:" << r.status.error << "— switching to"
                                  << m_secondary->name();
             m_primaryFailed = true;
-            return m_secondary->captureAllScreens();
+            const bool replaced = r.programReplaced;
+            return m_secondary->captureAllScreens().then([replaced](CaptureResult second) {
+                second.programReplaced = second.programReplaced || replaced;
+                return second;
+            });
         })
         .unwrap();
 }

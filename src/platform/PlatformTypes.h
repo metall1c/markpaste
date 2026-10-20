@@ -45,6 +45,10 @@ struct ScreenFrame {
 struct CaptureResult {
     Status status;
     QList<ScreenFrame> frames;
+    // Файл программы заменён, пока она работала (обновление пакета, пересборка): система
+    // больше не узнаёт процесс и не даёт быстрый захват. Снимок может быть получен запасным
+    // путём — пользователю стоит перезапустить программу (docs/problems.md, 2026-10-20).
+    bool programReplaced = false;
 };
 
 enum class CaptureCap {

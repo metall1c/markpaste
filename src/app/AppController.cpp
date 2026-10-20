@@ -6,6 +6,7 @@
 #include "core/SetStorage.h"
 #include "paste/TempFiles.h"
 #include "platform/Autostart.h"
+#include "platform/Memory.h"
 #include "ui/CaptureOverlay.h"
 #include "ui/MoveGhost.h"
 #include "ui/PreviewDialog.h"
@@ -72,6 +73,7 @@ void AppController::start()
             m_strip->setProgress(done, total);
     });
     connect(m_paste, &PasteOrchestrator::finished, this, [this](const Status &s, PasteMode mode) {
+        scheduleMemoryRelease();
         if (m_strip)
             m_strip->setProgress(1, 1);
         if (!s.ok) {
@@ -122,6 +124,10 @@ void AppController::start()
     });
     connect(m_editor, &ShotEditor::newShotRequested, this, &AppController::capture);
     connect(m_editor, &ShotEditor::doneRequested, m_editor, &QWidget::hide);
+    connect(m_model.undoStack(), &QUndoStack::indexChanged, this, [this] {
+        if (m_model.set().isEmpty())
+            scheduleMemoryRelease();   // очистили набор — кадры больше не нужны
+    });
 
     connect(&m_model, &CaptureSetModel::changed, this, [this] {
         if (m_strip && m_editor)
@@ -314,6 +320,8 @@ void AppController::capture()
         m_platform.capture->captureAllScreens().then(this, [this, timer](const CaptureResult &r) {
             qCInfo(lcApp) << "captured" << r.frames.size() << "screens via" << m_platform.capture->name() << "in"
                           << timer->elapsed() << "ms";
+            if (r.programReplaced)
+                notify(tr("Markpaste was updated while running. Restart it to capture without delays and dialogs."));
             if (!r.status.ok && r.frames.isEmpty()) {
                 m_capturing = false;
                 restoreOwnWindows();
@@ -435,6 +443,7 @@ QMimeData *AppController::dragData(const QList<QUuid> &shots)
         if (!path.isEmpty())
             urls << QUrl::fromLocalFile(path);
     }
+    scheduleMemoryRelease();
     auto *md = new QMimeData;
     md->setUrls(urls);
     if (shots.size() > 1) {
@@ -503,6 +512,19 @@ void AppController::showSetupWizard()
     m_wizard->activateWindow();
 }
 
+// Запекание в пуле потоков оставляет освобождённые кадры в аренах malloc: отдаём их системе
+// через пару секунд после тяжёлой операции, одним вызовом на серию (NFR-2, platform/Memory.h)
+void AppController::scheduleMemoryRelease()
+{
+    if (!m_memoryTimer) {
+        m_memoryTimer = new QTimer(this);
+        m_memoryTimer->setSingleShot(true);
+        m_memoryTimer->setInterval(2000);
+        connect(m_memoryTimer, &QTimer::timeout, this, [] { releaseFreedMemory(); });
+    }
+    m_memoryTimer->start();
+}
+
 // --- Набор на диске (NFR-5, APP-6) и предпросмотр (PST-6) ---
 
 void AppController::restoreSession()
@@ -541,6 +563,7 @@ void AppController::showPreview()
     if (!m_preview) {
         m_preview = new PreviewDialog;
         m_preview->setAttribute(Qt::WA_DeleteOnClose);
+        connect(m_preview, &QObject::destroyed, this, &AppController::scheduleMemoryRelease);
         m_preview->setWindowIcon(appIcon());
         connect(m_preview, &PreviewDialog::saveToFolderRequested, this, &AppController::saveSetToFolder);
     }
@@ -577,6 +600,7 @@ void AppController::saveSetToFolder()
             notify(tr("Could not save the set: %1").arg(error));
             return;
         }
+        scheduleMemoryRelease();
         qCInfo(lcApp) << "set saved to a folder";
         notify(tr("Saved to %1").arg(QDir::toNativeSeparators(dir)));
         QDesktopServices::openUrl(QUrl::fromLocalFile(dir));

@@ -58,6 +58,7 @@ private:
     void updatePasteCaption();
     void restoreSession();
     void saveSession();
+    void scheduleMemoryRelease();
 
     Settings m_settings;
     Platform m_platform;
@@ -69,7 +70,8 @@ private:
     QPointer<SetupWizard> m_wizard;
     QPointer<PreviewDialog> m_preview;
     UpdateChecker *m_updates = nullptr;
-    QTimer *m_saveTimer = nullptr;   // набор пишется на диск не на каждую правку, а через секунду тишины
+    QTimer *m_saveTimer = nullptr;
+    QTimer *m_memoryTimer = nullptr;   // набор пишется на диск не на каждую правку, а через секунду тишины
     QSystemTrayIcon *m_tray = nullptr;
     QHash<Action, QString> m_boundTriggers;   // фактические сочетания от системы
     bool m_capturing = false;

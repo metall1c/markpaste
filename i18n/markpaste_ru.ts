@@ -77,6 +77,10 @@
         <translation>Набор заполнен (26 снимков)</translation>
     </message>
     <message>
+        <source>Markpaste was updated while running. Restart it to capture without delays and dialogs.</source>
+        <translation>Markpaste обновилась во время работы. Перезапустите её, чтобы снимать без задержек и диалогов.</translation>
+    </message>
+    <message>
         <source>Capture failed: %1</source>
         <translation>Не удалось снять экран: %1</translation>
     </message>
