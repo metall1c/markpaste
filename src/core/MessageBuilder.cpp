@@ -22,7 +22,10 @@ QString buildMessage(const CaptureSet &set, const MessageTemplate &tpl)
     if (!tpl.intro.trimmed().isEmpty())
         blocks << tpl.intro.trimmed();
 
-    for (int si = 0; si < set.shots.size(); ++si) {
+    // Ни у одного снимка нет комментариев — нет и заголовков «Снимок A»: сослаться в тексте
+    // не на что, сколько бы снимков ни было (решение пользователя, ADR 0018)
+    const bool anyComments = set.totalComments() > 0;
+    for (int si = 0; anyComments && si < set.shots.size(); ++si) {
         const Shot &shot = set.shots[si];
         QStringList lines;
         // Метки без комментария в текст не попадают: «A1» без слов ничего не сообщает.
@@ -36,10 +39,8 @@ QString buildMessage(const CaptureSet &set, const MessageTemplate &tpl)
             line.replace(QStringLiteral("{text}"), comment);
             lines << line;
         }
-        // Единственный снимок без комментариев — без «Снимок A»: сослаться в тексте не на что.
-        // Из нескольких снимков заголовок остаётся у каждого: по нему видно, какая картинка какая.
-        if (lines.isEmpty() && set.shots.size() == 1)
-            continue;
+        // Если комментарии есть хоть где-то, заголовок остаётся у каждого снимка:
+        // по нему видно, какая картинка какая.
         QString header = tpl.shotHeader;
         header.replace(QStringLiteral("{letter}"), QString(shotLetter(si)));
         lines.prepend(header);

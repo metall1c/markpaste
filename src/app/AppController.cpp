@@ -481,9 +481,9 @@ QMimeData *AppController::dragData(const QList<QUuid> &shots)
     scheduleMemoryRelease();
     auto *md = new QMimeData;
     md->setUrls(urls);
-    if (shots.size() > 1) {
-        // Режим 3: файлы перетаскиванием, текст — в буфер, вставить вторым действием
-        const QString text = buildMessage(m_model.set(), opt.messageTemplate);
+    // Режим 3: файлы перетаскиванием, текст — в буфер, вставить вторым действием.
+    // Без комментариев текста нет — буфер не трогаем и о тексте не пишем
+    if (const QString text = buildMessage(m_model.set(), opt.messageTemplate); shots.size() > 1 && !text.isEmpty()) {
         m_platform.clipboard->write(ClipboardPayload::text(text), ClipboardFlag::ExcludeFromHistory);
         m_strip->showMessage(tr("Text copied — paste it after dropping the files"), 6000);
     }

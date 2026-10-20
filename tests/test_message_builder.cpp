@@ -58,6 +58,15 @@ TEST(MessageBuilder, SingleShotWithoutCommentsGivesNoText)
     EXPECT_EQ(buildMessage(set, tpl), QStringLiteral("Посмотри:"));
 }
 
+TEST(MessageBuilder, SeveralShotsWithoutCommentsGiveNoText)
+{
+    // Три снимка с метками, но без единого комментария — никакого текста: ни «Снимок A»,
+    // ни номеров меток
+    CaptureSet set;
+    set.shots << shotWith({"", " "}) << shotWith({}) << shotWith({""});
+    EXPECT_EQ(buildMessage(set, MessageTemplate::defaultFor(QLocale(QLocale::Russian))), QString());
+}
+
 TEST(MessageBuilder, ShotWithoutCommentsAmongSeveralGivesHeaderOnly)
 {
     CaptureSet set;
