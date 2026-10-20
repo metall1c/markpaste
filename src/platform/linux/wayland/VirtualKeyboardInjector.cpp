@@ -148,6 +148,17 @@ void VirtualKeyboardInjector::modifiers(bool ctrl)
     });
 }
 
+QFuture<Status> VirtualKeyboardInjector::sendModifierMask()
+{
+    if (!m_keyboard)
+        return readyFuture(Status::failure(QStringLiteral("virtual keyboard is not set up")));
+    key(kKeyLeftCtrl, true);
+    modifiers(true);
+    key(kKeyLeftCtrl, false);
+    modifiers(false);
+    return readyFuture(Status::success());
+}
+
 QFuture<Status> VirtualKeyboardInjector::sendPaste()
 {
     if (!m_keyboard)

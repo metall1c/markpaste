@@ -399,6 +399,15 @@ void AppController::paste(bool fromHotkey)
 
     PasteOptions opt = m_settings.pasteOptions();
     opt.waitHotkeyRelease = fromHotkey;
+    if (fromHotkey) {
+        // Фактическое сочетание («Alt+V» от KDE, «Ctrl+Alt+V»…): одиночный Alt — только без Ctrl
+        const QString trigger = m_boundTriggers.value(Action::PasteSet, m_settings.pasteHotkey);
+        const QStringList keys = trigger.split(u'+', Qt::SkipEmptyParts);
+        auto has = [&keys](QStringView k) {
+            return std::any_of(keys.cbegin(), keys.cend(), [k](const QString &x) { return x.trimmed().compare(k, Qt::CaseInsensitive) == 0; });
+        };
+        opt.maskAltTap = has(u"Alt") && !has(u"Ctrl") && !has(u"Control") && !has(u"Primary");
+    }
     const bool buttonCanSequence = m_paste->canSequential() && (!m_platform.nativeWayland || m_platform.supportsLayerShell);
     if (opt.mode != PasteMode::FilesAndText && (!m_paste->canSequential() || (!fromHotkey && !buttonCanSequence)))
         opt.mode = PasteMode::FilesAndText;   // запасной режим — полноценный (ТЗ разд. 9)

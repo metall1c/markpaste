@@ -70,6 +70,13 @@ QFuture<Status> X11InputInjector::waitModifiersReleased(std::chrono::millisecond
     return promise->future();
 }
 
+QFuture<Status> X11InputInjector::sendModifierMask()
+{
+    key(m_ctrl, true);
+    key(m_ctrl, false);
+    return readyFuture(Status::success());
+}
+
 QFuture<Status> X11InputInjector::sendPaste()
 {
     // Ctrl↓ V↓ V↑ Ctrl↑ с паузами 20 мс, как на Wayland

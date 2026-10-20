@@ -34,6 +34,7 @@ struct PasteOptions {
     PasteTiming timing;
     bool restoreClipboard = true;
     bool waitHotkeyRelease = false;   // вставку запустила горячая клавиша — ждём её отпускания
+    bool maskAltTap = false;          // в сочетании есть Alt без Ctrl: погасить одиночный Alt (sendModifierMask)
 };
 
 // Вставка набора (PST-1…PST-9). Работает только через IClipboard и IInputInjector,
@@ -75,6 +76,8 @@ signals:
 
 private:
     void runSequence(QList<Item> items);
+    // Открыть сессию ввода один раз за вставку; кто попросил, пока она открывается, — ждёт
+    void openSession(std::function<void()> next);
     void step();
     void finish(const Status &status);
     void after(int ms, std::function<void()> fn);
@@ -89,6 +92,8 @@ private:
     bool m_cancelled = false;
     bool m_keysInFlight = false;   // идёт Ctrl↓ V↓ V↑ Ctrl↑: отмену откладываем до её конца
     bool m_sessionOpen = false;
+    bool m_sessionOpening = false;
+    QList<std::function<void()>> m_sessionWaiters;
     bool m_released = false;
     std::function<void()> m_onReleased;
     quint64 m_generation = 0;   // защищает от отложенных колбэков прошлого запуска

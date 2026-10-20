@@ -28,6 +28,7 @@ public:
     void end() override;
     QFuture<Status> waitModifiersReleased(std::chrono::milliseconds timeout) override;
     QFuture<Status> sendPaste() override;
+    QFuture<Status> sendModifierMask() override;
     bool canDetectForegroundChange() const override { return true; }
     QString name() const override { return QStringLiteral("SendInput"); }
 

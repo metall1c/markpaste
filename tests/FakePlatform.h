@@ -70,6 +70,13 @@ public:
         sessionOpen = false;
     }
     QFuture<Status> waitModifiersReleased(std::chrono::milliseconds) override { return readyFuture(Status::success()); }
+    int masks = 0;
+    QFuture<Status> sendModifierMask() override
+    {
+        clipboard->log << QStringLiteral("mask");
+        ++masks;
+        return readyFuture(sessionOpen ? Status::success() : Status::failure(QStringLiteral("no session")));
+    }
     QFuture<Status> sendPaste() override
     {
         if (!sessionOpen)

@@ -178,6 +178,17 @@ QFuture<Status> PortalRemoteDesktop::key(int keycode, bool pressed)
         {QVariant::fromValue(QDBusObjectPath(m_session)), QVariantMap(), keycode, uint(pressed ? 1 : 0)});
 }
 
+QFuture<Status> PortalRemoteDesktop::sendModifierMask()
+{
+    if (m_session.isEmpty())
+        return readyFuture(Status::failure(QStringLiteral("RemoteDesktop session is not started")));
+    // Ctrl↓ Ctrl↑: с зажатым Alt это не сочетание, а одиночным Alt уже не считается
+    return key(kKeyLeftCtrl, true).then(this, [this](const Status &s) {
+        key(kKeyLeftCtrl, false);
+        return s;
+    });
+}
+
 QFuture<Status> PortalRemoteDesktop::sendPaste()
 {
     if (m_session.isEmpty())

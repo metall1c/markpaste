@@ -75,6 +75,11 @@ public:
     virtual void end() = 0;
     virtual QFuture<Status> waitModifiersReleased(std::chrono::milliseconds timeout) = 0;
     virtual QFuture<Status> sendPaste() = 0;   // по коду клавиши V, не по символу
+    // Нажать и отпустить клавишу-«маску», пока пользователь ещё держит Alt горячей клавиши.
+    // V из Alt+V забирает система, и активное окно видит одиночное нажатие Alt: Electron
+    // (Mattermost, Slack), Firefox, программы Windows открывают по нему меню, и наш Ctrl+V
+    // уходит в меню (docs/problems.md, 2026-10-20). Нажатие между Alt↓ и Alt↑ это отменяет.
+    virtual QFuture<Status> sendModifierMask() { return readyFuture(Status::success()); }
     virtual bool canDetectForegroundChange() const = 0;
     virtual QString name() const = 0;
 };

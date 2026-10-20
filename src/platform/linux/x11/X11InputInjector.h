@@ -20,6 +20,7 @@ public:
     // На X11 состояние клавиатуры видно (QueryKeymap): ждём, пока отпустят модификаторы
     QFuture<Status> waitModifiersReleased(std::chrono::milliseconds timeout) override;
     QFuture<Status> sendPaste() override;
+    QFuture<Status> sendModifierMask() override;
     bool canDetectForegroundChange() const override { return false; }
     QString name() const override { return QStringLiteral("X11 XTEST"); }
 

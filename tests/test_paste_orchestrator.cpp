@@ -139,6 +139,49 @@ TEST(PasteOrchestrator, WaitsForHotkeyRelease)
     EXPECT_EQ(inj.pasted.size(), 4);
 }
 
+// Alt+V: V забрала система, окно чата видит одиночный Alt и уходит в меню (Mattermost).
+// Пока Alt зажат — сессия открывается сразу и уходит «маска»; сессия одна на всю вставку.
+TEST(PasteOrchestrator, AltHotkeyIsMaskedWhileHeld)
+{
+    FakeClipboard cb;
+    FakeInjector inj(&cb);
+    PasteOrchestrator o(&cb, &inj);
+    PasteOptions opt = fastOptions();
+    opt.waitHotkeyRelease = true;
+    opt.maskAltTap = true;
+    opt.timing.releaseTimeoutMs = 10000;
+    o.start(threeShots(), opt);
+    QElapsedTimer t;
+    t.start();
+    while (t.elapsed() < 100)
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
+    EXPECT_EQ(inj.masks, 1);
+    EXPECT_EQ(inj.pasted.size(), 0);
+    o.hotkeyReleased();
+    ASSERT_TRUE(runToEnd(o).ok);
+    EXPECT_EQ(inj.pasted.size(), 4);
+    EXPECT_EQ(inj.begins, 1);
+    EXPECT_EQ(inj.masks, 1);
+    EXPECT_LT(cb.log.indexOf(QStringLiteral("begin")), cb.log.indexOf(QStringLiteral("mask")));
+}
+
+TEST(PasteOrchestrator, NoMaskWithoutAltOrAfterRelease)
+{
+    for (const bool mask : {false, true}) {
+        FakeClipboard cb;
+        FakeInjector inj(&cb);
+        PasteOrchestrator o(&cb, &inj);
+        PasteOptions opt = fastOptions();
+        opt.maskAltTap = mask;
+        opt.waitHotkeyRelease = !mask;   // с маской, но клавишу уже отпустили (кнопка ленты)
+        opt.timing.releaseTimeoutMs = 50;
+        o.start(threeShots(), opt);
+        ASSERT_TRUE(runToEnd(o).ok);
+        EXPECT_EQ(inj.masks, 0);
+        EXPECT_EQ(inj.begins, 1);
+    }
+}
+
 TEST(PasteOrchestrator, ReleaseTimeoutStillPastes)
 {
     FakeClipboard cb;

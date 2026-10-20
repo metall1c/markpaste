@@ -117,6 +117,8 @@ void PasteOrchestrator::start(const CaptureSet &set, const PasteOptions &options
     m_cancelled = false;
     m_keysInFlight = false;
     m_sessionOpen = false;
+    m_sessionOpening = false;
+    m_sessionWaiters.clear();
     m_released = !options.waitHotkeyRelease;
     m_onReleased = nullptr;
     m_options = options;
@@ -148,11 +150,46 @@ void PasteOrchestrator::start(const CaptureSet &set, const PasteOptions &options
         return;
     }
 
+    // Alt+V ещё зажато: сессию — сразу, не дожидаясь запекания, и, пока Alt не отпущен,
+    // «маска», чтобы окно чата не приняло отпускание Alt за одиночное нажатие и не ушло в меню
+    if (options.maskAltTap && !m_released && m_injector) {
+        openSession([this] {
+            if (!m_released)
+                m_injector->sendModifierMask();
+            else
+                qCInfo(lcPaste) << "Alt released before the session opened: no mask";
+        });
+    }
+
     QtConcurrent::run([set, options] { return bakeSequence(set, options); })
         .then(this, [this, gen](const QList<Item> &items) {
             if (gen == m_generation && m_running)
                 runSequence(items);
         });
+}
+
+void PasteOrchestrator::openSession(std::function<void()> next)
+{
+    if (m_sessionOpen)
+        return next();
+    m_sessionWaiters << std::move(next);
+    if (m_sessionOpening)
+        return;
+    m_sessionOpening = true;
+    const quint64 gen = m_generation;
+    m_injector->begin().then(this, [this, gen](const Status &s) {
+        if (gen != m_generation || !m_running) {
+            if (s.ok && !m_running && m_injector)
+                m_injector->end();   // вставку отменили, пока сессия открывалась: не оставляем её
+            return;
+        }
+        m_sessionOpening = false;
+        if (!s.ok)
+            return finish(s);
+        m_sessionOpen = true;
+        for (auto &fn : std::exchange(m_sessionWaiters, {}))
+            fn();
+    });
 }
 
 void PasteOrchestrator::runSequence(QList<Item> items)
@@ -174,17 +211,7 @@ void PasteOrchestrator::runSequence(QList<Item> items)
             }
         });
     };
-    auto openSession = [this](std::function<void()> next) {
-        const quint64 gen = m_generation;
-        m_injector->begin().then(this, [this, gen, next](const Status &s) {
-            if (gen != m_generation || !m_running)
-                return;
-            if (!s.ok)
-                return finish(s);
-            m_sessionOpen = true;
-            next();
-        });
-    };
+    auto openSession = [this](std::function<void()> next) { this->openSession(std::move(next)); };
     auto saveClipboard = [this](std::function<void()> next) {
         if (!m_options.restoreClipboard)
             return next();

@@ -132,6 +132,21 @@ QFuture<Status> WinInputInjector::waitModifiersReleased(std::chrono::millisecond
     return promise->future();
 }
 
+QFuture<Status> WinInputInjector::sendModifierMask()
+{
+    // Неназначенный код 0xE8: программы его не обрабатывают, а одиночным Alt нажатие уже не будет
+    // (так же делает AutoHotkey). Ctrl здесь хуже: Ctrl+Alt — это AltGr в части раскладок
+    INPUT in[2] = {};
+    for (int i = 0; i < 2; ++i) {
+        in[i].type = INPUT_KEYBOARD;
+        in[i].ki.wVk = 0xE8;
+        in[i].ki.dwFlags = i ? KEYEVENTF_KEYUP : 0;
+    }
+    if (SendInput(2, in, sizeof(INPUT)) != 2)
+        return readyFuture(Status::failure(QStringLiteral("SendInput failed: error %1").arg(GetLastError())));
+    return readyFuture(Status::success());
+}
+
 QFuture<Status> WinInputInjector::sendPaste()
 {
     if (m_target && GetForegroundWindow() != m_target)
