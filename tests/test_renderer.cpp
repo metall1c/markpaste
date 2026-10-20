@@ -153,6 +153,46 @@ TEST(Renderer, MarkPenColorWidthAndDash)
     EXPECT_GT(other, 10);
 }
 
+TEST(Renderer, FrameShapes)
+{
+    // Три рамки одной геометрии 60×40: у прямоугольника угол закрашен, у скруглённой и овала — нет;
+    // середина правой стороны закрашена у всех (линия — внутри охватывающего прямоугольника)
+    Shot s = makeShot(240, 60);
+    s.sourcePng = toPng([] {
+        QImage img(240, 60, QImage::Format_ARGB32);
+        img.fill(Qt::black);
+        return img;
+    }());
+    const QList<FrameShape> frames{FrameShape::Rect, FrameShape::Rounded, FrameShape::Ellipse};
+    for (int i = 0; i < frames.size(); ++i)
+        s.marks.append(Mark{QUuid::createUuid(), QRect(10 + i * 80, 10, 60, 40), {}, MarkShape::Rect, {},
+                            MarkPen{QColor(Qt::blue), 4, LineStyle::Solid, frames[i]}});
+    RenderStyle style;
+    style.outlineWidth = 0;
+    style.badgeDiameter = 1;   // значки не должны закрывать проверяемые углы
+    const QImage out = renderShot(s, 0, style);
+    const QRgb blue = QColor(Qt::blue).rgb();
+    for (int i = 0; i < frames.size(); ++i) {
+        const int left = 10 + i * 80;
+        EXPECT_EQ(out.pixelColor(left + 60 - 2, 30).rgb(), blue) << "side of frame " << i;
+        // Нижний правый угол: значок номера — у верхнего левого, сюда он не достаёт
+        const bool cornerPainted = out.pixelColor(left + 60 - 2, 10 + 40 - 2).rgb() == blue;
+        EXPECT_EQ(cornerPainted, frames[i] == FrameShape::Rect) << "corner of frame " << i;
+    }
+}
+
+TEST(Renderer, OvalBadgeSitsOnTheOval)
+{
+    // Значок овала — на самой линии слева сверху, а не в пустом углу охватывающего прямоугольника
+    Mark m{QUuid::createUuid(), QRect(0, 0, 200, 100), {}, MarkShape::Rect, {},
+           MarkPen{QColor(), 0, LineStyle::Solid, FrameShape::Ellipse}};
+    const QPoint a = m.badgeAnchor();
+    EXPECT_NEAR(a.x(), 100 - 100 * 0.7071, 1.5);
+    EXPECT_NEAR(a.y(), 50 - 50 * 0.7071, 1.5);
+    m.pen.frame = FrameShape::Rounded;
+    EXPECT_EQ(m.badgeAnchor(), QPoint(0, 0));
+}
+
 TEST(Renderer, DefaultPenFollowsStyle)
 {
     Mark rect{QUuid(), QRect(0, 0, 10, 10), {}};

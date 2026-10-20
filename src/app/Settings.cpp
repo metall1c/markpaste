@@ -40,6 +40,8 @@ Settings Settings::load()
     s.markPen.width = std::clamp(q.value(QStringLiteral("editor/markWidth"), 0.0).toDouble(), 0.0, 20.0);
     const QString line = q.value(QStringLiteral("editor/markLine")).toString();
     s.markPen.line = line == u"dash" ? LineStyle::Dash : line == u"dot" ? LineStyle::Dot : LineStyle::Solid;
+    const QString frame = q.value(QStringLiteral("editor/markFrame")).toString();
+    s.markPen.frame = frame == u"rounded" ? FrameShape::Rounded : frame == u"ellipse" ? FrameShape::Ellipse : FrameShape::Rect;
     s.maxLongSide = std::clamp(q.value(QStringLiteral("images/maxLongSide"), d.maxLongSide).toInt(), 0, 16384);
     s.jpegThresholdMb = std::clamp(q.value(QStringLiteral("images/jpegThresholdMb"), d.jpegThresholdMb).toInt(), 0, 100);
     s.jpegQuality = std::clamp(q.value(QStringLiteral("images/jpegQuality"), d.jpegQuality).toInt(), 30, 100);
@@ -75,6 +77,9 @@ void Settings::save() const
     q.setValue(QStringLiteral("editor/markLine"), markPen.line == LineStyle::Dash  ? QStringLiteral("dash")
                                                   : markPen.line == LineStyle::Dot ? QStringLiteral("dot")
                                                                                    : QStringLiteral("solid"));
+    q.setValue(QStringLiteral("editor/markFrame"), markPen.frame == FrameShape::Rounded   ? QStringLiteral("rounded")
+                                                   : markPen.frame == FrameShape::Ellipse ? QStringLiteral("ellipse")
+                                                                                          : QStringLiteral("rect"));
     q.setValue(QStringLiteral("images/maxLongSide"), maxLongSide);
     q.setValue(QStringLiteral("images/jpegThresholdMb"), jpegThresholdMb);
     q.setValue(QStringLiteral("images/jpegQuality"), jpegQuality);

@@ -10,7 +10,9 @@
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QActionGroup>
 #include <QListWidget>
+#include <QMenu>
 #include <QMessageBox>
 #include <QPainter>
 #include <QScreen>
@@ -160,6 +162,26 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     for (FlatButton *b : {m_markTool, m_arrowTool, m_penTool, m_pointTool, m_blurTool, m_cropTool})
         group->addButton(b);
     m_markTool->setChecked(true);
+
+    // Форма рамки — меню у инструмента «Метка», как у Snapik. Выбор — для новых меток и для
+    // выделенной рамки; запоминается вместе с пером (docs/decisions/0020-frame-shape.md)
+    m_frameButton = new FlatButton(Icon::ChevronDown, tr("Frame shape"));
+    m_frameButton->setSide(36, 14);
+    m_frameButton->setFixedWidth(18);
+    m_frameButton->setPopupMode(QToolButton::InstantPopup);
+    auto *frameMenu = new QMenu(m_frameButton);
+    auto *frameGroup = new QActionGroup(frameMenu);
+    for (auto [frame, name] : {std::pair{FrameShape::Rect, tr("Rectangle")},
+                               std::pair{FrameShape::Rounded, tr("Rounded rectangle")},
+                               std::pair{FrameShape::Ellipse, tr("Oval")}}) {
+        QAction *a = frameMenu->addAction(name);
+        a->setCheckable(true);
+        frameGroup->addAction(a);
+        connect(a, &QAction::triggered, this, [this, frame = frame] { setFrame(frame); });
+        m_frameActions.append({frame, a});
+    }
+    m_frameButton->setMenu(frameMenu);
+
     m_applyCrop = new ActionButton(tr("Apply crop"));
     m_applyCrop->setGlyph(Icon::Check);
     m_applyCrop->setVisible(false);
@@ -184,7 +206,9 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     auto *bar = new QHBoxLayout(toolbar);
     bar->setContentsMargins(10, 8, 10, 8);
     bar->setSpacing(2);
-    for (FlatButton *b : {m_markTool, m_arrowTool, m_penTool, m_pointTool})
+    bar->addWidget(m_markTool);
+    bar->addWidget(m_frameButton);
+    for (FlatButton *b : {m_arrowTool, m_penTool, m_pointTool})
         bar->addWidget(b);
     bar->addWidget(new Rule(Qt::Vertical));
     bar->addWidget(m_blurTool);
@@ -293,6 +317,7 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     connect(m_canvas, &ShotCanvas::markSelected, this, [this](const MarkPen &pen, MarkShape shape) {
         updatePenDefaults(shape);
         m_penPicker->setPen(pen);
+        updateFrameUi();   // выделили овал — следующая метка тоже овал, как и с цветом
     });
     connect(m_canvas, &ShotCanvas::toolChanged, this, [this](ShotCanvas::Tool tool) {
         updatePenDefaults(tool == ShotCanvas::Tool::Arrow ? MarkShape::Arrow
@@ -380,6 +405,7 @@ void ShotEditor::applyColors()
                        static_cast<QWidget *>(m_commentsFooter)})
         setMutedText(w);
     m_penPicker->setPen(m_penPicker->pen());   // образцы цвета и линии — по новой теме
+    updateFrameUi();                          // значки меню формы — цветом новой темы
     m_applyingColors = false;
     updateTools();
     update();
@@ -442,6 +468,35 @@ void ShotEditor::setPen(const MarkPen &pen)
 {
     m_penPicker->setPen(pen);
     m_canvas->setPen(pen);
+    updateFrameUi();
+}
+
+void ShotEditor::setFrame(FrameShape frame)
+{
+    MarkPen pen = m_penPicker->pen();
+    pen.frame = frame;
+    m_penPicker->setPen(pen);
+    m_canvas->setPen(pen);      // и выделенной рамке — одной правкой в истории
+    m_canvas->setTool(ShotCanvas::Tool::Mark);
+    updateFrameUi();
+    emit penChanged(pen);
+}
+
+void ShotEditor::updateFrameUi()
+{
+    const FrameShape current = m_penPicker->pen().frame;
+    m_markTool->setGlyph(current == FrameShape::Rounded   ? Icon::MarkRounded
+                         : current == FrameShape::Ellipse ? Icon::MarkEllipse
+                                                          : Icon::Mark);
+    const QColor color = UiColors::from(palette()).text;
+    const qreal dpr = devicePixelRatioF();
+    for (const auto &[frame, action] : m_frameActions) {
+        action->setChecked(frame == current);
+        action->setIcon(QIcon(iconPixmap(frame == FrameShape::Rounded   ? Icon::FrameRounded
+                                         : frame == FrameShape::Ellipse ? Icon::FrameEllipse
+                                                                        : Icon::FrameRect,
+                                         color, 20, dpr)));
+    }
 }
 
 void ShotEditor::updatePenDefaults(MarkShape shape)

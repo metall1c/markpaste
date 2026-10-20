@@ -42,6 +42,11 @@ const char *iconName(Icon icon)
     case Icon::StatusWarning: return "status-warn";
     case Icon::StatusFailed: return "status-fail";
     case Icon::StatusPending: return "status-pending";
+    case Icon::MarkRounded: return "mark-rounded";
+    case Icon::MarkEllipse: return "mark-ellipse";
+    case Icon::FrameRect: return "frame-rect";
+    case Icon::FrameRounded: return "frame-rounded";
+    case Icon::FrameEllipse: return "frame-ellipse";
     }
     return "mark";
 }

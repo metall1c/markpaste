@@ -5,6 +5,7 @@
 #include <QColor>
 #include <QImage>
 #include <QList>
+#include <QPainterPath>
 
 class QPainter;
 
@@ -28,6 +29,9 @@ QColor badgeFillColor(const QColor &accent);
 
 // Фактические цвет и толщина метки (логические px): пустые поля MarkPen берутся из стиля.
 QColor markColor(const Mark &mark, const RenderStyle &style);
+// Контур рамки формы frame внутри rect (линия толщиной lineWidth целиком внутри); для
+// отрисовки и для попадания мышью в овал
+QPainterPath frameOutline(const QRectF &rect, FrameShape frame, qreal lineWidth, qreal dpr);
 qreal markWidth(const Mark &mark, const RenderStyle &style);
 qreal defaultMarkWidth(MarkShape shape, const RenderStyle &style);
 double contrastRatio(const QColor &a, const QColor &b);

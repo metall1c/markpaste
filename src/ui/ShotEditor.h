@@ -4,6 +4,7 @@
 
 #include <QWidget>
 
+class QAction;
 class QLabel;
 class QListWidget;
 
@@ -52,10 +53,14 @@ private:
     void applyColors();
     void cancelShot();
     void updatePenDefaults(MarkShape shape);
+    void setFrame(FrameShape frame);
+    void updateFrameUi();
 
     CaptureSetModel *m_model;
     ShotCanvas *m_canvas;
     FlatButton *m_markTool;
+    FlatButton *m_frameButton;              // форма рамки: прямоугольник, скруглённый, овал
+    QList<std::pair<FrameShape, QAction *>> m_frameActions;
     FlatButton *m_arrowTool;
     FlatButton *m_penTool;
     FlatButton *m_pointTool;

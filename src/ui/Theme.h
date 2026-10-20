@@ -55,7 +55,8 @@ void setMutedText(QWidget *widget);
 enum class Icon {
     Mark, Arrow, Pen, Point, Blur, Crop, Undo, Redo, Trash, Camera, Check,
     ChevronDown, More, Minimize, Copy, Comment, Grip,
-    StatusOk, StatusWarning, StatusFailed, StatusPending
+    StatusOk, StatusWarning, StatusFailed, StatusPending,
+    MarkRounded, MarkEllipse, FrameRect, FrameRounded, FrameEllipse
 };
 
 // Значок из набора data/icons/ui нужного цвета; size — в логических пикселях

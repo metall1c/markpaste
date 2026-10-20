@@ -858,6 +858,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Frame shape</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rectangle</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rounded rectangle</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Oval</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Undo</source>
         <translation type="unfinished"></translation>
     </message>
@@ -964,10 +980,6 @@ Drag over the shot to add one.</source>
     </message>
     <message>
         <source>Discard shot %1 with its marks?</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>➚ Arrow</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

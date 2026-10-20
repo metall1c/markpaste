@@ -1,8 +1,21 @@
 #include "CaptureSet.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace mp {
+
+QPoint Mark::badgeAnchor() const
+{
+    if (isLinear())
+        return points.isEmpty() ? rect.topLeft() : points.first();
+    if (pen.frame == FrameShape::Ellipse) {
+        const QPointF c = QRectF(rect).center();
+        const qreal k = std::sqrt(0.5);
+        return QPointF(c.x() - rect.width() / 2.0 * k, c.y() - rect.height() / 2.0 * k).toPoint();
+    }
+    return rect.topLeft();
+}
 
 int Shot::commentCount() const
 {

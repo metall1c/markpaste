@@ -102,8 +102,15 @@ void ShotCanvas::setStyle(const RenderStyle &style)
 void ShotCanvas::setPen(const MarkPen &pen)
 {
     m_pen = pen;
-    if (const Mark *m = markOf(m_selected))
-        m_model->setMarkPen(m_shotId, m->id, pen);
+    if (const Mark *m = markOf(m_selected)) {
+        // Форма рамки стрелке, карандашу и точке не нужна: выбор формы при выделенной стрелке
+        // не должен оставлять в истории отмен пустой шаг
+        MarkPen applied = pen;
+        if (m->isLinear())
+            applied.frame = m->pen.frame;
+        if (applied != m->pen)
+            m_model->setMarkPen(m_shotId, m->id, applied);
+    }
 }
 
 void ShotCanvas::setSelection(const Hit &hit)
@@ -214,9 +221,18 @@ std::optional<MarkShape> ShotCanvas::creatingShape() const
 // иначе карандашный обвод закрыл бы для мыши всё, что внутри него.
 bool ShotCanvas::hitsMark(const Mark &mark, const QPointF &pos) const
 {
-    if (!mark.isLinear())
-        return QRectF(mark.rect).contains(toSource(pos));
     const QTransform t = toWidget();
+    if (!mark.isLinear()) {
+        if (mark.pen.frame != FrameShape::Ellipse)
+            return QRectF(mark.rect).contains(toSource(pos));
+        // Овал ловим по нему самому, а не по углам охватывающего прямоугольника — там пусто
+        const QRectF r = t.mapRect(QRectF(mark.rect)).adjusted(-kLineHitSlop, -kLineHitSlop, kLineHitSlop, kLineHitSlop);
+        if (r.width() <= 0 || r.height() <= 0)
+            return false;
+        const qreal dx = (pos.x() - r.center().x()) / (r.width() / 2);
+        const qreal dy = (pos.y() - r.center().y()) / (r.height() / 2);
+        return dx * dx + dy * dy <= 1.0;
+    }
     if (mark.shape == MarkShape::Point && !mark.points.isEmpty()) {
         // Точку ловим по её значку с кольцом
         const qreal dpr = shot() && shot()->devicePixelRatio > 0 ? shot()->devicePixelRatio : 1.0;

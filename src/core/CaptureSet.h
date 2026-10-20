@@ -23,12 +23,20 @@ enum class MarkShape { Rect, Arrow, Freehand, Point };
 
 enum class LineStyle { Solid, Dash, Dot };
 
-// Цвет, толщина и тип линии метки. Пустые значения — из общего стиля (RenderStyle):
+// Форма рамки (инструмент «Метка»): прямоугольник, скруглённый прямоугольник, овал.
+// Геометрия у всех одна — охватывающий прямоугольник rect; меняется только то, что нарисовано.
+enum class FrameShape { Rect, Rounded, Ellipse };
+
+// Цвет, толщина, тип линии и форма рамки метки. Пустые значения — из общего стиля (RenderStyle):
 // так метки без выбранного цвета перекрашиваются вместе с акцентом в настройках.
+// Форма рамки — здесь же, а не отдельным полем метки: она выбирается для новых меток и
+// меняется у выделенной так же, как цвет (docs/decisions/0020-frame-shape.md). У стрелки,
+// карандаша и точки не используется.
 struct MarkPen {
     QColor color;                  // недействительный — акцентный цвет из настроек
     qreal width = 0;               // логические px; 0 — толщина формы по умолчанию
     LineStyle line = LineStyle::Solid;
+    FrameShape frame = FrameShape::Rect;
 
     bool operator==(const MarkPen &) const = default;
 };
@@ -43,7 +51,10 @@ struct Mark {
 
     // Геометрия задана точками, а не рамкой (стрелка, карандаш, точка)
     bool isLinear() const { return shape != MarkShape::Rect; }
-    QPoint badgeAnchor() const { return isLinear() && !points.isEmpty() ? points.first() : rect.topLeft(); }
+    // Куда ставится значок номера: у рамки — левый верхний угол, у овала — точка на нём
+    // под 45° слева сверху (угол охватывающего прямоугольника висел бы в пустоте),
+    // у стрелки — хвост, у карандаша — первая точка, у точки — она сама
+    QPoint badgeAnchor() const;
 
     bool operator==(const Mark &) const = default;
 };

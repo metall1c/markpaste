@@ -109,7 +109,8 @@ int main(int argc, char **argv)
     a.sourceSize = QSize(900, 520);
     const QUuid ida = model.addShot(a);
     model.addMark(ida, QRect(36, 86, 268, 62), QStringLiteral("Кнопку «Купить» ярче"));
-    model.addMark(ida, QRect(36, 166, 160, 34), QStringLiteral("Цену крупнее"));
+    model.addMark(ida, QRect(36, 166, 160, 34), QStringLiteral("Цену крупнее"),
+                  MarkPen{QColor(), 0, LineStyle::Solid, FrameShape::Rounded});
     model.addRedaction(ida, QRect(200, 166, 200, 34));
     model.addLinearMark(ida, MarkShape::Arrow, {{620, 330}, {480, 230}}, QStringLiteral("Сюда — отзывы"),
                         MarkPen{QColor(0x1E, 0x88, 0xE5), 5, LineStyle::Solid});
@@ -125,7 +126,7 @@ int main(int argc, char **argv)
     b.sourcePng = fakeScreen(700, 400, QColor(230, 240, 255), QStringLiteral("Корзина"));
     b.sourceSize = QSize(700, 400);
     const QUuid idb = model.addShot(b);
-    model.addMark(idb, QRect(30, 80, 300, 80), QString());
+    model.addMark(idb, QRect(30, 80, 300, 80), QString(), MarkPen{QColor(), 0, LineStyle::Solid, FrameShape::Ellipse});
 
     if (live) {
         const int seconds = argc > 2 ? QString::fromLocal8Bit(argv[2]).toInt() : 6;

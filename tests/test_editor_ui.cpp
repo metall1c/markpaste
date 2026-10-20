@@ -4,6 +4,7 @@
 #include "ui/ShotEditor.h"
 
 #include <QApplication>
+#include <QMenu>
 #include <QScreen>
 #include <QPlainTextEdit>
 #include <QTest>
@@ -162,7 +163,7 @@ TEST(Translations, RussianLoadsForEditor)
     ASSERT_TRUE(tr.load(QStringLiteral(":/i18n/markpaste_ru.qm")));
     EXPECT_EQ(tr.translate("mp::ShotEditor", "Done"), QStringLiteral("Готово"));
     EXPECT_EQ(tr.translate("mp::StripWindow", "Paste set"), QStringLiteral("Вставить набор"));
-    EXPECT_EQ(tr.translate("mp::ShotEditor", "➚ Arrow"), QStringLiteral("➚ Стрелка"));
+    EXPECT_EQ(tr.translate("mp::ShotEditor", "Arrow"), QStringLiteral("Стрелка"));
 }
 
 namespace {
@@ -240,6 +241,73 @@ TEST(ShotEditorUi, PenAppliesToNewAndSelectedMarks)
     EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen, dotted);
     f.model.undoStack()->undo();
     EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen, red);
+}
+
+namespace {
+QAction *frameAction(ShotEditor &editor, const QString &text)
+{
+    for (QToolButton *b : editor.findChildren<QToolButton *>())
+        if (b->text() == QStringLiteral("Frame shape") && b->menu())
+            for (QAction *a : b->menu()->actions())
+                if (a->text() == text)
+                    return a;
+    return nullptr;
+}
+} // namespace
+
+// Форма рамки (ADR 0020): выбор в меню у «Метки» — для новых рамок и для выделенной
+TEST(ShotEditorUi, FrameShapeAppliesToNewAndSelectedMarks)
+{
+    EditorFixture f;
+    f.editor.resize(900, 600);
+    QTest::qWait(20);
+    QAction *oval = frameAction(f.editor, QStringLiteral("Oval"));
+    QAction *rounded = frameAction(f.editor, QStringLiteral("Rounded rectangle"));
+    ASSERT_NE(oval, nullptr);
+    ASSERT_NE(rounded, nullptr);
+    oval->trigger();
+    EXPECT_EQ(f.canvas()->pen().frame, FrameShape::Ellipse);
+    EXPECT_TRUE(oval->isChecked());
+
+    dragSource(f.canvas(), {{20, 20}, {120, 100}});
+    ASSERT_EQ(f.model.shot(f.shot)->marks.size(), 1);
+    EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen.frame, FrameShape::Ellipse);
+
+    // Только что нарисованная рамка выделена: форма меняется у неё одной правкой
+    rounded->trigger();
+    EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen.frame, FrameShape::Rounded);
+    f.model.undoStack()->undo();
+    EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen.frame, FrameShape::Ellipse);
+}
+
+TEST(ShotEditorUi, FrameShapeLeavesSelectedArrowAlone)
+{
+    EditorFixture f;
+    const QUuid arrow = f.model.addLinearMark(f.shot, MarkShape::Arrow, {{10, 10}, {100, 80}});
+    f.canvas()->editMark(arrow);
+    const int steps = f.model.undoStack()->count();
+    QAction *oval = frameAction(f.editor, QStringLiteral("Oval"));
+    ASSERT_NE(oval, nullptr);
+    oval->trigger();
+    // У стрелки формы рамки нет — пустого шага в истории тоже
+    EXPECT_EQ(f.model.undoStack()->count(), steps);
+    EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen.frame, FrameShape::Rect);
+    EXPECT_EQ(f.canvas()->pen().frame, FrameShape::Ellipse);   // а новые рамки — овалы
+}
+
+TEST(ShotEditorUi, OvalIsHitInsideButNotInItsCorner)
+{
+    EditorFixture f;
+    f.editor.resize(900, 600);
+    QTest::qWait(20);
+    f.model.addMark(f.shot, QRect(100, 100, 200, 100), {}, MarkPen{QColor(), 0, LineStyle::Solid, FrameShape::Ellipse});
+    // Перетаскивание из угла охватывающего прямоугольника — мимо овала: новая рамка, а не сдвиг
+    dragSource(f.canvas(), {{108, 192}, {150, 150}, {180, 170}});
+    EXPECT_EQ(f.model.shot(f.shot)->marks.size(), 2);
+    // Из середины — сдвиг овала
+    const QRect before = f.model.shot(f.shot)->marks[0].rect;
+    dragSource(f.canvas(), {{200, 150}, {210, 160}});
+    EXPECT_EQ(f.model.shot(f.shot)->marks[0].rect, before.translated(10, 10));
 }
 
 TEST(ShotEditorUi, SelectingMarkShowsItsPen)

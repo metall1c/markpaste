@@ -22,6 +22,12 @@ static CaptureSet sampleSet()
     arrow.rect = QRect(30, 30, 51, 31);
     arrow.pen = MarkPen{QColor(0x1e, 0x88, 0xe5), 5, LineStyle::Dash};
     a.marks << arrow;
+    // Скруглённая рамка и овал (ADR 0020) сохраняются вместе с остальным пером;
+    // без комментариев — номера A1 и A2 в тексте сообщения прежние
+    a.marks << Mark{QUuid::createUuid(), QRect(40, 40, 30, 20), QString(), MarkShape::Rect, {},
+                    MarkPen{QColor(), 0, LineStyle::Solid, FrameShape::Rounded}};
+    a.marks << Mark{QUuid::createUuid(), QRect(70, 40, 30, 20), QString(), MarkShape::Rect, {},
+                    MarkPen{QColor(), 3, LineStyle::Dash, FrameShape::Ellipse}};
     a.redactions << Redaction{QUuid::createUuid(), QRect(60, 10, 20, 10)};
 
     Shot b = makeShot(50, 40);
@@ -44,6 +50,16 @@ TEST(SetStorage, JsonRoundTripKeepsEverythingButPixels)
     for (Shot &s : expected.shots)
         s.sourcePng.clear();
     EXPECT_EQ(*back, expected);
+}
+
+TEST(SetStorage, PlainRectangleWritesNoFrameField)
+{
+    // Старые наборы и прямоугольные рамки — без поля "frame": формат прежний
+    CaptureSet set;
+    Shot s = makeShot(50, 40);
+    s.marks << Mark{QUuid::createUuid(), QRect(1, 1, 10, 10), QString()};
+    set.shots << s;
+    EXPECT_FALSE(SetStorage::toJson(set).contains("\"frame\""));
 }
 
 TEST(SetStorage, SessionRoundTripAndPrivatePermissions)

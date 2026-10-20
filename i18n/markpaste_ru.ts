@@ -861,6 +861,22 @@
         <translation>Обрезать снимок</translation>
     </message>
     <message>
+        <source>Frame shape</source>
+        <translation>Форма рамки</translation>
+    </message>
+    <message>
+        <source>Rectangle</source>
+        <translation>Прямоугольник</translation>
+    </message>
+    <message>
+        <source>Rounded rectangle</source>
+        <translation>Скруглённый прямоугольник</translation>
+    </message>
+    <message>
+        <source>Oval</source>
+        <translation>Овал</translation>
+    </message>
+    <message>
         <source>Undo</source>
         <translation>Отменить</translation>
     </message>
@@ -969,10 +985,6 @@ Drag over the shot to add one.</source>
     <message>
         <source>Discard shot %1 with its marks?</source>
         <translation>Удалить снимок %1 вместе с метками?</translation>
-    </message>
-    <message>
-        <source>➚ Arrow</source>
-        <translation>➚ Стрелка</translation>
     </message>
 </context>
 <context>

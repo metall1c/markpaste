@@ -97,6 +97,10 @@ QByteArray SetStorage::toJson(const CaptureSet &set)
                 o.insert(QStringLiteral("width"), m.pen.width);
             if (m.pen.line != LineStyle::Solid)
                 o.insert(QStringLiteral("line"), lineName(m.pen.line));
+            // Форма рамки — только у рамки и только не прямоугольная: старые наборы читаются как есть
+            if (m.shape == MarkShape::Rect && m.pen.frame != FrameShape::Rect)
+                o.insert(QStringLiteral("frame"), m.pen.frame == FrameShape::Rounded ? QStringLiteral("rounded")
+                                                                                     : QStringLiteral("ellipse"));
             marks << o;
         }
         QJsonArray redactions;
@@ -170,6 +174,8 @@ std::optional<CaptureSet> SetStorage::fromJson(const QByteArray &json, QString *
             m.pen.width = mo.value(QStringLiteral("width")).toDouble(0);
             const QString line = mo.value(QStringLiteral("line")).toString();
             m.pen.line = line == u"dash" ? LineStyle::Dash : line == u"dot" ? LineStyle::Dot : LineStyle::Solid;
+            const QString frame = mo.value(QStringLiteral("frame")).toString();
+            m.pen.frame = frame == u"rounded" ? FrameShape::Rounded : frame == u"ellipse" ? FrameShape::Ellipse : FrameShape::Rect;
             s.marks << m;
         }
         for (const QJsonValue &rv : so.value(QStringLiteral("redactions")).toArray()) {

@@ -147,14 +147,39 @@ static QPen strokePen(const QColor &color, qreal penWidth, qreal w, LineStyle li
     return pen;
 }
 
-static void drawRectMark(QPainter &p, const Mark &m, const QColor &color, qreal fw, qreal ow)
+// Контур рамки по её форме (прямоугольник, скруглённый, овал). Линия — внутри rect:
+// рамка любой формы не выходит за охватывающий прямоугольник, который видит редактор.
+QPainterPath frameOutline(const QRectF &rect, FrameShape frame, qreal lineWidth, qreal dpr)
 {
-    const QRectF r = QRectF(m.rect).adjusted(fw / 2, fw / 2, -fw / 2, -fw / 2);
+    const QRectF r = rect.adjusted(lineWidth / 2, lineWidth / 2, -lineWidth / 2, -lineWidth / 2);
+    QPainterPath path;
+    switch (frame) {
+    case FrameShape::Rect:
+        path.addRect(r);
+        break;
+    case FrameShape::Rounded: {
+        // Радиус — 10 логических px, у маленькой рамки — не больше трети её стороны
+        const qreal radius = std::min(10.0 * dpr, std::min(r.width(), r.height()) / 3);
+        path.addRoundedRect(r, radius, radius);
+        break;
+    }
+    case FrameShape::Ellipse:
+        path.addEllipse(r);
+        break;
+    }
+    return path;
+}
+
+static void drawRectMark(QPainter &p, const Mark &m, const QColor &color, qreal fw, qreal ow, qreal dpr)
+{
+    const QPainterPath path = frameOutline(QRectF(m.rect), m.pen.frame, fw, dpr);
+    // У прямоугольника углы острые, у скруглённого и овала стыки — круглые
+    const Qt::PenJoinStyle join = m.pen.frame == FrameShape::Rect ? Qt::MiterJoin : Qt::RoundJoin;
     p.setBrush(Qt::NoBrush);
-    p.setPen(strokePen(Qt::white, fw + 2 * ow, fw, m.pen.line, Qt::SquareCap, Qt::MiterJoin));
-    p.drawRect(r);
-    p.setPen(strokePen(color, fw, fw, m.pen.line, Qt::SquareCap, Qt::MiterJoin));
-    p.drawRect(r);
+    p.setPen(strokePen(Qt::white, fw + 2 * ow, fw, m.pen.line, Qt::SquareCap, join));
+    p.drawPath(path);
+    p.setPen(strokePen(color, fw, fw, m.pen.line, Qt::SquareCap, join));
+    p.drawPath(path);
 }
 
 // Точки — центры пикселей: линия толщиной в 1 px через (x, y) закрашивает ровно этот пиксель.
@@ -303,7 +328,7 @@ void paintMarks(QPainter &p, const Shot &shot, int shotIndex, const RenderStyle 
         const qreal w = markWidth(m, style) * dpr;
         switch (m.shape) {
         case MarkShape::Rect:
-            drawRectMark(p, m, color, w, ow);
+            drawRectMark(p, m, color, w, ow, dpr);
             break;
         case MarkShape::Arrow:
             drawArrowMark(p, m, color, w, ow, dpr);
