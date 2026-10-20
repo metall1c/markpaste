@@ -1,0 +1,111 @@
+; Установщик Markpaste для Windows (ТЗ разд. 11, ADR 0023).
+; Собирается целью `installer` (cmake/WindowsInstaller.cmake): makensis из NSIS 3.
+; Установка в профиль пользователя, без прав администратора; удаление — через «Приложения».
+
+Unicode true
+ManifestDPIAware true
+RequestExecutionLevel user
+SetCompressor /SOLID lzma
+
+!define APP_NAME "@MARKPASTE_APP_NAME@"
+!define APP_ID "@MARKPASTE_APP_ID@"
+!define APP_EXE "@MARKPASTE_EXECUTABLE@.exe"
+!define APP_VERSION "@PROJECT_VERSION@"
+!define PUBLISHER "Andrey Che"
+!define HOMEPAGE "@MARKPASTE_HOMEPAGE_URL@"
+!define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}"
+!define RUN_KEY "Software\Microsoft\Windows\CurrentVersion\Run"
+!define APPROVED_KEY "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"
+
+Name "${APP_NAME}"
+OutFile "@MARKPASTE_INSTALLER_OUT@"
+InstallDir "$LOCALAPPDATA\Programs\${APP_NAME}"
+InstallDirRegKey HKCU "${UNINSTALL_KEY}" "InstallLocation"
+BrandingText "${APP_NAME} ${APP_VERSION}"
+
+VIProductVersion "@PROJECT_VERSION@.0"
+VIAddVersionKey /LANG=0 "ProductName" "${APP_NAME}"
+VIAddVersionKey /LANG=0 "ProductVersion" "${APP_VERSION}"
+VIAddVersionKey /LANG=0 "FileVersion" "${APP_VERSION}"
+VIAddVersionKey /LANG=0 "FileDescription" "${APP_NAME} Setup"
+VIAddVersionKey /LANG=0 "CompanyName" "${PUBLISHER}"
+VIAddVersionKey /LANG=0 "LegalCopyright" "GPL-3.0-or-later"
+
+!include "MUI2.nsh"
+!include "FileFunc.nsh"
+
+!define MUI_ICON "@MARKPASTE_ICO@"
+!define MUI_UNICON "@MARKPASTE_ICO@"
+!define MUI_ABORTWARNING
+
+!define MUI_WELCOMEPAGE_TEXT "$(WelcomeText)"
+!insertmacro MUI_PAGE_WELCOME
+; GPL ничего не требует принимать — страница только показывает лицензию
+!define MUI_LICENSEPAGE_BUTTON "$(^NextBtn)"
+!define MUI_LICENSEPAGE_TEXT_BOTTOM "$(LicenseNote)"
+!insertmacro MUI_PAGE_LICENSE "@MARKPASTE_LICENSE_CRLF@"
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!define MUI_FINISHPAGE_RUN "$INSTDIR\${APP_EXE}"
+!insertmacro MUI_PAGE_FINISH
+
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+
+; Язык выбирается по языку Windows; нет такого — первый (английский)
+!insertmacro MUI_LANGUAGE "English"
+!insertmacro MUI_LANGUAGE "Russian"
+
+LangString WelcomeText ${LANG_ENGLISH} "Markpaste captures screen areas, puts numbered marks with comments on them and pastes the whole set into any chat.$\r$\n$\r$\nIt is installed into your user profile: no administrator rights are needed. If Markpaste is running, Setup closes it by itself.$\r$\n$\r$\nClick Next to continue."
+LangString WelcomeText ${LANG_RUSSIAN} "Markpaste снимает области экрана, ставит на них нумерованные метки с комментариями и вставляет весь набор в любой чат.$\r$\n$\r$\nПрограмма ставится в профиль пользователя — права администратора не нужны. Если Markpaste запущен, установщик сам его закроет.$\r$\n$\r$\nНажмите «Далее», чтобы продолжить."
+LangString LicenseNote ${LANG_ENGLISH} "Markpaste is free software under the GNU GPL. Nothing to accept — just read."
+LangString LicenseNote ${LANG_RUSSIAN} "Markpaste — свободная программа под GNU GPL. Принимать ничего не нужно, лицензия — для сведения."
+
+; Запущенная копия держит файлы: просим её завершиться (тот же сокет единственного
+; экземпляра, что у `markpaste --quit`). Если не запущена, команда сразу выходит.
+!macro QuitRunning
+    IfFileExists "$INSTDIR\${APP_EXE}" 0 +3
+        ExecWait '"$INSTDIR\${APP_EXE}" --quit'
+        Sleep 1500
+!macroend
+
+Section "Install"
+    SetOutPath "$INSTDIR"
+    !insertmacro QuitRunning
+    File /r "@MARKPASTE_INSTALLER_STAGE@/*"
+    WriteUninstaller "$INSTDIR\uninstall.exe"
+
+    CreateShortcut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}"
+
+    ; Запись в «Приложения» — в HKCU: установка без прав администратора
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "${APP_NAME}"
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayVersion" "${APP_VERSION}"
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "${PUBLISHER}"
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "URLInfoAbout" "${HOMEPAGE}"
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\${APP_EXE}"
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "UninstallString" '"$INSTDIR\uninstall.exe"'
+    WriteRegStr HKCU "${UNINSTALL_KEY}" "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
+    WriteRegDWORD HKCU "${UNINSTALL_KEY}" "NoModify" 1
+    WriteRegDWORD HKCU "${UNINSTALL_KEY}" "NoRepair" 1
+    ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+    IntFmt $0 "0x%08X" $0
+    WriteRegDWORD HKCU "${UNINSTALL_KEY}" "EstimatedSize" "$0"
+SectionEnd
+
+Section "Uninstall"
+    !insertmacro QuitRunning
+    ; Автозапуск программа ставит сама (вкладка «Система»): после удаления он вёл бы в пустоту
+    DeleteRegValue HKCU "${RUN_KEY}" "${APP_ID}"
+    DeleteRegValue HKCU "${APPROVED_KEY}" "${APP_ID}"
+
+    ; Только свои файлы, по списку из сборки: каталог мог выбрать пользователь, RMDir /r опасен
+    !include "@MARKPASTE_UNINSTALL_LIST@"
+    Delete "$INSTDIR\uninstall.exe"
+    RMDir "$INSTDIR"
+
+    Delete "$SMPROGRAMS\${APP_NAME}.lnk"
+    DeleteRegKey HKCU "${UNINSTALL_KEY}"
+    ; Настройки (HKCU\Software\markpaste) и журнал в %LOCALAPPDATA%\markpaste остаются:
+    ; при повторной установке программа продолжит с ними
+SectionEnd

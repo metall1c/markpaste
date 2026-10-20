@@ -80,10 +80,12 @@ export DISPLAY=:97 QT_QPA_PLATFORM=xcb WAYLAND_DISPLAY= XDG_SESSION_TYPE=x11
 
 ```bash
 sudo dnf install -y mingw64-gcc-c++ mingw64-qt6-qtbase mingw64-qt6-qttools mingw64-qt6-qtsvg \
-  mingw64-qt6-qtimageformats mingw64-qt6-qttranslations wine
+  mingw64-qt6-qtimageformats mingw64-qt6-qttranslations wine \
+  mingw32-nsis                               # makensis — для установщика
 cmake -G Ninja -S . -B build-win -DCMAKE_TOOLCHAIN_FILE=cmake/mingw64-fedora.cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build-win
-cmake --build build-win --target package   # → build-win/package/Markpaste-0.1.0-win64-portable.zip
+cmake --build build-win --target package   # → build-win/package/Markpaste-<версия>-win64-portable.zip
+cmake --build build-win --target installer # → build-win/package/Markpaste-<версия>-win64-setup.exe (ADR 0023)
 ```
 
 Тесты под Wine (DLL Qt берутся из sysroot MinGW):
@@ -112,6 +114,9 @@ xdotool mousemove 400 300 click 1; xdotool key Print        # дальше — x
 - **`gtest_discover_tests`** при кросс-сборке не может запустить `.exe` после сборки — режим `PRE_TEST`; тесты запускаем сами через Wine.
 - **Wine ≠ Windows.** DXGI Desktop Duplication в Wine не реализован (`DuplicateOutput: 0x887a0004`) — захват идёт через GDI. В Xvfb dxgi.dll из Wine падает с делением на ноль — там `MARKPASTE_CAPTURE=gdi`. Без оконного менеджера скрытые окна остаются на экране (картинка не обновляется) — запускайте xfwm4. Клавиши (`RegisterHotKey`, хук) Wine видит, только когда фокус в окне Wine.
 - **Размер ZIP — 35 МБ** (каталог 81 МБ): Qt из Fedora тянет ICU (32 МБ), OpenSSL, GLib. Для релиза — официальный Qt (ADR 0017).
+
+- **Установщик (NSIS 3.11, `mingw32-nsis`).** Цель `installer` ставит программу во временный `build-win/installer/stage`, строит по нему список файлов для удаления и вызывает `makensis`. Без `makensis` цели нет (сообщение при настройке cmake). Проверка под Wine в чистом префиксе: `WINEPREFIX=… wine Markpaste-…-setup.exe /S`, удаление — `uninstall.exe /S` из `%LOCALAPPDATA%\Programs\Markpaste`.
+- **`markpaste.exe --version` и `--help` на Windows показывают окно сообщения** (программа без консоли) и ждут нажатия: в скриптах проверки их не вызывать.
 
 ### Проверка в VirtualBox
 

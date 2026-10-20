@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(Markpaste VERSION 0.1.3 LANGUAGES C CXX)
+project(Markpaste VERSION 0.1.4 LANGUAGES C CXX)
 
 # Название и идентификатор — в одном месте: имя проекта рабочее (ТЗ, разд. 14).
 # Идентификатор после релиза не меняется: от него зависят разрешения порталов.
@@ -132,6 +132,7 @@ if(WIN32)
     # Корень Qt для Windows: каталог над lib/cmake/Qt6
     get_filename_component(MARKPASTE_QT_PREFIX "${Qt6_DIR}/../../.." ABSOLUTE)
     include(cmake/WindowsDeploy.cmake)
+    include(cmake/WindowsInstaller.cmake)   # цель installer → Setup.exe (ADR 0023)
 endif()
 
 # --- Пакеты (ТЗ разд. 11): cmake --build <каталог> --target package ---
@@ -149,7 +150,7 @@ set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE)
 set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 set(CPACK_STRIP_FILES ON)
 if(WIN32)
-    # Пока — портативный ZIP. Setup.exe с автообновлением (Velopack) — отдельным шагом (docs/status.md)
+    # Портативный ZIP. Установщик — цель installer (NSIS, ADR 0023); автообновление (Velopack) — позже
     set(CPACK_GENERATOR "ZIP")
     set(CPACK_SYSTEM_NAME "win64")
     set(CPACK_PACKAGE_FILE_NAME "Markpaste-${PROJECT_VERSION}-win64-portable")
