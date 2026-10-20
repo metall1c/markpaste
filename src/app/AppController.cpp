@@ -8,6 +8,7 @@
 #include "platform/Autostart.h"
 #include "platform/WindowRoles.h"
 #include "platform/Memory.h"
+#include "ui/AboutDialog.h"
 #include "ui/CaptureOverlay.h"
 #include "ui/MoveGhost.h"
 #include "ui/PreviewDialog.h"
@@ -103,6 +104,7 @@ void AppController::start()
     connect(m_strip, &StripWindow::settingsRequested, this, &AppController::showSettings);
     connect(m_strip, &StripWindow::previewRequested, this, &AppController::showPreview);
     connect(m_strip, &StripWindow::saveToFolderRequested, this, &AppController::saveSetToFolder);
+    connect(m_strip, &StripWindow::aboutRequested, this, &AppController::showAbout);
     connect(m_strip, &StripWindow::hideRequested, this, [this] {
         m_strip->hide();
         if (!m_tray)
@@ -230,6 +232,8 @@ void AppController::handleCommand(const QString &command)
         showSettings();
     else if (command == u"setup")
         showSetupWizard();
+    else if (command == u"about")
+        showAbout();
     else if (command == u"quit")
         QApplication::quit();
     else if (command.startsWith(u"debug-ghost ")) {
@@ -608,6 +612,27 @@ void AppController::showPreview()
     m_preview->activateWindow();
 }
 
+void AppController::showAbout()
+{
+    // Немодальное, одно на программу: повторный вызов поднимает уже открытое
+    if (!m_about) {
+        AboutInfo info;
+        info.version = QStringLiteral(MARKPASTE_VERSION);
+        info.homepage = QStringLiteral(MARKPASTE_HOMEPAGE_URL);
+        info.environment = m_platform.environment;
+        info.capture = m_platform.capture ? m_platform.capture->name() : QString();
+        info.hotkeys = m_platform.hotkeys ? m_platform.hotkeys->name() : QString();
+        info.clipboard = m_platform.clipboard ? m_platform.clipboard->name() : QString();
+        info.injector = m_platform.injector && m_platform.injector->isAvailable() ? m_platform.injector->name() : QString();
+        m_about = new AboutDialog(info);
+        m_about->setAttribute(Qt::WA_DeleteOnClose);
+        m_about->setWindowIcon(appIcon());
+    }
+    m_about->show();
+    m_about->raise();
+    m_about->activateWindow();
+}
+
 void AppController::saveSetToFolder()
 {
     if (m_model.set().isEmpty())
@@ -655,6 +680,7 @@ void AppController::setupTray()
     menu->addAction(tr("Save to folder…"), this, &AppController::saveSetToFolder);
     menu->addAction(tr("Settings"), this, &AppController::showSettings);
     menu->addAction(tr("Check setup…"), this, &AppController::showSetupWizard);
+    menu->addAction(tr("About Markpaste"), this, &AppController::showAbout);
     menu->addSeparator();
     menu->addAction(tr("Quit"), qApp, &QApplication::quit);
     m_tray->setContextMenu(menu);

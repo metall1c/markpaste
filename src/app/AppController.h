@@ -15,6 +15,7 @@ class QMimeData;
 
 namespace mp {
 
+class AboutDialog;
 class CaptureSession;
 class PreviewDialog;
 class SetupWizard;
@@ -45,6 +46,7 @@ public slots:
     void showSettings();
     void showSetupWizard();   // APP-4: при первом запуске и из меню трея
     void showPreview();       // PST-6
+    void showAbout();
     void saveSetToFolder();   // APP-6
 
 private:
@@ -70,6 +72,7 @@ private:
     QPointer<CaptureSession> m_capture;
     QPointer<SetupWizard> m_wizard;
     QPointer<PreviewDialog> m_preview;
+    QPointer<AboutDialog> m_about;
     UpdateChecker *m_updates = nullptr;
     QTimer *m_saveTimer = nullptr;
     QTimer *m_memoryTimer = nullptr;   // набор пишется на диск не на каждую правку, а через секунду тишины

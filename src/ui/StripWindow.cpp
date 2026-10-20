@@ -464,6 +464,7 @@ StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
     m_saveAction = menu->addAction(tr("Save to folder…"), this, &StripWindow::saveToFolderRequested);
     menu->addSeparator();
     menu->addAction(tr("Settings"), this, &StripWindow::settingsRequested);
+    menu->addAction(tr("About Markpaste"), this, &StripWindow::aboutRequested);
     menuButton->setMenu(menu);
     menuButton->setPopupMode(QToolButton::InstantPopup);
     auto *hideButton = new FlatButton(Icon::Minimize, tr("Hide to tray"));

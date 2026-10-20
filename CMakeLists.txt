@@ -12,6 +12,9 @@ set(MARKPASTE_UPDATE_URL "https://gitlab.525.su/api/v4/projects/che%2Fmain%2Fmar
     CACHE STRING "URL of the latest release JSON (GitLab API); empty disables update checks")
 set(MARKPASTE_RELEASES_URL "https://gitlab.525.su/che/main/markpaste/-/releases"
     CACHE STRING "Releases page shown in the update notification")
+# Страница проекта — в окне «О программе»
+set(MARKPASTE_HOMEPAGE_URL "https://gitlab.525.su/che/main/markpaste"
+    CACHE STRING "Project page shown in the About window")
 set(MARKPASTE_EXECUTABLE "markpaste")
 
 include(GNUInstallDirs)

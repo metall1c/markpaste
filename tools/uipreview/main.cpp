@@ -12,6 +12,7 @@
 #include "app/SettingsDialog.h"
 #include "core/CaptureSetModel.h"
 #include "render/ShotRenderer.h"
+#include "ui/AboutDialog.h"
 #include "ui/Controls.h"
 #include "ui/PreviewDialog.h"
 #include "ui/SetupWizard.h"
@@ -247,6 +248,17 @@ int main(int argc, char **argv)
     wizard.show();
     app.processEvents();
     wizard.grab().save(out + QStringLiteral("/setup-wizard.png"));
+
+    // О программе
+    {
+        AboutInfo info{QStringLiteral("0.1.0"), QStringLiteral("https://gitlab.525.su/che/main/markpaste"),
+                       platform.environment, QStringLiteral("KWin ScreenShot2"), QStringLiteral("XDG GlobalShortcuts"),
+                       QStringLiteral("Wayland data-control"), QStringLiteral("RemoteDesktop portal")};
+        AboutDialog about(info);
+        about.show();
+        app.processEvents();
+        about.grab().save(out + QStringLiteral("/about.png"));
+    }
 
     // Предпросмотр сообщения (PST-6)
     PreviewDialog preview;

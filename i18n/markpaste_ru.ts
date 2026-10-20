@@ -65,6 +65,101 @@
     </message>
 </context>
 <context>
+    <name>mp::AboutDialog</name>
+    <message>
+        <source>About Markpaste</source>
+        <translation>О программе</translation>
+    </message>
+    <message>
+        <source>Version %1</source>
+        <translation>Версия %1</translation>
+    </message>
+    <message>
+        <source>Screenshots with numbered marks and comments — into any chat in one action. An open alternative to Snapik for Linux and Windows.</source>
+        <translation>Снимки экрана с нумерованными метками и комментариями — в любой чат одним действием. Открытый аналог Snapik для Linux и Windows.</translation>
+    </message>
+    <message>
+        <source>Authors</source>
+        <translation>Авторы</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation>Автор</translation>
+    </message>
+    <message>
+        <source>Co-author</source>
+        <translation>Соавтор</translation>
+    </message>
+    <message>
+        <source>Claude Opus 5.5 (Anthropic) — the code and documentation were written together with the AI assistant in Claude Code</source>
+        <translation>Claude Opus 5.5 (Anthropic) — код и документация написаны вместе с ИИ-ассистентом в Claude Code</translation>
+    </message>
+    <message>
+        <source>Program</source>
+        <translation>Программа</translation>
+    </message>
+    <message>
+        <source>License</source>
+        <translation>Лицензия</translation>
+    </message>
+    <message>
+        <source>Source code</source>
+        <translation>Исходный код</translation>
+    </message>
+    <message>
+        <source>Built with</source>
+        <translation>Собрано с</translation>
+    </message>
+    <message>
+        <source>Qt %1 (running on %2)</source>
+        <translation>Qt %1 (работает на %2)</translation>
+    </message>
+    <message>
+        <source>Icons</source>
+        <translation>Значки</translation>
+    </message>
+    <message>
+        <source>Own set; a few outlines follow %1 (ISC)</source>
+        <translation>Свой набор; несколько контуров — по мотивам %1 (ISC)</translation>
+    </message>
+    <message>
+        <source>System</source>
+        <translation>Система</translation>
+    </message>
+    <message>
+        <source>Environment</source>
+        <translation>Окружение</translation>
+    </message>
+    <message>
+        <source>Screen capture</source>
+        <translation>Захват экрана</translation>
+    </message>
+    <message>
+        <source>Hotkeys</source>
+        <translation>Горячие клавиши</translation>
+    </message>
+    <message>
+        <source>Clipboard</source>
+        <translation>Буфер обмена</translation>
+    </message>
+    <message>
+        <source>Ctrl+V emulation</source>
+        <translation>Эмуляция Ctrl+V</translation>
+    </message>
+    <message>
+        <source>Copy details</source>
+        <translation>Скопировать сведения</translation>
+    </message>
+    <message>
+        <source>Version and system — for a bug report</source>
+        <translation>Версия и система — для сообщения об ошибке</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Закрыть</translation>
+    </message>
+</context>
+<context>
     <name>mp::AppController</name>
     <message>
         <source>Paste failed: %1</source>
@@ -165,6 +260,10 @@
     <message>
         <source>Check setup…</source>
         <translation>Проверка настройки…</translation>
+    </message>
+    <message>
+        <source>About Markpaste</source>
+        <translation>О программе</translation>
     </message>
     <message>
         <source>Quit</source>
@@ -1036,6 +1135,10 @@ Drag over the shot to add one.</source>
     <message>
         <source>Clear</source>
         <translation>Очистить</translation>
+    </message>
+    <message>
+        <source>About Markpaste</source>
+        <translation>О программе</translation>
     </message>
     <message>
         <source>New shot</source>

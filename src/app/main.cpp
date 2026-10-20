@@ -52,6 +52,7 @@ int main(int argc, char **argv)
         {QStringLiteral("show"), QStringLiteral("Show the set strip")},
         {QStringLiteral("settings"), QStringLiteral("Open settings")},
         {QStringLiteral("setup"), QStringLiteral("Open the setup check (capture, hotkeys, paste)")},
+        {QStringLiteral("about"), QStringLiteral("Show version and authors")},
         {QStringLiteral("clear"), QStringLiteral("Clear the set")},
         {QStringLiteral("quit"), QStringLiteral("Quit the running instance")},
     };

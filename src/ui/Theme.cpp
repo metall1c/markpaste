@@ -97,6 +97,10 @@ UiColors UiColors::from(const QPalette &palette)
     c.accent = g_accent;
     c.accentFill = badgeFillColor(g_accent);
     c.onAccent = Qt::white;
+    // Ссылки — цветом акцента, осветлённым или затемнённым до читаемого на фоне окна
+    c.link = c.accent;
+    for (int i = 0; i < 20 && contrastRatio(c.link, window) < 4.5; ++i)
+        c.link = c.dark ? mixColors(c.link, Qt::white, 0.15) : mixColors(c.link, Qt::black, 0.15);
     c.success = c.dark ? QColor(0x5c, 0xc9, 0x8a) : QColor(0x1e, 0x7d, 0x3c);
     c.warning = c.dark ? QColor(0xf0, 0xb4, 0x4c) : QColor(0x9a, 0x5b, 0x00);
     c.danger = c.dark ? QColor(0xff, 0x7a, 0x70) : QColor(0xc0, 0x36, 0x2c);
@@ -109,6 +113,8 @@ void useAccentSelection(QWidget *window)
     QPalette pal = window->palette();
     pal.setColor(QPalette::Highlight, c.accentFill);
     pal.setColor(QPalette::HighlightedText, c.onAccent);
+    pal.setColor(QPalette::Link, c.link);
+    pal.setColor(QPalette::LinkVisited, c.link);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
     pal.setColor(QPalette::Accent, c.accentFill);   // флажки стиля Windows 11
 #endif

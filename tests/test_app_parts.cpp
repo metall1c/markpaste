@@ -1,11 +1,14 @@
 #include "TestUtil.h"
 #include "app/LogFile.h"
 #include "app/UpdateChecker.h"
+#include "ui/AboutDialog.h"
 #include "ui/PreviewDialog.h"
 
 #include <QFile>
 #include <QTemporaryDir>
 #include <QTest>
+
+#include <QLabel>
 
 #include <gtest/gtest.h>
 
@@ -78,4 +81,24 @@ TEST(PreviewDialog, ShowsImagesAndTextInPasteOrder)
     dlg.showSet(set, opt);
     ASSERT_TRUE(QTest::qWaitFor([&] { return dlg.isReady(); }, 5000));
     EXPECT_EQ(dlg.imageCount(), 2);
+}
+
+TEST(AboutDialog, DetailsCarryVersionAndSystem)
+{
+    AboutInfo info{QStringLiteral("9.8.7"), QStringLiteral("https://example.org/markpaste"), QStringLiteral("Test env"),
+                   QStringLiteral("Cap"), QStringLiteral("Keys"), QStringLiteral("Clip"), QString()};
+    AboutDialog dlg(info);
+    const QString d = dlg.details();
+    EXPECT_TRUE(d.startsWith(QStringLiteral("Markpaste 9.8.7\n")));
+    EXPECT_TRUE(d.contains(QStringLiteral("Environment: Test env")));
+    EXPECT_TRUE(d.contains(QStringLiteral("Capture: Cap")));
+    EXPECT_TRUE(d.contains(QStringLiteral("Qt ")));
+    // В окне — автор и ссылка на исходный код
+    bool author = false, homepage = false;
+    for (QLabel *l : dlg.findChildren<QLabel *>()) {
+        author |= l->text() == QStringLiteral("Andrey Che");
+        homepage |= l->text().contains(QStringLiteral("https://example.org/markpaste"));
+    }
+    EXPECT_TRUE(author);
+    EXPECT_TRUE(homepage);
 }

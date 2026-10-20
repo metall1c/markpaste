@@ -27,6 +27,7 @@ add_library(markpaste_ui STATIC
     ui/PreviewDialog.h ui/PreviewDialog.cpp
     ui/Theme.h ui/Theme.cpp
     ui/Controls.h ui/Controls.cpp
+    ui/AboutDialog.h ui/AboutDialog.cpp
 )
 target_link_libraries(markpaste_ui PUBLIC markpaste_core markpaste_platform Qt6::Widgets Qt6::Svg)
 # Значки интерфейса: :/icons/ui/<имя>.svg
@@ -54,7 +55,8 @@ target_compile_definitions(markpaste PRIVATE
     MARKPASTE_APP_ID="${MARKPASTE_APP_ID}"
     MARKPASTE_VERSION="${PROJECT_VERSION}"
     MARKPASTE_UPDATE_URL="${MARKPASTE_UPDATE_URL}"
-    MARKPASTE_RELEASES_URL="${MARKPASTE_RELEASES_URL}")
+    MARKPASTE_RELEASES_URL="${MARKPASTE_RELEASES_URL}"
+    MARKPASTE_HOMEPAGE_URL="${MARKPASTE_HOMEPAGE_URL}")
 install(TARGETS markpaste RUNTIME DESTINATION ${MARKPASTE_INSTALL_BINDIR})
 
 if(WIN32)

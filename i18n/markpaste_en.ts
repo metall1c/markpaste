@@ -65,6 +65,101 @@
     </message>
 </context>
 <context>
+    <name>mp::AboutDialog</name>
+    <message>
+        <source>About Markpaste</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Version %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Screenshots with numbered marks and comments — into any chat in one action. An open alternative to Snapik for Linux and Windows.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Authors</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Co-author</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Claude Opus 5.5 (Anthropic) — the code and documentation were written together with the AI assistant in Claude Code</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Program</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>License</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Source code</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Built with</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Qt %1 (running on %2)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Icons</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Own set; a few outlines follow %1 (ISC)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>System</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Environment</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Screen capture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hotkeys</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clipboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Ctrl+V emulation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy details</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Version and system — for a bug report</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>mp::AppController</name>
     <message>
         <source>Paste failed: %1</source>
@@ -164,6 +259,10 @@
     </message>
     <message>
         <source>Check setup…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>About Markpaste</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1031,6 +1130,10 @@ Drag over the shot to add one.</source>
     </message>
     <message>
         <source>Clear</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>About Markpaste</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

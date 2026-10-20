@@ -64,6 +64,7 @@ signals:
     void settingsRequested();
     void previewRequested();        // PST-6
     void saveToFolderRequested();   // APP-6
+    void aboutRequested();
     void hideRequested();   // «свернуть в трей»
 
 protected:
