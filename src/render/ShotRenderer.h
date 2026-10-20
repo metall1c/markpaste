@@ -16,7 +16,13 @@ struct RenderStyle {
     QColor accent = QColor(0xFF, 0x5A, 0x1F);   // ТЗ разд. 10
     qreal frameWidth = 2.0;                    // рамка и линия карандаша
     qreal arrowWidth = 2.0;                    // древко стрелки; наконечник — от него
-    qreal outlineWidth = 1.0;
+    qreal outlineWidth = 1.0;                  // белое кольцо значка номера
+    // Кайма линий меток: тонкая тёмная полупрозрачная полоса под цветной линией, чтобы метка
+    // читалась на фоне своего цвета и на светлом снимке; на тёмном почти не видна.
+    // Отключается в настройках (docs/decisions/0021-mark-halo.md)
+    bool halo = true;
+    qreal haloWidth = 1.0;                     // логические px с каждой стороны линии
+    QColor haloColor = QColor(0, 0, 0, 115);
     qreal badgeDiameter = 28.0;
     int pixelBlock = 12;                       // EDT-6
     bool captions = false;                     // EDT-10: комментарий подписью рядом со значком

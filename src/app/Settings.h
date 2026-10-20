@@ -33,6 +33,7 @@ struct Settings {
     QString outro;
     bool textBeforeImages = false;
     bool captionsOnImage = false;      // EDT-10: комментарии подписями на картинке
+    bool markHalo = true;              // тёмная кайма линий меток (ADR 0021)
 
     // Вид и картинки
     QColor accent = QColor(0xFF, 0x5A, 0x1F);

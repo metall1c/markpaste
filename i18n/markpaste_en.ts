@@ -515,6 +515,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Thin dark edge around mark lines</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keeps a mark visible on a background of its own color and on light shots</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source> px</source>
         <translation type="unfinished"></translation>
     </message>

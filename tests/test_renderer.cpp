@@ -168,7 +168,7 @@ TEST(Renderer, FrameShapes)
         s.marks.append(Mark{QUuid::createUuid(), QRect(10 + i * 80, 10, 60, 40), {}, MarkShape::Rect, {},
                             MarkPen{QColor(Qt::blue), 4, LineStyle::Solid, frames[i]}});
     RenderStyle style;
-    style.outlineWidth = 0;
+    style.halo = false;
     style.badgeDiameter = 1;   // значки не должны закрывать проверяемые углы
     const QImage out = renderShot(s, 0, style);
     const QRgb blue = QColor(Qt::blue).rgb();
@@ -179,6 +179,31 @@ TEST(Renderer, FrameShapes)
         const bool cornerPainted = out.pixelColor(left + 60 - 2, 10 + 40 - 2).rgb() == blue;
         EXPECT_EQ(cornerPainted, frames[i] == FrameShape::Rect) << "corner of frame " << i;
     }
+}
+
+TEST(Renderer, HaloIsDarkTranslucentAndOptional)
+{
+    // Белый снимок, синяя рамка толщиной 4: снаружи линии — затемнение (кайма), а не белое;
+    // без каймы — чисто белое. Цвет самой линии кайма не меняет.
+    Shot s = makeShot(200, 100);
+    s.sourcePng = toPng([] {
+        QImage img(200, 100, QImage::Format_ARGB32);
+        img.fill(Qt::white);
+        return img;
+    }());
+    s.marks.append(Mark{QUuid::createUuid(), QRect(100, 20, 80, 60), {}, MarkShape::Rect, {},
+                        MarkPen{QColor(Qt::blue), 4, LineStyle::Solid}});
+    RenderStyle style;
+    style.badgeDiameter = 1;
+    const QImage with = renderShot(s, 0, style);
+    // Правая сторона: линия занимает x 176…179, кайма — x 175 внутри и 180 снаружи рамки
+    EXPECT_EQ(with.pixelColor(178, 50).rgb(), QColor(Qt::blue).rgb());
+    const QColor edge = with.pixelColor(175, 50);
+    EXPECT_LT(edge.lightness(), 220);
+    EXPECT_GT(edge.lightness(), 60);   // полупрозрачная: не чёрная
+    style.halo = false;
+    const QImage without = renderShot(s, 0, style);
+    EXPECT_EQ(without.pixelColor(175, 50).rgb(), QColor(Qt::white).rgb());
 }
 
 TEST(Renderer, OvalBadgeSitsOnTheOval)

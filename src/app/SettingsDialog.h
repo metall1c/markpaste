@@ -50,6 +50,7 @@ private:
     QCheckBox *m_autostart = nullptr;
     QCheckBox *m_hideEmpty;
     QCheckBox *m_captions;
+    QCheckBox *m_halo;
     QSpinBox *m_badgeSize;
     QComboBox *m_uiLanguage;
     QSpinBox *m_maxSide;

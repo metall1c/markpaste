@@ -28,6 +28,7 @@ Settings Settings::load()
     s.outro = q.value(QStringLiteral("message/outro")).toString();
     s.textBeforeImages = q.value(QStringLiteral("message/textBeforeImages"), d.textBeforeImages).toBool();
     s.captionsOnImage = q.value(QStringLiteral("message/captionsOnImage"), d.captionsOnImage).toBool();
+    s.markHalo = q.value(QStringLiteral("appearance/markHalo"), d.markHalo).toBool();
     s.accent = QColor(q.value(QStringLiteral("appearance/accent"), d.accent.name()).toString());
     if (!s.accent.isValid())
         s.accent = d.accent;
@@ -66,6 +67,7 @@ void Settings::save() const
     q.setValue(QStringLiteral("message/outro"), outro);
     q.setValue(QStringLiteral("message/textBeforeImages"), textBeforeImages);
     q.setValue(QStringLiteral("message/captionsOnImage"), captionsOnImage);
+    q.setValue(QStringLiteral("appearance/markHalo"), markHalo);
     q.setValue(QStringLiteral("appearance/accent"), accent.name());
     q.setValue(QStringLiteral("strip/hideWhenEmpty"), hideStripWhenEmpty);
     q.setValue(QStringLiteral("appearance/badgeSize"), badgeSize);
@@ -109,6 +111,7 @@ RenderStyle Settings::renderStyle() const
     st.accent = accent;
     st.badgeDiameter = badgeSize;
     st.captions = captionsOnImage;
+    st.halo = markHalo;
     return st;
 }
 

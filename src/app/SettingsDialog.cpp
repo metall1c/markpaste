@@ -189,6 +189,10 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     accentLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     lf->addRow(accentLabel, accentRow);
     lf->addRow(noteLabel(tr("The same color marks the selected tool, the main buttons and the shot letters.")));
+    m_halo = new QCheckBox(tr("Thin dark edge around mark lines"));
+    m_halo->setToolTip(tr("Keeps a mark visible on a background of its own color and on light shots"));
+    m_halo->setChecked(settings.markHalo);
+    lf->addRow(m_halo);
     m_badgeSize = new QSpinBox;
     m_badgeSize->setRange(16, 48);
     m_badgeSize->setSuffix(tr(" px"));
@@ -333,6 +337,7 @@ Settings SettingsDialog::settings() const
     s.accent = m_accentColor;
     s.hideStripWhenEmpty = m_hideEmpty->isChecked();
     s.captionsOnImage = m_captions->isChecked();
+    s.markHalo = m_halo->isChecked();
     s.badgeSize = m_badgeSize->value();
     s.uiLanguage = m_uiLanguage->currentData().toString();
     s.maxLongSide = m_maxSide->value();

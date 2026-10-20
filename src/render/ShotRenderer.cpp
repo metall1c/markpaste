@@ -147,6 +147,13 @@ static QPen strokePen(const QColor &color, qreal penWidth, qreal w, LineStyle li
     return pen;
 }
 
+// Кайма линий (RenderStyle::halo) в физических пикселях снимка
+struct Halo {
+    QColor color;
+    qreal width = 0;
+    bool on() const { return width > 0; }
+};
+
 // Контур рамки по её форме (прямоугольник, скруглённый, овал). Линия — внутри rect:
 // рамка любой формы не выходит за охватывающий прямоугольник, который видит редактор.
 QPainterPath frameOutline(const QRectF &rect, FrameShape frame, qreal lineWidth, qreal dpr)
@@ -170,14 +177,16 @@ QPainterPath frameOutline(const QRectF &rect, FrameShape frame, qreal lineWidth,
     return path;
 }
 
-static void drawRectMark(QPainter &p, const Mark &m, const QColor &color, qreal fw, qreal ow, qreal dpr)
+static void drawRectMark(QPainter &p, const Mark &m, const QColor &color, qreal fw, const Halo &halo, qreal dpr)
 {
     const QPainterPath path = frameOutline(QRectF(m.rect), m.pen.frame, fw, dpr);
     // У прямоугольника углы острые, у скруглённого и овала стыки — круглые
     const Qt::PenJoinStyle join = m.pen.frame == FrameShape::Rect ? Qt::MiterJoin : Qt::RoundJoin;
     p.setBrush(Qt::NoBrush);
-    p.setPen(strokePen(Qt::white, fw + 2 * ow, fw, m.pen.line, Qt::SquareCap, join));
-    p.drawPath(path);
+    if (halo.on()) {
+        p.setPen(strokePen(halo.color, fw + 2 * halo.width, fw, m.pen.line, Qt::SquareCap, join));
+        p.drawPath(path);
+    }
     p.setPen(strokePen(color, fw, fw, m.pen.line, Qt::SquareCap, join));
     p.drawPath(path);
 }
@@ -188,7 +197,7 @@ static QPointF pixelCenter(const QPoint &p)
     return QPointF(p) + QPointF(0.5, 0.5);
 }
 
-static void drawArrowMark(QPainter &p, const Mark &m, const QColor &accent, qreal w, qreal ow, qreal dpr)
+static void drawArrowMark(QPainter &p, const Mark &m, const QColor &accent, qreal w, const Halo &halo, qreal dpr)
 {
     if (m.points.size() != 2)
         return;
@@ -211,11 +220,15 @@ static void drawArrowMark(QPainter &p, const Mark &m, const QColor &accent, qrea
     const QPointF shaftEnd = base + dir * (headLength * 0.3);
 
     // Наконечник всегда сплошной: пунктирный треугольник не читается как остриё
-    p.setPen(strokePen(Qt::white, w + 2 * ow, w, m.pen.line, Qt::RoundCap, Qt::RoundJoin));
-    p.drawLine(tail, shaftEnd);
-    p.setPen(QPen(Qt::white, 2 * ow, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
-    p.setBrush(Qt::white);
-    p.drawPolygon(head);
+    if (halo.on()) {
+        // Кайма наконечника — только контуром: полупрозрачная заливка под ним дала бы
+        // двойное затемнение по краю
+        p.setPen(strokePen(halo.color, w + 2 * halo.width, w, m.pen.line, Qt::RoundCap, Qt::RoundJoin));
+        p.drawLine(tail, shaftEnd);
+        p.setPen(QPen(halo.color, 2 * halo.width, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+        p.setBrush(Qt::NoBrush);
+        p.drawPolygon(head);
+    }
 
     p.setPen(strokePen(accent, w, w, m.pen.line, Qt::RoundCap, Qt::RoundJoin));
     p.drawLine(tail, shaftEnd);
@@ -245,12 +258,14 @@ static QPainterPath smoothPath(const QList<QPoint> &points)
     return path;
 }
 
-static void drawFreehandMark(QPainter &p, const Mark &m, const QColor &accent, qreal fw, qreal ow)
+static void drawFreehandMark(QPainter &p, const Mark &m, const QColor &accent, qreal fw, const Halo &halo)
 {
     const QPainterPath path = smoothPath(m.points);
     p.setBrush(Qt::NoBrush);
-    p.setPen(strokePen(Qt::white, fw + 2 * ow, fw, m.pen.line, Qt::RoundCap, Qt::RoundJoin));
-    p.drawPath(path);
+    if (halo.on()) {
+        p.setPen(strokePen(halo.color, fw + 2 * halo.width, fw, m.pen.line, Qt::RoundCap, Qt::RoundJoin));
+        p.drawPath(path);
+    }
     p.setPen(strokePen(accent, fw, fw, m.pen.line, Qt::RoundCap, Qt::RoundJoin));
     p.drawPath(path);
 }
@@ -258,7 +273,8 @@ static void drawFreehandMark(QPainter &p, const Mark &m, const QColor &accent, q
 // Кольцо точки-маркера вокруг её значка: значок и есть метка, кольцо отличает её от значков
 // других форм и несёт цвет, толщину и тип линии пера. Центр — центр значка: у края снимка
 // значок сдвигается внутрь (EDT-3), кольцо — вместе с ним.
-static void drawPointRing(QPainter &p, const Mark &m, const QRectF &badge, const QColor &color, qreal w, qreal ow)
+static void drawPointRing(QPainter &p, const Mark &m, const QRectF &badge, const QColor &color, qreal w, qreal ow,
+                          const Halo &halo)
 {
     // Зазор в толщину линии между значком и кольцом; у значка «A10» кольцо — вытянутое, как он сам
     const qreal grow = ow + w / 2 + w;
@@ -266,8 +282,10 @@ static void drawPointRing(QPainter &p, const Mark &m, const QRectF &badge, const
     QPainterPath path;
     path.addRoundedRect(ring, ring.height() / 2, ring.height() / 2);
     p.setBrush(Qt::NoBrush);
-    p.setPen(strokePen(Qt::white, w + 2 * ow, w, m.pen.line, Qt::RoundCap, Qt::RoundJoin));
-    p.drawPath(path);
+    if (halo.on()) {
+        p.setPen(strokePen(halo.color, w + 2 * halo.width, w, m.pen.line, Qt::RoundCap, Qt::RoundJoin));
+        p.drawPath(path);
+    }
     p.setPen(strokePen(color, w, w, m.pen.line, Qt::RoundCap, Qt::RoundJoin));
     p.drawPath(path);
 }
@@ -319,6 +337,7 @@ void paintMarks(QPainter &p, const Shot &shot, int shotIndex, const RenderStyle 
 {
     const qreal dpr = shot.devicePixelRatio > 0 ? shot.devicePixelRatio : 1.0;
     const qreal ow = style.outlineWidth * dpr;
+    const Halo halo{style.haloColor, style.halo ? style.haloWidth * dpr : 0.0};
     p.save();
     p.setRenderHint(QPainter::Antialiasing);
     p.setRenderHint(QPainter::TextAntialiasing);
@@ -328,13 +347,13 @@ void paintMarks(QPainter &p, const Shot &shot, int shotIndex, const RenderStyle 
         const qreal w = markWidth(m, style) * dpr;
         switch (m.shape) {
         case MarkShape::Rect:
-            drawRectMark(p, m, color, w, ow, dpr);
+            drawRectMark(p, m, color, w, halo, dpr);
             break;
         case MarkShape::Arrow:
-            drawArrowMark(p, m, color, w, ow, dpr);
+            drawArrowMark(p, m, color, w, halo, dpr);
             break;
         case MarkShape::Freehand:
-            drawFreehandMark(p, m, color, w, ow);
+            drawFreehandMark(p, m, color, w, halo);
             break;
         case MarkShape::Point:
             break;   // точка — это её значок, рисуется ниже
@@ -349,7 +368,7 @@ void paintMarks(QPainter &p, const Shot &shot, int shotIndex, const RenderStyle 
                                                                                   : QPointF(m.badgeAnchor());
         const QRectF badge = drawBadge(p, markLabel(shotIndex, i), anchor, bounds, markColor(m, style), style, dpr);
         if (m.shape == MarkShape::Point)
-            drawPointRing(p, m, badge, markColor(m, style), markWidth(m, style) * dpr, ow);
+            drawPointRing(p, m, badge, markColor(m, style), markWidth(m, style) * dpr, ow, halo);
         badges << badge;
     }
     // Подписи — поверх всего: их задача — читаться

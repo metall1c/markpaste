@@ -516,6 +516,14 @@
         <translation>Этим же цветом выделены выбранный инструмент, главные кнопки и буквы снимков.</translation>
     </message>
     <message>
+        <source>Thin dark edge around mark lines</source>
+        <translation>Тонкая тёмная кайма вокруг линий меток</translation>
+    </message>
+    <message>
+        <source>Keeps a mark visible on a background of its own color and on light shots</source>
+        <translation>Метка видна и на фоне своего цвета, и на светлом снимке</translation>
+    </message>
+    <message>
         <source> px</source>
         <translation> px</translation>
     </message>
