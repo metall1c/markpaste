@@ -41,7 +41,7 @@ sudo dnf install ./build-pkg/markpaste-0.1.0-1.fc44.x86_64.rpm
 - Проверка: `rpmlint build-pkg/*.rpm` — 0 ошибок, одно предупреждение (нет man-страницы); `desktop-file-validate`, `appstreamcli validate --no-net` — без замечаний.
 - **.deb** включается автоматически, если есть `dpkg-shlibdeps` (собирать на Ubuntu/Debian). На Fedora собирается только rpm и tar.gz. На Ubuntu 24.04 пока не проверено.
 - **Проверка новой версии** (ADR 0014) ходит по `MARKPASTE_UPDATE_URL` (по умолчанию — API последнего релиза на gitlab.525.su). Сборкам дистрибутивов, которые обновляются своим путём, — `-DMARKPASTE_UPDATE_URL=` (пусто): проверки нет. Страница в уведомлении — `MARKPASTE_RELEASES_URL`.
-- **Разработчику:** `~/.local/share/applications/su._525.Markpaste.desktop` от `dev-install-desktop` важнее системного из пакета (каталог пользователя ищется первым) и указывает на `build/`. Чтобы проверить установленный пакет, этот файл надо удалить.
+- **Разработчику:** `~/.local/share/applications/su._525.Markpaste.desktop` от `dev-install-desktop` важнее системного из пакета (каталог пользователя ищется первым) и указывает на `build/`. Чтобы проверить установленный пакет, этот файл (и значок в `~/.local/share/icons/hicolor/scalable/apps/`) надо удалить.
 
 ## Проверка под Sway без отдельной системы
 
@@ -88,7 +88,7 @@ export DISPLAY=:97 QT_QPA_PLATFORM=xcb WAYLAND_DISPLAY= XDG_SESSION_TYPE=x11
 
 ## Подводные камни
 
-- **.desktop-файл нужен уже при разработке.** Без него портал отвечает «App info not found» на регистрацию app id, а KWin не пускает к ScreenShot2. Цель `dev-install-desktop` ставит `~/.local/share/applications/su._525.Markpaste.desktop` с `Exec` на бинарник из `build/` и обновляет кэш KDE (`kbuildsycoca6`). Бинарник из `Exec` должен существовать, иначе GLib отбрасывает файл (docs/problems.md).
+- **.desktop-файл нужен уже при разработке.** Без него портал отвечает «App info not found» на регистрацию app id, а KWin не пускает к ScreenShot2. Цель `dev-install-desktop` ставит `~/.local/share/applications/su._525.Markpaste.desktop` с `Exec` на бинарник из `build/` и значок `~/.local/share/icons/hicolor/scalable/apps/su._525.Markpaste.svg` (до 2026-10-20 значок ставил только пакет — у ярлыка разработчика его не было) и обновляет кэш KDE (`kbuildsycoca6`). Бинарник из `Exec` должен существовать, иначе GLib отбрасывает файл (docs/problems.md).
 - **Логи.** Когда stderr — не терминал, Qt пишет в journald. Для разработки:
   `QT_FORCE_STDERR_LOGGING=1 QT_LOGGING_RULES="markpaste.*=true" ./build/src/app/markpaste`.
   Без перенаправления лог — в `journalctl --user -f`.

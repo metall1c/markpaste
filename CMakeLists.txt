@@ -105,8 +105,13 @@ if(MARKPASTE_LINUX)
         COMMAND ${CMAKE_COMMAND} -E make_directory $ENV{HOME}/.local/share/applications
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/dev/${MARKPASTE_APP_ID}.desktop
                 $ENV{HOME}/.local/share/applications/${MARKPASTE_APP_ID}.desktop
+        # Значок по имени app id — как его ставит пакет, только в каталог пользователя
+        COMMAND ${CMAKE_COMMAND} -E make_directory $ENV{HOME}/.local/share/icons/hicolor/scalable/apps
+        COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/data/icons/app.svg
+                $ENV{HOME}/.local/share/icons/hicolor/scalable/apps/${MARKPASTE_APP_ID}.svg
+        COMMAND sh -c "command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q -t $ENV{HOME}/.local/share/icons/hicolor || true"
         COMMAND sh -c "command -v kbuildsycoca6 >/dev/null && kbuildsycoca6 --noincremental >/dev/null 2>&1 || true"
-        COMMENT "Installing dev .desktop file into ~/.local/share/applications"
+        COMMENT "Installing dev .desktop file and icon into ~/.local/share"
         VERBATIM)
 endif()
 
