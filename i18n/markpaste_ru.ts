@@ -271,6 +271,10 @@
         <translation>Настройки Markpaste</translation>
     </message>
     <message>
+        <source>not assigned</source>
+        <translation>не назначена</translation>
+    </message>
+    <message>
         <source>Capture:</source>
         <translation>Захват:</translation>
     </message>
@@ -279,14 +283,16 @@
         <translation>Вставка набора:</translation>
     </message>
     <message>
-        <source>Format: Primary+Alt+V, Print. Primary is Ctrl on Windows and Linux.
-On Wayland the program only suggests a shortcut — the desktop assigns it and lets you change it in its own settings.</source>
-        <translation>Формат: Primary+Alt+V, Print. Primary — это Ctrl в Windows и Linux.
-На Wayland программа только предлагает сочетание — назначает его окружение, поменять можно в его настройках.</translation>
+        <source>Shortcuts are assigned by the desktop. Change them with the button below or in the system shortcut settings.</source>
+        <translation>Сочетания назначает рабочий стол. Изменить их можно кнопкой ниже или в системных настройках комбинаций клавиш.</translation>
     </message>
     <message>
-        <source>Open system shortcut settings</source>
-        <translation>Открыть системные настройки клавиш</translation>
+        <source>Format: Primary+Alt+V, Print. Primary is Ctrl on Windows and Linux.</source>
+        <translation>Формат: Primary+Alt+V, Print. Primary — это Ctrl в Windows и Linux.</translation>
+    </message>
+    <message>
+        <source>Change shortcuts…</source>
+        <translation>Изменить сочетания…</translation>
     </message>
     <message>
         <source>Confirm the area on mouse release (otherwise — Enter)</source>

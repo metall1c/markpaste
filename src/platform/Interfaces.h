@@ -37,11 +37,16 @@ public:
     // Сочетания назначает система (Wayland): открыть её настройки клавиш программы.
     virtual bool canOpenSystemSettings() const { return false; }
     virtual void openSystemSettings() {}
+    // true — сочетание из настроек программы только предлагается при первой привязке, а дальше
+    // его хранит и меняет система (портал GlobalShortcuts). Поле в настройках тогда только для чтения.
+    virtual bool systemAssignsTriggers() const { return false; }
     virtual QString name() const = 0;
 
 signals:
     void activated(mp::Action action, const mp::ActivationContext &ctx);
     void released(mp::Action action);
+    // Пользователь поменял сочетание в настройках системы
+    void triggerChanged(mp::Action action, const QString &trigger);
 };
 
 class IClipboard : public QObject

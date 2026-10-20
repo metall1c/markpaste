@@ -271,6 +271,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>not assigned</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Capture:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -279,12 +283,15 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Format: Primary+Alt+V, Print. Primary is Ctrl on Windows and Linux.
-On Wayland the program only suggests a shortcut — the desktop assigns it and lets you change it in its own settings.</source>
+        <source>Shortcuts are assigned by the desktop. Change them with the button below or in the system shortcut settings.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Open system shortcut settings</source>
+        <source>Format: Primary+Alt+V, Print. Primary is Ctrl on Windows and Linux.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Change shortcuts…</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

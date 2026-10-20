@@ -18,7 +18,10 @@ class SettingsDialog : public QDialog
 {
     Q_OBJECT
 public:
-    SettingsDialog(const Settings &settings, const Platform &platform, QWidget *parent = nullptr);
+    // boundTriggers — фактические сочетания от системы; показываются вместо своих, если
+    // сочетания назначает система (IHotkeys::systemAssignsTriggers)
+    SettingsDialog(const Settings &settings, const Platform &platform,
+                   const QHash<Action, QString> &boundTriggers = {}, QWidget *parent = nullptr);
     Settings settings() const;
     // Автозапуск хранится не в настройках, а файлом в ~/.config/autostart: его видит и система
     bool autostart() const;
@@ -27,6 +30,7 @@ private:
     Settings m_settings;
     QLineEdit *m_captureKey;
     QLineEdit *m_pasteKey;
+    bool m_systemKeys = false;
     QCheckBox *m_quick;
     QCheckBox *m_clearOnNext;
     QComboBox *m_mode;

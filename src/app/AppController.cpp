@@ -27,6 +27,14 @@ Q_LOGGING_CATEGORY(lcApp, "markpaste.app")
 
 namespace mp {
 
+// Флаги «уже показано». Раньше хранились в группе «general»: QSettings пишет её в INI как
+// [%General] и при следующем запуске читает как «General» — ключ с маленькой буквы не
+// находился, и мастер открывался каждый раз (docs/problems.md). Старые значения тоже учитываем.
+static bool onceFlag(const QSettings &s, const QString &name)
+{
+    return s.value(QStringLiteral("once/") + name).toBool() || s.value(QStringLiteral("General/") + name).toBool();
+}
+
 AppController::AppController(QObject *parent)
     : QObject(parent)
 {
@@ -83,8 +91,8 @@ void AppController::start()
             return;
         // Подсказать один раз, куда делась лента
         QSettings s;
-        if (!s.value(QStringLiteral("general/hideHintShown")).toBool()) {
-            s.setValue(QStringLiteral("general/hideHintShown"), true);
+        if (!onceFlag(s, QStringLiteral("hideHintShown"))) {
+            s.setValue(QStringLiteral("once/hideHintShown"), true);
             m_tray->showMessage(QStringLiteral("Markpaste"), tr("The strip is in the tray. Click the tray icon to show it."),
                                 appIcon(), 5000);
         }
@@ -125,6 +133,11 @@ void AppController::start()
             case Action::NewShot: capture(); break;
             case Action::ClearSet: clearSet(); break;
             }
+        });
+        connect(m_platform.hotkeys.get(), &IHotkeys::triggerChanged, this, [this](Action a, const QString &trigger) {
+            m_boundTriggers.insert(a, trigger);
+            if (m_wizard)
+                m_wizard->setTriggers(m_boundTriggers);
         });
         connect(m_platform.hotkeys.get(), &IHotkeys::released, this, [this](Action a) {
             if (a == Action::PasteSet)
@@ -200,16 +213,16 @@ void AppController::handleStartup(const QString &command)
 {
     // Обычный запуск (в том числе автозапуск): пустой набор — только значок в трее
     QSettings s;
-    if (command == u"show" && !s.value(QStringLiteral("general/setupShown")).toBool()) {
+    if (command == u"show" && !onceFlag(s, QStringLiteral("setupShown"))) {
         // Первый запуск — мастер проверки вместо уведомления (APP-4)
-        s.setValue(QStringLiteral("general/setupShown"), true);
-        s.setValue(QStringLiteral("general/welcomeShown"), true);
+        s.setValue(QStringLiteral("once/setupShown"), true);
+        s.setValue(QStringLiteral("once/welcomeShown"), true);
         showSetupWizard();
         return;
     }
     if (command == u"show" && m_tray && m_model.set().isEmpty()) {
-        if (!s.value(QStringLiteral("general/welcomeShown")).toBool()) {
-            s.setValue(QStringLiteral("general/welcomeShown"), true);
+        if (!onceFlag(s, QStringLiteral("welcomeShown"))) {
+            s.setValue(QStringLiteral("once/welcomeShown"), true);
             const QString key = m_boundTriggers.value(Action::Capture, m_settings.captureHotkey);
             m_tray->showMessage(QStringLiteral("Markpaste"),
                                 tr("Markpaste is in the tray. Press %1 to capture an area.").arg(key), appIcon(), 6000);
@@ -406,7 +419,7 @@ void AppController::showStrip()
 
 void AppController::showSettings()
 {
-    SettingsDialog dlg(m_settings, m_platform);
+    SettingsDialog dlg(m_settings, m_platform, m_boundTriggers);
     if (dlg.exec() != QDialog::Accepted)
         return;
     const Settings old = m_settings;

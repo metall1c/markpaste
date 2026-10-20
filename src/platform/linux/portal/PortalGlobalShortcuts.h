@@ -2,6 +2,7 @@
 
 #include "platform/Interfaces.h"
 
+#include <QDBusMessage>
 #include <QDBusObjectPath>
 #include <QHash>
 
@@ -31,6 +32,7 @@ public:
     // Системные настройки клавиш программы (портал v2, ConfigureShortcuts)
     bool canOpenSystemSettings() const override;
     void openSystemSettings() override;
+    bool systemAssignsTriggers() const override { return true; }
 
     static QString shortcutId(Action action);
     static bool actionFromId(const QString &id, Action *action);
@@ -40,6 +42,7 @@ public:
 private slots:
     void onActivated(const QDBusObjectPath &session, const QString &id, qulonglong timestamp, const QVariantMap &options);
     void onDeactivated(const QDBusObjectPath &session, const QString &id, qulonglong timestamp, const QVariantMap &options);
+    void onShortcutsChanged(const QDBusMessage &message);
 
 private:
     QFuture<Status> ensureSession();

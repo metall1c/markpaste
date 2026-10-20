@@ -55,6 +55,8 @@ PortalGlobalShortcuts::PortalGlobalShortcuts(QObject *parent)
                 SLOT(onActivated(QDBusObjectPath, QString, qulonglong, QVariantMap)));
     bus.connect(PortalBus::kService, PortalBus::kPath, kIface, QStringLiteral("Deactivated"), this,
                 SLOT(onDeactivated(QDBusObjectPath, QString, qulonglong, QVariantMap)));
+    bus.connect(PortalBus::kService, PortalBus::kPath, kIface, QStringLiteral("ShortcutsChanged"), this,
+                SLOT(onShortcutsChanged(QDBusMessage)));
 }
 
 PortalGlobalShortcuts::~PortalGlobalShortcuts()
@@ -221,6 +223,25 @@ void PortalGlobalShortcuts::onActivated(const QDBusObjectPath &session, const QS
     ActivationContext ctx;
     ctx.activationToken = options.value(QStringLiteral("activation_token")).toString();
     emit activated(a, ctx);
+}
+
+void PortalGlobalShortcuts::onShortcutsChanged(const QDBusMessage &message)
+{
+    // ShortcutsChanged(o session_handle, a(sa{sv}) shortcuts): пользователь поменял сочетание
+    // в настройках системы (в KDE — «Комбинации клавиш» или диалог ConfigureShortcuts)
+    const QList<QVariant> args = message.arguments();
+    if (args.size() < 2 || args[0].value<QDBusObjectPath>().path() != m_session)
+        return;
+    PortalShortcutList list;
+    args[1].value<QDBusArgument>() >> list;
+    for (const PortalShortcut &sc : list) {
+        Action a;
+        if (!actionFromId(sc.id, &a))
+            continue;
+        const QString trigger = sc.properties.value(QStringLiteral("trigger_description")).toString();
+        qCInfo(lcPortal) << "shortcut" << sc.id << "changed to" << (trigger.isEmpty() ? QStringLiteral("<none>") : trigger);
+        emit triggerChanged(a, trigger);
+    }
 }
 
 void PortalGlobalShortcuts::onDeactivated(const QDBusObjectPath &session, const QString &id, qulonglong,

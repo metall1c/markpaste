@@ -25,7 +25,8 @@ void setButtonColor(QPushButton *b, const QColor &c)
 }
 } // namespace
 
-SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platform, QWidget *parent)
+SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platform,
+                               const QHash<Action, QString> &boundTriggers, QWidget *parent)
     : QDialog(parent), m_settings(settings), m_accentColor(settings.accent)
 {
     setWindowTitle(tr("Markpaste settings"));
@@ -36,17 +37,28 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     auto *kf = new QFormLayout(keys);
     m_captureKey = new QLineEdit(settings.captureHotkey);
     m_pasteKey = new QLineEdit(settings.pasteHotkey);
+    // Сочетания хранит система (портал GlobalShortcuts): своё значение она учитывает только при
+    // первой привязке, поэтому показываем фактическое и меняем его через систему.
+    m_systemKeys = platform.hotkeys && platform.hotkeys->systemAssignsTriggers();
+    if (m_systemKeys) {
+        for (auto [edit, action] : {std::pair{m_captureKey, Action::Capture}, std::pair{m_pasteKey, Action::PasteSet}}) {
+            const QString t = boundTriggers.value(action);
+            edit->setText(t.isEmpty() ? tr("not assigned") : t);
+            edit->setReadOnly(true);
+        }
+    }
     kf->addRow(tr("Capture:"), m_captureKey);
     kf->addRow(tr("Paste the set:"), m_pasteKey);
     auto *keysNote = new QLabel(
-        tr("Format: Primary+Alt+V, Print. Primary is Ctrl on Windows and Linux.\n"
-           "On Wayland the program only suggests a shortcut — the desktop assigns it and lets you change it "
-           "in its own settings."));
+        m_systemKeys
+            ? tr("Shortcuts are assigned by the desktop. Change them with the button below "
+                 "or in the system shortcut settings.")
+            : tr("Format: Primary+Alt+V, Print. Primary is Ctrl on Windows and Linux."));
     keysNote->setWordWrap(true);
     keysNote->setForegroundRole(QPalette::PlaceholderText);
     kf->addRow(keysNote);
     if (platform.hotkeys && platform.hotkeys->canOpenSystemSettings()) {
-        auto *sys = new QPushButton(tr("Open system shortcut settings"));
+        auto *sys = new QPushButton(tr("Change shortcuts…"));
         IHotkeys *hk = platform.hotkeys.get();
         connect(sys, &QPushButton::clicked, this, [hk] { hk->openSystemSettings(); });
         kf->addRow(sys);
@@ -166,8 +178,10 @@ bool SettingsDialog::autostart() const
 Settings SettingsDialog::settings() const
 {
     Settings s = m_settings;
-    s.captureHotkey = m_captureKey->text().trimmed();
-    s.pasteHotkey = m_pasteKey->text().trimmed();
+    if (!m_systemKeys) {
+        s.captureHotkey = m_captureKey->text().trimmed();
+        s.pasteHotkey = m_pasteKey->text().trimmed();
+    }
     s.quickCapture = m_quick->isChecked();
     s.clearOnNextCapture = m_clearOnNext->isChecked();
     s.pasteMode = PasteMode(m_mode->currentData().toInt());

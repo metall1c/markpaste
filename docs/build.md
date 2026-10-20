@@ -69,7 +69,7 @@ export DISPLAY=:97 QT_QPA_PLATFORM=xcb WAYLAND_DISPLAY= XDG_SESSION_TYPE=x11
 
 - Нужны `xorg-x11-server-Xvfb`, `xdotool`, для сборки — `libxcb-devel xcb-util-keysyms-devel` (xcb-xtest входит в libxcb).
 - Чтобы запустить саму программу рядом с работающей копией, нужны свои `XDG_RUNTIME_DIR` (сокет единственного экземпляра) и `XDG_CONFIG_HOME`. Путь сокета не длиннее 108 байт (`sun_path`), иначе «the socket cannot be created» — каталог в `/run/user/$UID/` подходит, длинный путь во временном каталоге — нет.
-- Группу `general` настройки Qt хранят в INI как `[%General]` (`[General]` — корень): при ручной правке файла это важно.
+- Группу с именем `general`/`General` в `QSettings` не использовать: в INI она пишется как `[%General]` (`[General]` — корень), а при следующем чтении файла ключ получает имя `General/…` — с большой буквы. Ключ `general/x` после перезапуска не находится (docs/problems.md, 2026-10-20). Флаги «уже показано» теперь в группе `once`.
 - Останавливать тестовые серверы — по PID (`pgrep -x Xvfb`), не `pkill -f`: шаблон совпадает с командной строкой самой оболочки.
 
 ## Что получается
