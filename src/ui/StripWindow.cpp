@@ -396,6 +396,8 @@ StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
 
     m_message = new QLabel;
     m_message->setWordWrap(true);
+    // Не шире списка: иначе длинное сообщение раздувало ленту, и на Windows она уходила за край экрана
+    m_message->setMaximumWidth(kThumbWidth + 14);
     m_message->setVisible(false);
     m_message->setStyleSheet(QStringLiteral("QLabel { background: palette(highlight); color: palette(highlighted-text);"
                                             " border-radius: 5px; padding: 4px 6px; }"));
@@ -635,6 +637,15 @@ void StripWindow::present()
     show();
 }
 
+void StripWindow::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    // Окно, которое ставим сами (Windows), выросло от сообщения или кнопки «Стоп» — встаём заново,
+    // чтобы не уйти за низ рабочей области под панель задач
+    if (m_snapToEdge && isVisible())
+        snapToEdge();
+}
+
 void StripWindow::paintEvent(QPaintEvent *)
 {
     // Прозрачное окно (Windows, ради скруглённых углов): Qt не рисует ему фон сам —
@@ -652,8 +663,16 @@ void StripWindow::snapToEdge()
     QScreen *screen = currentScreen();
     PanelPlacement pl = m_placement;
     if (pl.offset >= 0)   // лента выросла — не даём ей уйти за низ экрана
-        pl.offset = std::min(pl.offset, std::max(0, screen->geometry().height() - height()));
+        pl.offset = std::min(pl.offset, std::max(0, placementArea(screen).height() - height()));
     move(topLeftFor(screen, pl));
+}
+
+QRect StripWindow::placementArea(QScreen *screen) const
+{
+    // Окно, которое ставим сами (Windows), — в пределах рабочей области: иначе лента у низа экрана
+    // закрывала панель задач с часами и значком в трее. Поверхность layer-shell от панелей
+    // отодвигает композитор, её положение считаем от всего экрана.
+    return m_snapToEdge ? screen->availableGeometry() : screen->geometry();
 }
 
 void StripWindow::onMovedByUser()
@@ -663,7 +682,7 @@ void StripWindow::onMovedByUser()
     QScreen *target = QGuiApplication::screenAt(center);
     if (!target)
         target = currentScreen();
-    const QRect geo = target->geometry();
+    const QRect geo = placementArea(target);
     PanelPlacement pl = m_placement;
     pl.edge = center.x() < geo.center().x() ? PanelEdge::Left : PanelEdge::Right;
     pl.offset = std::clamp(y() - geo.top(), 0, std::max(0, geo.height() - height()));
@@ -682,7 +701,7 @@ QScreen *StripWindow::currentScreen() const
 
 QPoint StripWindow::topLeftFor(QScreen *screen, const PanelPlacement &pl) const
 {
-    const QRect geo = screen->geometry();
+    const QRect geo = placementArea(screen);
     const int x = pl.edge == PanelEdge::Left ? geo.left() + pl.margin : geo.right() + 1 - pl.margin - width();
     const int y = pl.offset < 0 ? geo.top() + (geo.height() - height()) / 2 : geo.top() + pl.offset;
     return {x, y};

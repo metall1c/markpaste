@@ -8,6 +8,7 @@
 #include <QMenu>
 #include <QMimeData>
 #include <QScrollArea>
+#include <QSettings>
 #include <QTest>
 #include <QTimer>
 
@@ -127,3 +128,42 @@ TEST(StripUi, ThumbMenuMoveDoesNotCrash)
     chooseFromThumbMenu(f, 0, QStringLiteral("Move down"));
     EXPECT_EQ(f.order(), (QList<QUuid>{f.ids[1], f.ids[0], f.ids[2]}));
 }
+
+// Длинное сообщение («Сначала щёлкните в окне чата…») раздувало ленту вширь: на Windows она
+// уходила за правый край экрана, текст обрезался
+TEST(StripUi, LongMessageWrapsInsteadOfWideningStrip)
+{
+    StripFixture f;
+    f.strip->adjustSize();
+    QApplication::processEvents();
+    const int width = f.strip->width();
+    f.strip->showMessage(QStringLiteral("Click into the chat first: a Markpaste window is active, "
+                                        "and this text is long enough to need several lines"));
+    QApplication::processEvents();
+    EXPECT_EQ(f.strip->width(), width);
+}
+
+#ifdef Q_OS_WIN
+// Лента, которую программа ставит сама (Windows), выросла от сообщения — низ остаётся в рабочей области
+TEST(StripUi, GrownStripStaysInsideWorkArea)
+{
+    // Без имени организации QSettings в Windows ничего не сохраняет
+    const QString org = QCoreApplication::organizationName();
+    QCoreApplication::setOrganizationName(QStringLiteral("markpaste-tests"));
+    QSettings().setValue(QStringLiteral("strip/offset"), 100000);   // «у самого низа»
+    StripFixture f;
+    f.strip->hide();
+    f.strip->present();
+    QApplication::processEvents();
+    f.strip->present();   // размер устоялся — встаём вплотную к низу
+    QApplication::processEvents();
+    const QRect area = f.strip->screen()->availableGeometry();
+    ASSERT_EQ(f.strip->geometry().bottom(), area.bottom());
+    f.strip->showMessage(QStringLiteral("One more line\nand another\nand a third"));
+    f.strip->setProgress(0, 3);
+    QApplication::processEvents();
+    EXPECT_LE(f.strip->geometry().bottom(), area.bottom());
+    QSettings().remove(QStringLiteral("strip"));
+    QCoreApplication::setOrganizationName(org);
+}
+#endif

@@ -61,6 +61,7 @@ signals:
 
 protected:
     void paintEvent(QPaintEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
     friend class ShotThumb;
@@ -77,6 +78,7 @@ private:
     QPoint topLeftFor(QScreen *screen, const PanelPlacement &placement) const;
     QPoint assumedTopLeft() const { return topLeftFor(currentScreen(), m_placement); }
     void snapToEdge();          // встать по m_placement
+    QRect placementArea(QScreen *screen) const;   // от чего отсчитываются край и отступ
     void onMovedByUser();       // пользователь отпустил перетащенную ленту
     void loadPlacement();
     void savePlacement() const;

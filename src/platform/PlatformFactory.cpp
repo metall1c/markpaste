@@ -150,8 +150,11 @@ Platform createPlatform(const QString &appId)
     p.environment = QStringLiteral("Windows %1").arg(QSysInfo::productVersion());
     // MARKPASTE_CAPTURE=gdi — без DXGI: для драйверов, где она сбоит (и Wine без экрана)
     const bool dxgi = qEnvironmentVariable("MARKPASTE_CAPTURE") != u"gdi";
-    p.capture = std::make_unique<FallbackCapture>(std::make_unique<win::DxgiCapture>(dxgi),
-                                                  std::make_unique<QtScreenCapture>());
+    // Без FallbackCapture: GDI для монитора, который не отдала DXGI, DxgiCapture берёт сам, при каждом
+    // снимке. FallbackCapture после одного неудачного снимка (ни DXGI, ни GDI не отдали ни одного
+    // монитора) навсегда переходил бы на QScreen::grabWindow — тот же GDI, но уже без DXGI и HDR
+    // до перезапуска программы.
+    p.capture = std::make_unique<win::DxgiCapture>(dxgi);
     p.hotkeys = std::make_unique<win::WinHotkeys>();
     p.clipboard = std::make_unique<win::WinClipboard>();
     p.injector = std::make_unique<win::WinInputInjector>();

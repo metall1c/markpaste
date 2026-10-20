@@ -141,6 +141,12 @@ QFuture<Status> WinInputInjector::sendPaste()
     promise->start();
     // Зажатые пользователем Shift/Alt/Win превратили бы Ctrl+V в другое сочетание
     waitModifiersReleased(kModifierWait).then(this, [this, promise](const Status &) {
+        // Ожидание длится до 1,5 с — за это время пользователь мог перейти в другое окно
+        if (m_target && GetForegroundWindow() != m_target) {
+            promise->addResult(Status::failure(QStringLiteral("The active window changed: paste stopped")));
+            promise->finish();
+            return;
+        }
         const INPUT steps[] = {
             keyInput(VK_CONTROL, true),
             keyInput('V', true),
@@ -150,6 +156,10 @@ QFuture<Status> WinInputInjector::sendPaste()
         auto failed = std::make_shared<DWORD>(0);
         for (int i = 0; i < int(std::size(steps)); ++i)
             QTimer::singleShot(i * kGapMs, this, [in = steps[i], failed] {
+                // После сбоя отпускания всё равно шлём (не оставить Ctrl зажатым), а нажатия — нет:
+                // V без Ctrl напечатала бы в чат «v»
+                if (*failed && !(in.ki.dwFlags & KEYEVENTF_KEYUP))
+                    return;
                 INPUT copy = in;
                 if (SendInput(1, &copy, sizeof(INPUT)) != 1 && !*failed)
                     *failed = GetLastError() ? GetLastError() : 1;

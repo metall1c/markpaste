@@ -21,6 +21,10 @@ public:
     QString name() const override { return QStringLiteral("QClipboard"); }
 
 protected:
+    // Данные для QClipboard::setMimeData: записи набора, картинка ещё и как QImage, форматы системы
+    QMimeData *makeMimeData(const ClipboardPayload &payload, ClipboardFlags flags) const;
+    // Класть ли в буфер запись этого MIME-типа (Windows не нужны имена X11: UTF8_STRING…)
+    virtual bool keepEntry(const QString &mimeType) const;
     // Форматы под конкретную систему поверх общих: пометки «не в историю», PNG для Windows…
     virtual void addPlatformFormats(QMimeData *md, const ClipboardPayload &payload, ClipboardFlags flags) const;
 

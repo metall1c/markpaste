@@ -396,16 +396,28 @@ void AppController::paste(bool fromHotkey)
 {
     if (m_paste->isRunning() || m_model.set().isEmpty())
         return;
-    if (m_editor && m_editor->isVisible()) {
-        m_editor->commitPendingEdits();   // последний комментарий — тоже в сообщение
-        m_editor->hide();   // иначе фокус может остаться в редакторе, а не в чате
-    }
 
     PasteOptions opt = m_settings.pasteOptions();
     opt.waitHotkeyRelease = fromHotkey;
     const bool buttonCanSequence = m_paste->canSequential() && (!m_platform.nativeWayland || m_platform.supportsLayerShell);
     if (opt.mode != PasteMode::FilesAndText && (!m_paste->canSequential() || (!fromHotkey && !buttonCanSequence)))
         opt.mode = PasteMode::FilesAndText;   // запасной режим — полноценный (ТЗ разд. 9)
+
+    // Активно другое окно программы (настройки, предпросмотр, мастер): Ctrl+V ушёл бы в него, а не
+    // в чат, а лента сказала бы «Вставлено». Редактор не в счёт — его прячем ниже; лента фокус не
+    // забирает (docs/problems.md, 2026-10-20)
+    if (opt.mode != PasteMode::FilesAndText) {
+        QWidget *active = QApplication::activeWindow();
+        if (active && active != m_editor && active != m_strip) {
+            notify(tr("Click into the chat first: a Markpaste window is active"));
+            return;
+        }
+    }
+
+    if (m_editor && m_editor->isVisible()) {
+        m_editor->commitPendingEdits();   // последний комментарий — тоже в сообщение
+        m_editor->hide();   // иначе фокус может остаться в редакторе, а не в чате
+    }
     m_paste->start(m_model.set(), opt);
 }
 

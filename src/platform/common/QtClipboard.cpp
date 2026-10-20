@@ -15,9 +15,21 @@ QtClipboard::QtClipboard(bool backgroundWrites, QObject *parent)
 
 QFuture<Status> QtClipboard::write(const ClipboardPayload &payload, ClipboardFlags flags)
 {
+    QGuiApplication::clipboard()->setMimeData(makeMimeData(payload, flags));
+    return readyFuture(Status::success());
+}
+
+bool QtClipboard::keepEntry(const QString &) const
+{
+    return true;
+}
+
+QMimeData *QtClipboard::makeMimeData(const ClipboardPayload &payload, ClipboardFlags flags) const
+{
     auto *md = new QMimeData;
     for (const ClipboardEntry &e : payload.entries)
-        md->setData(e.mimeType, e.data);
+        if (keepEntry(e.mimeType))
+            md->setData(e.mimeType, e.data);
     // Картинка ещё и как QImage: так Qt отдаёт её и в других форматах (image/bmp…), а
     // получатель в нашем же процессе видит hasImage(). Иначе — только сырые байты PNG.
     for (const ClipboardEntry &e : payload.entries)
@@ -28,8 +40,7 @@ QFuture<Status> QtClipboard::write(const ClipboardPayload &payload, ClipboardFla
             break;
         }
     addPlatformFormats(md, payload, flags);
-    QGuiApplication::clipboard()->setMimeData(md);
-    return readyFuture(Status::success());
+    return md;
 }
 
 void QtClipboard::addPlatformFormats(QMimeData *md, const ClipboardPayload &, ClipboardFlags flags) const

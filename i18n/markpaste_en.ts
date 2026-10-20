@@ -101,6 +101,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Click into the chat first: a Markpaste window is active</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Text copied — paste it after dropping the files</source>
         <translation type="unfinished"></translation>
     </message>

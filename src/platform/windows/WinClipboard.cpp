@@ -1,11 +1,20 @@
 #include "WinClipboard.h"
 
 #include <QBuffer>
+#include <QClipboard>
+#include <QGuiApplication>
 #include <QImage>
+#include <QLoggingCategory>
 #include <QMimeData>
+#include <QTimer>
 #include <QtEndian>
 
+#include <functional>
+#include <memory>
+
 #include <windows.h>
+
+Q_LOGGING_CATEGORY(lcWinClipboard, "markpaste.win.clipboard")
 
 namespace mp::win {
 
@@ -62,10 +71,41 @@ ClipboardPayload readNativeImage()
 
 } // namespace
 
+WinClipboard::WinClipboard(QObject *parent)
+    : QtClipboard(true, parent)
+{
+    m_probeWindow = CreateWindowExW(0, L"STATIC", L"Markpaste clipboard probe", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr,
+                                    GetModuleHandleW(nullptr), nullptr);
+}
+
+WinClipboard::~WinClipboard()
+{
+    if (m_probeWindow)
+        DestroyWindow(static_cast<HWND>(m_probeWindow));
+}
+
+bool WinClipboard::clipboardFree() const
+{
+    // Буфер не открыт другой программой прямо сейчас. Открываем от своего окна: в Wine повторное
+    // открытие с тем же окном (в том числе NULL) из другого потока проходит
+    if (!OpenClipboard(static_cast<HWND>(m_probeWindow)))
+        return false;
+    CloseClipboard();
+    return true;
+}
+
 QString WinClipboard::windowsFormat(const QString &name)
 {
     // Так Qt называет произвольный формат буфера Windows (QWindowsMimeRegistry)
     return QStringLiteral("application/x-qt-windows-mime;value=\"%1\"").arg(name);
+}
+
+bool WinClipboard::keepEntry(const QString &mimeType) const
+{
+    // Синонимы текста и файлов для X11 и GNOME (UTF8_STRING, x-special/gnome-copied-files…) в Windows
+    // стали бы лишними зарегистрированными форматами: текст и файлы Qt и так кладёт в CF_UNICODETEXT
+    // и CF_HDROP из text/plain и text/uri-list
+    return mimeType == u"text/plain" || mimeType == u"text/uri-list" || mimeType.startsWith(u"image/");
 }
 
 void WinClipboard::addPlatformFormats(QMimeData *md, const ClipboardPayload &payload, ClipboardFlags flags) const
@@ -80,7 +120,50 @@ void WinClipboard::addPlatformFormats(QMimeData *md, const ClipboardPayload &pay
     }
 }
 
-QFuture<ClipboardPayload> WinClipboard::snapshot()
+QFuture<Status> WinClipboard::write(const ClipboardPayload &payload, ClipboardFlags flags)
+{
+    const quint64 generation = ++m_writeGeneration;
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    clipboard->setMimeData(makeMimeData(payload, flags));
+    if (clipboard->ownsClipboard())
+        return readyFuture(Status::success());
+
+    // Не записалось — буфер держит другая программа. QMimeData Qt уже удалил: собираем заново
+    auto promise = std::make_shared<QPromise<Status>>();
+    promise->start();
+    auto retry = std::make_shared<std::function<void(int)>>();
+    *retry = [this, payload, flags, promise, retry, generation](int left) {
+        if (generation != m_writeGeneration) {
+            // Пока ждали, в буфер уже записали другое (следующая вставка): старое не возвращаем поверх
+            promise->addResult(Status::failure(QStringLiteral("Clipboard write superseded")));
+            promise->finish();
+            *retry = nullptr;
+            return;
+        }
+        QClipboard *cb = QGuiApplication::clipboard();
+        cb->setMimeData(makeMimeData(payload, flags));
+        const bool ok = cb->ownsClipboard();
+        if (ok || left <= 1) {
+            qCInfo(lcWinClipboard) << "clipboard was busy;" << (ok ? "written on retry" : "giving up");
+            promise->addResult(ok ? Status::success()
+                                  : Status::failure(QStringLiteral("The clipboard is busy: another program keeps it open")));
+            promise->finish();
+            *retry = nullptr;   // разрываем цикл ссылок
+            return;
+        }
+        QTimer::singleShot(m_busyIntervalMs, this, [retry, left] {
+            if (*retry)
+                (*retry)(left - 1);
+        });
+    };
+    QTimer::singleShot(m_busyIntervalMs, this, [retry, n = m_busyAttempts] {
+        if (*retry)
+            (*retry)(n);
+    });
+    return promise->future();
+}
+
+ClipboardPayload WinClipboard::readNow()
 {
     ClipboardPayload p = QtClipboard::snapshot().result();   // у QtClipboard результат готов сразу
     bool hasImage = false;
@@ -88,7 +171,35 @@ QFuture<ClipboardPayload> WinClipboard::snapshot()
         hasImage = hasImage || e.mimeType.startsWith(QStringLiteral("image/"));
     if (!hasImage)
         p.entries << readNativeImage().entries;
-    return readyFuture(p);
+    return p;
+}
+
+QFuture<ClipboardPayload> WinClipboard::snapshot()
+{
+    // Буфер открыт другой программой — прочиталось бы пусто, и после вставки буфер пользователя
+    // не вернулся бы. Ждём, пока его отпустят
+    if (clipboardFree())
+        return readyFuture(readNow());
+    auto promise = std::make_shared<QPromise<ClipboardPayload>>();
+    promise->start();
+    auto retry = std::make_shared<std::function<void(int)>>();
+    *retry = [this, promise, retry](int left) {
+        if (!clipboardFree() && left > 1) {
+            QTimer::singleShot(m_busyIntervalMs, this, [retry, left] {
+                if (*retry)
+                    (*retry)(left - 1);
+            });
+            return;
+        }
+        promise->addResult(readNow());
+        promise->finish();
+        *retry = nullptr;
+    };
+    QTimer::singleShot(m_busyIntervalMs, this, [retry, n = m_busyAttempts] {
+        if (*retry)
+            (*retry)(n);
+    });
+    return promise->future();
 }
 
 } // namespace mp::win

@@ -33,9 +33,9 @@ markpaste (app/)             контроллер, настройки, один 
 
 | Интерфейс | Реализация | Запасная |
 | --- | --- | --- |
-| ICapture | DXGI Desktop Duplication на монитор, при отказе — GDI BitBlt этого монитора (решение на каждый снимок) | `QtScreenCapture`, если не вышло ничего; `MARKPASTE_CAPTURE=gdi` — без DXGI |
+| ICapture | DXGI Desktop Duplication на монитор, при отказе — GDI BitBlt этого монитора (решение на каждый снимок) | `MARKPASTE_CAPTURE=gdi` — без DXGI. `FallbackCapture` не используется: он переключался бы навсегда |
 | IHotkeys | `RegisterHotKey`; Print Screen — хук `WH_KEYBOARD_LL` в своём потоке | — |
-| IClipboard | QClipboard (OLE) + `PNG` и пометки «не в историю» | — |
+| IClipboard | QClipboard (OLE) + `PNG` и пометки «не в историю»; занятый другой программой буфер — повтор до ~2 с, затем ошибка | — |
 | IInputInjector | `SendInput` с проверкой UIPI и смены активного окна | — |
 
 Файлы на Windows: настройки — реестр `HKCU\Software\markpaste\markpaste`; набор, журнал — `%LOCALAPPDATA%\markpaste\markpaste\`; автозапуск — `HKCU\…\CurrentVersion\Run`.
@@ -80,11 +80,13 @@ markpaste (app/)             контроллер, настройки, один 
 
 Отмена («Стоп») завершает вставку сразу, не дожидаясь текущей операции: запись в буфер или открытие сессии могут не закончиться никогда (оборвалось подключение к композитору), а пока вставка «идёт», новую не начать. Исключение — серия клавиш Ctrl↓ V↓ V↑ Ctrl↑ (`m_keysInFlight`): её дожидаемся, иначе Ctrl может остаться зажатым, а отмену видит следующий шаг. Запись через data-control при обрыве подключения тоже не висит: `DataControlDevice` по сигналу `disconnected` завершает ждущие записи ошибкой.
 
+Вставка с клавишами не начинается, если активно окно самой программы (настройки, предпросмотр, мастер): Ctrl+V ушёл бы в него. Редактор не в счёт — `AppController::paste` прячет его перед вставкой; лента фокус не берёт.
+
 Режим 2 (файлы + текст) — одна запись: `text/uri-list`, `x-special/gnome-copied-files`, текст с синонимами MIME, первая картинка `image/png`. Файлы лежат в `$XDG_RUNTIME_DIR/markpaste/` (0700), удаляются при очистке набора и при выходе.
 
 ## Кнопка «Вставить набор» в ленте
 
-На KDE лента — поверхность layer-shell с `KeyboardInteractivityNone`: клик по ней не забирает фокус клавиатуры у окна чата. Поэтому кнопка запускает режим 1, а не только копирование, как ТЗ предлагает для Wayland. Без layer-shell (GNOME) кнопка копирует набор в режиме 2. На Windows то же даёт окно с `WS_EX_NOACTIVATE` (ADR 0016) — проверено под Wine. **Ещё не проверено руками** — см. platform-matrix.md.
+На KDE лента — поверхность layer-shell с `KeyboardInteractivityNone`: клик по ней не забирает фокус клавиатуры у окна чата. Поэтому кнопка запускает режим 1, а не только копирование, как ТЗ предлагает для Wayland. Без layer-shell (GNOME) кнопка копирует набор в режиме 2. На Windows то же даёт окно с `WS_EX_NOACTIVATE` (ADR 0016) — проверено под Wine и на Windows 11 в VirtualBox (вставка в Paint), см. platform-matrix.md.
 
 ## Лента: где стоит и когда видна
 

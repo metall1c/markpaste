@@ -101,6 +101,10 @@
         <translation>Копирует файлы и текст — затем нажмите Ctrl+V в чате</translation>
     </message>
     <message>
+        <source>Click into the chat first: a Markpaste window is active</source>
+        <translation>Сначала щёлкните в окне чата: сейчас активно окно Markpaste</translation>
+    </message>
+    <message>
         <source>Text copied — paste it after dropping the files</source>
         <translation>Текст скопирован — вставьте его после того, как бросите файлы</translation>
     </message>

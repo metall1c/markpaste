@@ -18,10 +18,14 @@
 #include <QScreen>
 #include <QSignalSpy>
 #include <QTest>
+#include <QTimer>
 #include <QUrl>
 #include <QWidget>
 
 #include <gtest/gtest.h>
+
+#include <future>
+#include <thread>
 
 #include <windows.h>
 
@@ -55,6 +59,24 @@ static bool hasRegisteredFormat(const wchar_t *name)
     return IsClipboardFormatAvailable(RegisterClipboardFormatW(name));
 }
 
+// Буфер после каждой смены читают и другие программы: VBoxTray в виртуалке, rdpclip, журнал Win+V.
+// Пока они читают, буфер занят, а данные им отдаёт наш поток (отложенная отрисовка OLE) — поэтому
+// ждём с обработкой событий, а не блокирующим result()
+template <class T>
+static T await(const QFuture<T> &f)
+{
+    if (!QTest::qWaitFor([&] { return f.isFinished(); }, 15000)) {
+        ADD_FAILURE() << "future did not finish";
+        return T{};
+    }
+    return f.result();
+}
+
+static bool openClipboard()
+{
+    return QTest::qWaitFor([] { return OpenClipboard(nullptr) != FALSE; }, 5000);
+}
+
 TEST(WinClipboard, WritesImageFilesTextAndHistoryExclusion)
 {
     WinClipboard cb;
@@ -70,11 +92,11 @@ TEST(WinClipboard, WritesImageFilesTextAndHistoryExclusion)
     ClipboardPayload p = ClipboardPayload::image(png);
     p.entries << ClipboardEntry{QStringLiteral("text/uri-list"), QByteArrayLiteral("file:///C:/Temp/A.png\r\n")};
     p.addText(QStringLiteral("A1 кнопка"));
-    ASSERT_TRUE(cb.write(p, ClipboardFlag::ExcludeFromHistory).result().ok);
+    ASSERT_TRUE(await(cb.write(p, ClipboardFlag::ExcludeFromHistory)).ok);
     QCoreApplication::processEvents();
 
     // Форматы — так, как их видят другие программы Windows
-    ASSERT_TRUE(OpenClipboard(nullptr));
+    ASSERT_TRUE(openClipboard());
     EXPECT_TRUE(IsClipboardFormatAvailable(CF_DIB) || IsClipboardFormatAvailable(CF_DIBV5));
     EXPECT_TRUE(hasRegisteredFormat(L"PNG"));
     EXPECT_TRUE(IsClipboardFormatAvailable(CF_HDROP));
@@ -97,10 +119,125 @@ TEST(WinClipboard, WritesImageFilesTextAndHistoryExclusion)
     CloseClipboard();
 
     // Восстановление буфера после вставки — без пометок: это снова буфер пользователя
-    ASSERT_TRUE(cb.write(ClipboardPayload::text(QStringLiteral("old")), ClipboardFlag::None).result().ok);
+    ASSERT_TRUE(await(cb.write(ClipboardPayload::text(QStringLiteral("old")), ClipboardFlag::None)).ok);
     QCoreApplication::processEvents();
-    ASSERT_TRUE(OpenClipboard(nullptr));
+    ASSERT_TRUE(openClipboard());
     EXPECT_FALSE(hasRegisteredFormat(L"CanIncludeInClipboardHistory"));
+    CloseClipboard();
+}
+
+// «Другая программа», которая держит буфер открытым (так делают rdpclip и менеджеры буфера):
+// поток, открывший буфер, — OleSetClipboard из главного потока в это время не проходит
+class ClipboardHolder
+{
+public:
+    ClipboardHolder()
+    {
+        std::promise<bool> opened;
+        std::future<bool> isOpen = opened.get_future();
+        std::future<void> released = m_release.get_future();
+        m_thread = std::thread([&opened, released = std::move(released)]() mutable {
+            bool ok = false;
+            for (int i = 0; i < 500 && !ok; ++i) {   // буфер мог на миг занять кто-то ещё
+                ok = OpenClipboard(nullptr);
+                if (!ok)
+                    Sleep(10);
+            }
+            opened.set_value(ok);
+            released.wait();
+            if (ok)
+                CloseClipboard();
+        });
+        (void)QTest::qWaitFor([&] { return isOpen.wait_for(std::chrono::seconds(0)) == std::future_status::ready; }, 10000);
+        m_open = isOpen.get();
+    }
+    ~ClipboardHolder() { release(); }
+    bool isOpen() const { return m_open; }
+    void release()
+    {
+        if (!m_thread.joinable())
+            return;
+        m_release.set_value();
+        m_thread.join();
+    }
+
+private:
+    std::promise<void> m_release;
+    std::thread m_thread;
+    bool m_open = false;
+};
+
+static QString clipboardText()
+{
+    QString text;
+    if (!openClipboard())
+        return QStringLiteral("<busy>");
+    if (HANDLE h = GetClipboardData(CF_UNICODETEXT)) {
+        text = QString::fromWCharArray(static_cast<const wchar_t *>(GlobalLock(h)));
+        GlobalUnlock(h);
+    }
+    CloseClipboard();
+    return text;
+}
+
+TEST(WinClipboard, BusyClipboardIsReportedNotIgnored)
+{
+    // Раньше запись «удавалась» всегда: Qt только писал предупреждение, «Набор скопирован» было
+    // неправдой, а Ctrl+V вставлял прежнее содержимое буфера (docs/problems.md, 2026-10-20)
+    WinClipboard cb;
+    ASSERT_TRUE(await(cb.write(ClipboardPayload::text(QStringLiteral("before")), ClipboardFlag::None)).ok);
+    QCoreApplication::processEvents();
+    cb.setBusyWait(3, 50);
+
+    ClipboardHolder holder;
+    ASSERT_TRUE(holder.isOpen());
+    QFuture<Status> f = cb.write(ClipboardPayload::text(QStringLiteral("set")), ClipboardFlag::None);
+    EXPECT_FALSE(await(f).ok);
+    holder.release();
+    EXPECT_NE(clipboardText(), QStringLiteral("set"));
+}
+
+TEST(WinClipboard, WriteWaitsUntilClipboardIsFree)
+{
+    WinClipboard cb;
+    cb.setBusyWait(40, 50);
+    ClipboardHolder holder;
+    ASSERT_TRUE(holder.isOpen());
+    QFuture<Status> f = cb.write(ClipboardPayload::text(QStringLiteral("set")), ClipboardFlag::ExcludeFromHistory);
+    QTimer::singleShot(300, [&holder] { holder.release(); });
+    const Status written = await(f);
+    EXPECT_TRUE(written.ok) << written.error.toStdString();
+    EXPECT_EQ(clipboardText(), QStringLiteral("set"));
+}
+
+TEST(WinClipboard, SnapshotWaitsForBusyClipboard)
+{
+    // Прочитать занятый буфер — получить пусто, и после вставки буфер пользователя не вернулся бы
+    WinClipboard cb;
+    cb.setBusyWait(40, 50);
+    ASSERT_TRUE(await(cb.write(ClipboardPayload::text(QStringLiteral("mine")), ClipboardFlag::None)).ok);
+    QCoreApplication::processEvents();
+
+    ClipboardHolder holder;
+    ASSERT_TRUE(holder.isOpen());
+    QFuture<ClipboardPayload> f = cb.snapshot();
+    EXPECT_FALSE(f.isFinished());
+    QTimer::singleShot(300, [&holder] { holder.release(); });
+    const ClipboardPayload snap = await(f);
+    const ClipboardEntry *e = snap.find(QStringLiteral("text/plain"));
+    ASSERT_NE(e, nullptr);
+    EXPECT_EQ(QString::fromUtf8(e->data), QStringLiteral("mine"));
+}
+
+TEST(WinClipboard, NoX11FormatNamesOnWindows)
+{
+    WinClipboard cb;
+    ASSERT_TRUE(await(cb.write(ClipboardPayload::text(QStringLiteral("x")), ClipboardFlag::None)).ok);
+    QCoreApplication::processEvents();
+    ASSERT_TRUE(openClipboard());
+    EXPECT_TRUE(IsClipboardFormatAvailable(CF_UNICODETEXT));
+    EXPECT_FALSE(hasRegisteredFormat(L"UTF8_STRING"));
+    EXPECT_FALSE(hasRegisteredFormat(L"text/plain;charset=utf-8"));
     CloseClipboard();
 }
 
@@ -125,14 +262,14 @@ TEST(WinClipboard, SnapshotTurnsDibIntoPng)
     for (int y = 0; y < img.height(); ++y)
         memcpy(bits + y * stride, img.constScanLine(img.height() - 1 - y), size_t(stride));
     GlobalUnlock(mem);
-    ASSERT_TRUE(OpenClipboard(nullptr));
+    ASSERT_TRUE(openClipboard());
     EmptyClipboard();
     SetClipboardData(CF_DIB, mem);
     CloseClipboard();
     QCoreApplication::processEvents();
 
     WinClipboard cb;
-    const ClipboardPayload snap = cb.snapshot().result();
+    const ClipboardPayload snap = await(cb.snapshot());
     const ClipboardEntry *e = snap.find(QStringLiteral("image/png"));
     ASSERT_NE(e, nullptr);
     const QImage back = QImage::fromData(e->data, "PNG");
