@@ -73,6 +73,45 @@ export DISPLAY=:97 QT_QPA_PLATFORM=xcb WAYLAND_DISPLAY= XDG_SESSION_TYPE=x11
 - Группу с именем `general`/`General` в `QSettings` не использовать: в INI она пишется как `[%General]` (`[General]` — корень), а при следующем чтении файла ключ получает имя `General/…` — с большой буквы. Ключ `general/x` после перезапуска не находится (docs/problems.md, 2026-10-20). Флаги «уже показано» теперь в группе `once`.
 - Останавливать тестовые серверы — по PID (`pgrep -x Xvfb`), не `pkill -f`: шаблон совпадает с командной строкой самой оболочки.
 
+## Windows: кросс-сборка на Fedora и проверка под Wine
+
+Проверено 2026-10-20: Fedora 44, MinGW-w64 GCC 16.2.1, Qt 6.11.2 (`mingw64-qt6-*`), Wine 11.0 Staging. Почему так — [ADR 0017](decisions/0017-windows-cross-build.md).
+
+```bash
+sudo dnf install -y mingw64-gcc-c++ mingw64-qt6-qtbase mingw64-qt6-qttools mingw64-qt6-qtsvg \
+  mingw64-qt6-qtimageformats mingw64-qt6-qttranslations wine
+cmake -G Ninja -S . -B build-win -DCMAKE_TOOLCHAIN_FILE=cmake/mingw64-fedora.cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build-win
+cmake --build build-win --target package   # → build-win/package/Markpaste-0.1.0-win64-portable.zip
+```
+
+Тесты под Wine (DLL Qt берутся из sysroot MinGW):
+
+```bash
+export WINEPATH='Z:\usr\x86_64-w64-mingw32\sys-root\mingw\bin' WINEDEBUG=-all DXVK_LOG_LEVEL=none
+QT_QPA_PLATFORM=offscreen wine build-win/tests/markpaste_core_tests.exe
+QT_QPA_PLATFORM=offscreen wine build-win/tests/markpaste_ui_tests.exe
+QT_PLUGIN_PATH='Z:\usr\x86_64-w64-mingw32\sys-root\mingw\lib\qt6\plugins' wine build-win/tests/markpaste_windows_tests.exe
+```
+
+Сама программа — из каталога установки, он самодостаточен (как ZIP): `cmake --install build-win --prefix build-win/stage --strip`, затем `wine build-win/stage/markpaste.exe`. Настройки — в реестре Wine (`HKCU\Software\markpaste\markpaste`), журнал — `~/.wine/drive_c/users/$USER/AppData/Local/markpaste/markpaste/logs/`.
+
+Сквозная проверка, не трогая рабочий стол, — Wine в Xvfb со своим префиксом и оконным менеджером:
+
+```bash
+Xvfb :99 -screen 0 1600x900x24 &
+export DISPLAY=:99 WAYLAND_DISPLAY= WINEPREFIX=/путь/к/префиксу MARKPASTE_CAPTURE=gdi
+wineboot -i; xfwm4 --compositor=off &
+wine notepad & wine build-win/stage/markpaste.exe &
+xdotool mousemove 400 300 click 1; xdotool key Print        # дальше — xdotool и import -window root
+```
+
+- **Тулчейн — `cmake/mingw64-fedora.cmake`, не обёртка `mingw64-cmake`.** У обёртки компиляторы заданы без пути через окружение, и при перезапуске cmake из ninja или в подпроекте googletest они «не находились» (docs/problems.md, 2026-10-20).
+- **googletest** для MinGW не упакован — скачивается `FetchContent` (нужна сеть при первой настройке).
+- **`gtest_discover_tests`** при кросс-сборке не может запустить `.exe` после сборки — режим `PRE_TEST`; тесты запускаем сами через Wine.
+- **Wine ≠ Windows.** DXGI Desktop Duplication в Wine не реализован (`DuplicateOutput: 0x887a0004`) — захват идёт через GDI. В Xvfb dxgi.dll из Wine падает с делением на ноль — там `MARKPASTE_CAPTURE=gdi`. Без оконного менеджера скрытые окна остаются на экране (картинка не обновляется) — запускайте xfwm4. Клавиши (`RegisterHotKey`, хук) Wine видит, только когда фокус в окне Wine.
+- **Размер ZIP — 35 МБ** (каталог 81 МБ): Qt из Fedora тянет ICU (32 МБ), OpenSSL, GLib. Для релиза — официальный Qt (ADR 0017).
+
 ## Что получается
 
 | Файл | Что это |
@@ -83,6 +122,7 @@ export DISPLAY=:97 QT_QPA_PLATFORM=xcb WAYLAND_DISPLAY= XDG_SESSION_TYPE=x11
 | `build/tools/pastetest/markpaste-pastetest` | Прототип вставки и диагностика платформы (`--check`, `--self-test`, `--capture kwin\|portal`, `--mode 1\|2`) |
 | `tools/dev/kwin-probe.py "команда" [фильтр]` | Отправляет команду работающей программе и каждые 250 мс читает у KWin геометрию её окон. Для замеров на живой сессии KDE. Отладочные команды сокета: `debug-move-strip <экран> <left\|right> <отступ>`, `debug-ghost <x> <y> <w> <h>` |
 | `build/tools/bench/markpaste-bench [--shots 26] [--paste 5]` | Замеры NFR-1 и NFR-2 без экрана: память набора из снимков 4K, пик и время вставки, возврат памяти (docs/platform-matrix.md, «Замеры») |
+| `build-win/tests/markpaste_windows_tests.exe` | Windows-реализации платформы на настоящем модуле Qt `windows` (под Wine или на Windows): разбор сочетаний, форматы буфера (PNG, CF_DIB, CF_HDROP, пометки «не в историю»), CF_DIB чужой программы → PNG, `RegisterHotKey` и занятое сочетание, хук Print Screen, GDI-захват |
 | `build/tools/uipreview/markpaste-uipreview DIR` | Рисует ленту, редактор на тестовом наборе (рамки, стрелка, карандаш разными перьями, размытие), панели цвета и толщины, мастер первого запуска, окно предпросмотра, меню ленты, вкладки настроек и снимок с подписями на картинке без дисплея, сохраняет PNG в DIR |
 | `MARKPASTE_RENDER_SAMPLE=файл.png build/tests/markpaste_core_tests --gtest_filter='*Sample*'` | Запекает пример всех форм меток в PNG — для глазной проверки рендера |
 

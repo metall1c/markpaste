@@ -47,7 +47,16 @@ target_compile_definitions(markpaste PRIVATE
     MARKPASTE_VERSION="${PROJECT_VERSION}"
     MARKPASTE_UPDATE_URL="${MARKPASTE_UPDATE_URL}"
     MARKPASTE_RELEASES_URL="${MARKPASTE_RELEASES_URL}")
-install(TARGETS markpaste RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS markpaste RUNTIME DESTINATION ${MARKPASTE_INSTALL_BINDIR})
+
+if(WIN32)
+    # Без окна консоли; значок, версия и манифест — в ресурсах .exe
+    set_target_properties(markpaste PROPERTIES WIN32_EXECUTABLE ON)
+    set(MARKPASTE_ICO ${PROJECT_SOURCE_DIR}/data/icons/app.ico)
+    set(MARKPASTE_MANIFEST ${PROJECT_SOURCE_DIR}/data/windows/markpaste.exe.manifest)
+    configure_file(${PROJECT_SOURCE_DIR}/data/windows/markpaste.rc.in ${CMAKE_CURRENT_BINARY_DIR}/markpaste.rc @ONLY)
+    target_sources(markpaste PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/markpaste.rc)
+endif()
 
 # Переводы (APP-5, NFR-10): .ts в i18n/, .qm встраиваются в программу под :/i18n.
 # Обновить строки: cmake --build build --target update_translations

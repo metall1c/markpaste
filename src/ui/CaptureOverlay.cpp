@@ -71,7 +71,7 @@ void CaptureSession::start()
     const QPoint cursor = QCursor::pos();
     for (const auto &w : std::as_const(m_widgets))
         if (w && w->geometry().contains(cursor)) {
-            w->activateWindow();
+            forceActivate(w);
             w->setFocus();
         }
 }

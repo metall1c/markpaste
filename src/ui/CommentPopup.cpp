@@ -74,14 +74,14 @@ void CommentPopup::commit()
     const QUuid id = m_markId;
     const QString text = m_edit->toPlainText().left(kMaxCommentLength);
     hide();
-    m_markId = {};
+    m_markId = QUuid();
     emit committed(id, text);
 }
 
 void CommentPopup::dismiss()
 {
     hide();
-    m_markId = {};
+    m_markId = QUuid();
 }
 
 void CommentPopup::updateCounter()

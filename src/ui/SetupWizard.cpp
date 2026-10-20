@@ -47,9 +47,10 @@ SetupWizard::SetupWizard(Platform *platform, const QString &appId, QWidget *pare
     auto *layout = new QVBoxLayout(this);
     layout->setSpacing(10);
 
-    auto *intro = wrapLabel(tr("Let's check that capture, hotkeys and paste work on this system. "
-                               "On Wayland the desktop may ask for permission — allow it once, "
-                               "and it will not ask again."));
+    QString introText = tr("Let's check that capture, hotkeys and paste work on this system.");
+    if (platform->nativeWayland)   // на Windows и X11 разрешений никто не спрашивает
+        introText += u' ' + tr("On Wayland the desktop may ask for permission — allow it once, and it will not ask again.");
+    auto *intro = wrapLabel(introText);
     layout->addWidget(intro);
 
     // --- Окружение ---

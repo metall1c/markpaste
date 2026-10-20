@@ -2,6 +2,7 @@
 #include "AppIcon.h"
 #include "LogFile.h"
 #include "SingleInstance.h"
+#include "platform/Process.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -11,12 +12,11 @@
 #include <QSettings>
 #include <QTranslator>
 
-#include <csignal>
 
 int main(int argc, char **argv)
 {
-    // Запись в pipe получателя, который закрыл свой конец, не должна убивать процесс.
-    std::signal(SIGPIPE, SIG_IGN);
+    // Особенности процесса под ОС: SIGPIPE на Unix и т. п. (platform/Process.h)
+    mp::prepareProcess();
 
     QApplication app(argc, argv);
     QCoreApplication::setOrganizationName(QStringLiteral("markpaste"));

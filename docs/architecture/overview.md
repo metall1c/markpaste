@@ -14,6 +14,8 @@ markpaste (app/)             контроллер, настройки, один 
             linux/portal/    PortalBus, RemoteDesktop, Screenshot, GlobalShortcuts
             linux/wayland/   WaylandConnection (свой поток), DataControlClipboard
             linux/kde/       KWinScreenshot
+            linux/x11/       X11Hotkeys, X11InputInjector
+            windows/         DxgiCapture, WinHotkeys + KeyboardHook (свой поток), WinClipboard, WinInputInjector
 ```
 
 Ядро видит только `markpaste_platform_api`. `#ifdef` под ОС — только в `src/platform/` (проверка: `grep -rn 'ifdef\|Q_OS_' src | grep -v ^src/platform/`).
@@ -26,6 +28,17 @@ markpaste (app/)             контроллер, настройки, один 
 | IHotkeys | портал GlobalShortcuts (сочетание назначает система, ADR 0012) | нет — тогда CLI `markpaste --capture` |
 | IClipboard | ext-data-control-v1 | QClipboard (без записи из фона: режим 1 выключается) |
 | IInputInjector | портал RemoteDesktop | нет — режим 2 |
+
+## Что выбирает PlatformFactory на Windows (ADR 0016)
+
+| Интерфейс | Реализация | Запасная |
+| --- | --- | --- |
+| ICapture | DXGI Desktop Duplication на монитор, при отказе — GDI BitBlt этого монитора (решение на каждый снимок) | `QtScreenCapture`, если не вышло ничего; `MARKPASTE_CAPTURE=gdi` — без DXGI |
+| IHotkeys | `RegisterHotKey`; Print Screen — хук `WH_KEYBOARD_LL` в своём потоке | — |
+| IClipboard | QClipboard (OLE) + `PNG` и пометки «не в историю» | — |
+| IInputInjector | `SendInput` с проверкой UIPI и смены активного окна | — |
+
+Файлы на Windows: настройки — реестр `HKCU\Software\markpaste\markpaste`; набор, журнал — `%LOCALAPPDATA%\markpaste\markpaste\`; автозапуск — `HKCU\…\CurrentVersion\Run`.
 
 ## Файлы программы на Linux
 
@@ -71,7 +84,7 @@ markpaste (app/)             контроллер, настройки, один 
 
 ## Кнопка «Вставить набор» в ленте
 
-На KDE лента — поверхность layer-shell с `KeyboardInteractivityNone`: клик по ней не забирает фокус клавиатуры у окна чата. Поэтому кнопка запускает режим 1, а не только копирование, как ТЗ предлагает для Wayland. Без layer-shell (GNOME) кнопка копирует набор в режиме 2. **Ещё не проверено руками** — см. platform-matrix.md.
+На KDE лента — поверхность layer-shell с `KeyboardInteractivityNone`: клик по ней не забирает фокус клавиатуры у окна чата. Поэтому кнопка запускает режим 1, а не только копирование, как ТЗ предлагает для Wayland. Без layer-shell (GNOME) кнопка копирует набор в режиме 2. На Windows то же даёт окно с `WS_EX_NOACTIVATE` (ADR 0016) — проверено под Wine. **Ещё не проверено руками** — см. platform-matrix.md.
 
 ## Лента: где стоит и когда видна
 
@@ -81,7 +94,8 @@ markpaste (app/)             контроллер, настройки, один 
 
 - Главный: UI, модель, D-Bus-вызовы (ответы приходят из потока QtDBus через очередь).
 - `markpaste-wayland`: своё подключение к композитору и data-control (ADR 0002).
-- Пул `QtConcurrent`: запекание, PNG, запись данных буфера в pipe, декодирование кадра портала.
+- Пул `QtConcurrent`: запекание, PNG, запись данных буфера в pipe, декодирование кадра портала, снимок DXGI/GDI на Windows.
+- Windows: поток хука клавиатуры `KeyboardHook` со своим циклом сообщений — только сравнивает код клавиши и шлёт сигнал в главный поток (ADR 0016).
 
 ## Мастер первого запуска (ADR 0009)
 

@@ -5,16 +5,57 @@
 #include <QFile>
 #include <QSaveFile>
 #include <QFileInfo>
+#include <QSettings>
 #include <QStandardPaths>
 
 namespace mp {
 
 #ifdef Q_OS_WIN
 
-bool isAutostartSupported() { return false; }
-bool isAutostartEnabled(const QString &) { return false; }
-bool setAutostartEnabled(const QString &, bool, const QString &) { return false; }
-QString autostartFilePath(const QString &) { return {}; }
+// Ключ Run пользователя: без прав администратора, как и установка в профиль (ТЗ разд. 11).
+// Имя значения — app id, значение — путь к программе в кавычках (в пути бывают пробелы).
+static const QString kRunKey = QStringLiteral("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+
+bool isAutostartSupported()
+{
+    return true;
+}
+
+QString autostartFilePath(const QString &appId)
+{
+    return kRunKey + u'\\' + appId;
+}
+
+bool isAutostartEnabled(const QString &appId)
+{
+    // Выключение в «Диспетчере задач → Автозагрузка» значение не удаляет, а помечает в StartupApproved.
+    // Это решение пользователя в системе: галочка в программе его показывает как «выключено».
+    const QSettings approved(QStringLiteral("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\"
+                                            "Explorer\\StartupApproved\\Run"),
+                             QSettings::NativeFormat);
+    const QByteArray state = approved.value(appId).toByteArray();
+    if (!state.isEmpty() && (state.at(0) & 1))   // 0x03 — выключено, 0x02 — включено
+        return false;
+    return !QSettings(kRunKey, QSettings::NativeFormat).value(appId).toString().isEmpty();
+}
+
+bool setAutostartEnabled(const QString &appId, bool enabled, const QString &executable)
+{
+    QSettings run(kRunKey, QSettings::NativeFormat);
+    if (!enabled) {
+        run.remove(appId);
+    } else {
+        const QString exe = executable.isEmpty() ? QCoreApplication::applicationFilePath() : executable;
+        run.setValue(appId, u'"' + QDir::toNativeSeparators(exe) + u'"');
+        // Включение из программы снимает и отметку «выключено» из Диспетчера задач
+        QSettings(QStringLiteral("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\"
+                                 "Explorer\\StartupApproved\\Run"),
+                  QSettings::NativeFormat)
+            .remove(appId);
+    }
+    run.sync();
+    return run.status() == QSettings::NoError;
+}
 
 #else
 

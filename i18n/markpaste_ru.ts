@@ -597,8 +597,12 @@
         <translation>Настройка Markpaste</translation>
     </message>
     <message>
-        <source>Let&apos;s check that capture, hotkeys and paste work on this system. On Wayland the desktop may ask for permission — allow it once, and it will not ask again.</source>
-        <translation>Проверим, что захват, клавиши и вставка работают на этой системе. На Wayland окружение может спросить разрешение — разрешите один раз, больше оно не спросит.</translation>
+        <source>Let&apos;s check that capture, hotkeys and paste work on this system.</source>
+        <translation>Проверим, что захват, клавиши и вставка работают на этой системе.</translation>
+    </message>
+    <message>
+        <source>On Wayland the desktop may ask for permission — allow it once, and it will not ask again.</source>
+        <translation>На Wayland окружение может спросить разрешение — разрешите один раз, больше оно не спросит.</translation>
     </message>
     <message>
         <source>1. System</source>

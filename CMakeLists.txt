@@ -16,6 +16,13 @@ set(MARKPASTE_EXECUTABLE "markpaste")
 
 include(GNUInstallDirs)
 set(CMAKE_INSTALL_DOCDIR ${CMAKE_INSTALL_DATADIR}/doc/${MARKPASTE_EXECUTABLE})
+# Windows: портативная раскладка — всё в одном каталоге рядом с .exe
+if(WIN32)
+    set(MARKPASTE_INSTALL_BINDIR .)
+    set(CMAKE_INSTALL_DOCDIR .)
+else()
+    set(MARKPASTE_INSTALL_BINDIR ${CMAKE_INSTALL_BINDIR})
+endif()
 
 # Позиционно-независимый исполняемый файл (PIE): требование пакетов Fedora и Debian
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -117,6 +124,12 @@ endif()
 
 install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
+if(WIN32)
+    # Корень Qt для Windows: каталог над lib/cmake/Qt6
+    get_filename_component(MARKPASTE_QT_PREFIX "${Qt6_DIR}/../../.." ABSOLUTE)
+    include(cmake/WindowsDeploy.cmake)
+endif()
+
 # --- Пакеты (ТЗ разд. 11): cmake --build <каталог> --target package ---
 # Зависимости от библиотек (Qt 6, libwayland-client, LayerShellQt) пакетные системы
 # находят сами по связанным .so; вручную — только то, что нужно во время работы.
@@ -131,10 +144,20 @@ set(CPACK_PACKAGE_HOMEPAGE_URL "https://gitlab.525.su/che/main/markpaste")
 set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE)
 set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 set(CPACK_STRIP_FILES ON)
-set(CPACK_GENERATOR "TGZ")
+if(WIN32)
+    # Пока — портативный ZIP. Setup.exe с автообновлением (Velopack) — отдельным шагом (docs/status.md)
+    set(CPACK_GENERATOR "ZIP")
+    set(CPACK_SYSTEM_NAME "win64")
+    set(CPACK_PACKAGE_FILE_NAME "Markpaste-${PROJECT_VERSION}-win64-portable")
+    set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY ON)
+    set(CPACK_PACKAGE_DIRECTORY ${CMAKE_BINARY_DIR}/package)
+else()
+    set(CPACK_GENERATOR "TGZ")
+endif()
 
 find_program(MARKPASTE_RPMBUILD rpmbuild)
-if(MARKPASTE_RPMBUILD)
+find_program(MARKPASTE_DPKG_SHLIBDEPS dpkg-shlibdeps)
+if(MARKPASTE_RPMBUILD AND NOT WIN32)
     list(APPEND CPACK_GENERATOR "RPM")
     set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-or-later")
     set(CPACK_RPM_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION})
@@ -155,8 +178,7 @@ if(MARKPASTE_RPMBUILD)
         ${CMAKE_INSTALL_FULL_DATADIR}/doc)
 endif()
 
-find_program(MARKPASTE_DPKG_SHLIBDEPS dpkg-shlibdeps)
-if(MARKPASTE_DPKG_SHLIBDEPS)
+if(MARKPASTE_DPKG_SHLIBDEPS AND NOT WIN32)
     list(APPEND CPACK_GENERATOR "DEB")
     set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)

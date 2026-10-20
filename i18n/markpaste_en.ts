@@ -596,7 +596,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Let&apos;s check that capture, hotkeys and paste work on this system. On Wayland the desktop may ask for permission — allow it once, and it will not ask again.</source>
+        <source>Let&apos;s check that capture, hotkeys and paste work on this system.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>On Wayland the desktop may ask for permission — allow it once, and it will not ask again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

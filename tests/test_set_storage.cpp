@@ -54,9 +54,13 @@ TEST(SetStorage, SessionRoundTripAndPrivatePermissions)
     QString error;
     ASSERT_TRUE(SetStorage::saveSession(set, dir, &error)) << error.toStdString();
 
+#ifndef Q_OS_WIN
+    // На Windows права задаёт ACL каталога профиля (%LOCALAPPDATA% — только владелец), а
+    // QFile::permissions о нём не знает (NFR-5)
     EXPECT_EQ(QFile::permissions(dir) & (QFileDevice::ReadGroup | QFileDevice::ReadOther | QFileDevice::ExeOther), 0);
     EXPECT_EQ(QFile::permissions(dir + QStringLiteral("/set.json"))
                   & (QFileDevice::ReadGroup | QFileDevice::ReadOther), 0);
+#endif
 
     const auto back = SetStorage::loadSession(dir, &error);
     ASSERT_TRUE(back) << error.toStdString();

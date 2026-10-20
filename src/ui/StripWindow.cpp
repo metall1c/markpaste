@@ -21,6 +21,7 @@
 #include <QScreen>
 #include <QScrollArea>
 #include <QSettings>
+#include <QStyleOption>
 #include <QWindow>
 #include <QTimer>
 #include <QToolButton>
@@ -531,6 +532,9 @@ void StripWindow::rebuild()
     m_scroll->setFixedHeight(std::clamp(listHeight, 40, std::max(120, maxList)));
     adjustSize();
 
+    if (m_snapToEdge && isVisible())
+        snapToEdge();   // по центру края — центр сместился; у низа — не вылезти за экран
+
     // Лента выросла и вылезла за низ экрана — поднимаем её
     if (m_layerShell && m_placement.offset >= 0 && isVisible()) {
         const int maxOffset = std::max(0, currentScreen()->geometry().height() - height());
@@ -622,10 +626,49 @@ void StripWindow::present()
             // Обычное окно: на GNOME «поверх» и позиция недоступны (STR-1), двигает оконный менеджер
             setWindowFlag(Qt::WindowStaysOnTopHint);
             setWindowFlag(Qt::Tool);
+            m_snapToEdge = watchPanelMoves(this, [this] { onMovedByUser(); });
         }
     }
     adjustSize();
+    if (m_snapToEdge)
+        snapToEdge();
     show();
+}
+
+void StripWindow::paintEvent(QPaintEvent *)
+{
+    // Прозрачное окно (Windows, ради скруглённых углов): Qt не рисует ему фон сам —
+    // рисуем по таблице стилей (#Strip). Непрозрачному окну фон рисует Qt.
+    if (!testAttribute(Qt::WA_TranslucentBackground))
+        return;
+    QStyleOption opt;
+    opt.initFrom(this);
+    QPainter p(this);
+    style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
+}
+
+void StripWindow::snapToEdge()
+{
+    QScreen *screen = currentScreen();
+    PanelPlacement pl = m_placement;
+    if (pl.offset >= 0)   // лента выросла — не даём ей уйти за низ экрана
+        pl.offset = std::min(pl.offset, std::max(0, screen->geometry().height() - height()));
+    move(topLeftFor(screen, pl));
+}
+
+void StripWindow::onMovedByUser()
+{
+    // Куда отпустили — туда и встаём, но вплотную к ближайшему краю (STR-5)
+    const QPoint center = frameGeometry().center();
+    QScreen *target = QGuiApplication::screenAt(center);
+    if (!target)
+        target = currentScreen();
+    const QRect geo = target->geometry();
+    PanelPlacement pl = m_placement;
+    pl.edge = center.x() < geo.center().x() ? PanelEdge::Left : PanelEdge::Right;
+    pl.offset = std::clamp(y() - geo.top(), 0, std::max(0, geo.height() - height()));
+    moveTo(target, pl);
+    snapToEdge();
 }
 
 QScreen *StripWindow::currentScreen() const

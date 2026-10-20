@@ -7,6 +7,7 @@
 #include <QGuiApplication>
 #include <QLoggingCategory>
 #include <QSettings>
+#include <QSysInfo>
 
 #ifdef Q_OS_LINUX
 #include "linux/kde/KWinScreenshot.h"
@@ -18,6 +19,12 @@
 #include "linux/wayland/DataControlClipboard.h"
 #include "linux/wayland/VirtualKeyboardInjector.h"
 #include "linux/wayland/WaylandConnection.h"
+#endif
+#ifdef Q_OS_WIN
+#include "windows/DxgiCapture.h"
+#include "windows/WinClipboard.h"
+#include "windows/WinHotkeys.h"
+#include "windows/WinInputInjector.h"
 #endif
 #ifdef MARKPASTE_HAVE_X11
 #include "linux/x11/X11Hotkeys.h"
@@ -137,6 +144,17 @@ Platform createPlatform(const QString &appId)
             p.notes << QStringLiteral("Running under XWayland: global hotkeys and capture will not work. "
                                       "Do not force QT_QPA_PLATFORM=xcb.");
     }
+#elif defined(Q_OS_WIN)
+    Q_UNUSED(appId);
+    // Всё нужное Windows даёт напрямую, без разрешений (ТЗ разд. 9)
+    p.environment = QStringLiteral("Windows %1").arg(QSysInfo::productVersion());
+    // MARKPASTE_CAPTURE=gdi — без DXGI: для драйверов, где она сбоит (и Wine без экрана)
+    const bool dxgi = qEnvironmentVariable("MARKPASTE_CAPTURE") != u"gdi";
+    p.capture = std::make_unique<FallbackCapture>(std::make_unique<win::DxgiCapture>(dxgi),
+                                                  std::make_unique<QtScreenCapture>());
+    p.hotkeys = std::make_unique<win::WinHotkeys>();
+    p.clipboard = std::make_unique<win::WinClipboard>();
+    p.injector = std::make_unique<win::WinInputInjector>();
 #else
     Q_UNUSED(appId);
     p.environment = qpa;

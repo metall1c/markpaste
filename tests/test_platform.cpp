@@ -1,12 +1,14 @@
 #include "platform/Autostart.h"
 
 #include <QFile>
+#include <QSettings>
 #include <QStandardPaths>
 
 #include <gtest/gtest.h>
 
 using namespace mp;
 
+#ifndef Q_OS_WIN
 TEST(Autostart, WritesAndRemovesDesktopFile)
 {
     // Тестовый режим: ~/.qttest/config вместо настоящего ~/.config
@@ -32,6 +34,23 @@ TEST(Autostart, WritesAndRemovesDesktopFile)
     EXPECT_TRUE(setAutostartEnabled(id, false));   // повторное выключение — не ошибка
     QStandardPaths::setTestModeEnabled(false);
 }
+#else
+TEST(Autostart, WritesAndRemovesRunKey)
+{
+    const QString id = QStringLiteral("su._525.MarkpasteTest");
+    setAutostartEnabled(id, false);
+    EXPECT_FALSE(isAutostartEnabled(id));
+    ASSERT_TRUE(setAutostartEnabled(id, true, QStringLiteral("C:/Program Files/Mark paste/markpaste.exe")));
+    EXPECT_TRUE(isAutostartEnabled(id));
+    const QSettings run(QStringLiteral("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"),
+                        QSettings::NativeFormat);
+    // Путь с пробелами — в кавычках и с обратными косыми
+    EXPECT_EQ(run.value(id).toString(), QStringLiteral("\"C:\\Program Files\\Mark paste\\markpaste.exe\""));
+    ASSERT_TRUE(setAutostartEnabled(id, false));
+    EXPECT_FALSE(isAutostartEnabled(id));
+    EXPECT_TRUE(setAutostartEnabled(id, false));
+}
+#endif
 
 #ifdef Q_OS_LINUX
 #include "platform/linux/FdIo.h"

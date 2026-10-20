@@ -17,6 +17,7 @@ add_library(markpaste_platform STATIC
     Paths.h common/Paths.cpp
     Autostart.h common/Autostart.cpp
     Memory.h common/Memory.cpp
+    Process.h common/Process.cpp
 )
 target_link_libraries(markpaste_platform PUBLIC markpaste_platform_api Qt6::Gui Qt6::Widgets)
 if(LayerShellQt_FOUND)
@@ -72,4 +73,19 @@ if(MARKPASTE_LINUX)
     else()
         message(STATUS "xcb, xcb-xtest или xcb-keysyms не найдены: на X11 не будет глобальных клавиш и Ctrl+V")
     endif()
+endif()
+
+if(WIN32)
+    target_sources(markpaste_platform PRIVATE
+        windows/WinKeys.h windows/WinKeys.cpp
+        windows/KeyboardHook.h windows/KeyboardHook.cpp
+        windows/WinHotkeys.h windows/WinHotkeys.cpp
+        windows/WinInputInjector.h windows/WinInputInjector.cpp
+        windows/WinClipboard.h windows/WinClipboard.cpp
+        windows/DxgiCapture.h windows/DxgiCapture.cpp
+    )
+    target_link_libraries(markpaste_platform PUBLIC Qt6::Concurrent)
+    target_link_libraries(markpaste_platform PRIVATE d3d11 dxgi gdi32 user32 advapi32)
+    # Без макросов min/max и лишних заголовков из windows.h
+    target_compile_definitions(markpaste_platform PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
 endif()

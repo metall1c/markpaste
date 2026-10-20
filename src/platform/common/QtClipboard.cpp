@@ -1,5 +1,6 @@
 #include "QtClipboard.h"
 
+#include <QBuffer>
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QImage>
@@ -26,10 +27,15 @@ QFuture<Status> QtClipboard::write(const ClipboardPayload &payload, ClipboardFla
                 md->setImageData(image);
             break;
         }
-    if (flags & ClipboardFlag::ExcludeFromHistory)
-        md->setData(QStringLiteral("x-kde-passwordManagerHint"), QByteArrayLiteral("secret"));
+    addPlatformFormats(md, payload, flags);
     QGuiApplication::clipboard()->setMimeData(md);
     return readyFuture(Status::success());
+}
+
+void QtClipboard::addPlatformFormats(QMimeData *md, const ClipboardPayload &, ClipboardFlags flags) const
+{
+    if (flags & ClipboardFlag::ExcludeFromHistory)
+        md->setData(QStringLiteral("x-kde-passwordManagerHint"), QByteArrayLiteral("secret"));
 }
 
 QFuture<ClipboardPayload> QtClipboard::snapshot()
@@ -43,8 +49,16 @@ QFuture<ClipboardPayload> QtClipboard::snapshot()
     for (const char *mime : {"image/png", "image/jpeg"}) {
         if (md->hasFormat(QString::fromLatin1(mime))) {
             p.addImage(md->data(QString::fromLatin1(mime)), mime);
-            break;
+            return readyFuture(p);
         }
+    }
+    // Картинка без PNG — например, только CF_DIB на Windows: Qt отдаёт её как QImage
+    if (md->hasImage()) {
+        const QImage image = qvariant_cast<QImage>(md->imageData());
+        QByteArray png;
+        QBuffer buf(&png);
+        if (!image.isNull() && buf.open(QIODevice::WriteOnly) && image.save(&buf, "PNG"))
+            p.addImage(png, "image/png");
     }
     return readyFuture(p);
 }

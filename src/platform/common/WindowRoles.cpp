@@ -9,6 +9,15 @@
 #include <LayerShellQt/Window>
 #endif
 
+#ifdef Q_OS_WIN
+#include <QAbstractNativeEventFilter>
+#include <QCoreApplication>
+#include <QPointer>
+#include <QTimer>
+
+#include <windows.h>
+#endif
+
 namespace mp {
 
 bool layerShellAvailable()
@@ -102,7 +111,21 @@ static void setPlacement(LayerShellQt::Window *lw, const PanelPlacement &pl)
 
 bool applyPanelRole(QWidget *widget, QScreen *screen, const PanelPlacement &placement)
 {
-#ifdef MARKPASTE_HAVE_LAYERSHELLQT
+#ifdef Q_OS_WIN
+    Q_UNUSED(screen);
+    Q_UNUSED(placement);
+    // Панель без рамки, поверх окон и без активации: клик по ленте не забирает фокус у чата,
+    // и «Вставить» работает в режиме 1 (ТЗ разд. 10). Положение задаёт StripWindow.
+    // Скруглённые углы ленты: окно прозрачное, фон с рамкой рисует таблица стилей виджета
+    widget->setAttribute(Qt::WA_TranslucentBackground);
+    widget->setAttribute(Qt::WA_StyledBackground);
+    widget->setWindowFlags(widget->windowFlags() | Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint
+                           | Qt::WindowDoesNotAcceptFocus);
+    widget->createWinId();
+    const auto hwnd = reinterpret_cast<HWND>(widget->winId());
+    SetWindowLongPtrW(hwnd, GWL_EXSTYLE, GetWindowLongPtrW(hwnd, GWL_EXSTYLE) | WS_EX_NOACTIVATE);
+    return false;
+#elif defined(MARKPASTE_HAVE_LAYERSHELLQT)
     if (!layerShellAvailable())
         return false;
     auto *lw = layerWindow(widget);
@@ -156,6 +179,70 @@ bool movePanel(QWidget *widget, QScreen *screen, const PanelPlacement &placement
     Q_UNUSED(placement);
     return false;
 #endif
+}
+
+#ifdef Q_OS_WIN
+namespace {
+// Конец перетаскивания окна — WM_EXITSIZEMOVE: его присылает модальный цикл Windows,
+// в котором идёт перемещение после startSystemMove()
+class MoveEndFilter : public QObject, public QAbstractNativeEventFilter
+{
+public:
+    MoveEndFilter(QWidget *widget, std::function<void()> fn)
+        : QObject(widget), m_widget(widget), m_fn(std::move(fn))
+    {
+        QCoreApplication::instance()->installNativeEventFilter(this);
+    }
+    ~MoveEndFilter() override
+    {
+        if (QCoreApplication::instance())
+            QCoreApplication::instance()->removeNativeEventFilter(this);
+    }
+    bool nativeEventFilter(const QByteArray &type, void *message, qintptr *) override
+    {
+        if (type != "windows_generic_MSG")
+            return false;
+        const auto *msg = static_cast<const MSG *>(message);
+        if (msg->message == WM_EXITSIZEMOVE && m_widget && m_widget->internalWinId()
+            && msg->hwnd == reinterpret_cast<HWND>(m_widget->internalWinId()))
+            QTimer::singleShot(0, this, m_fn);   // после выхода из цикла перемещения
+        return false;
+    }
+
+private:
+    QPointer<QWidget> m_widget;
+    std::function<void()> m_fn;
+};
+} // namespace
+#endif
+
+bool watchPanelMoves(QWidget *widget, std::function<void()> onMoveFinished)
+{
+#ifdef Q_OS_WIN
+    new MoveEndFilter(widget, std::move(onMoveFinished));
+    return true;
+#else
+    Q_UNUSED(widget);
+    Q_UNUSED(onMoveFinished);
+    return false;
+#endif
+}
+
+void forceActivate(QWidget *widget)
+{
+#ifdef Q_OS_WIN
+    const auto hwnd = reinterpret_cast<HWND>(widget->winId());
+    HWND foreground = GetForegroundWindow();
+    const DWORD ours = GetCurrentThreadId();
+    const DWORD theirs = foreground ? GetWindowThreadProcessId(foreground, nullptr) : 0;
+    // Присоединённый к потоку активного окна поток может сделать активным своё окно
+    const bool attached = theirs && theirs != ours && AttachThreadInput(ours, theirs, TRUE);
+    SetForegroundWindow(hwnd);
+    BringWindowToTop(hwnd);
+    if (attached)
+        AttachThreadInput(ours, theirs, FALSE);
+#endif
+    widget->activateWindow();
 }
 
 } // namespace mp

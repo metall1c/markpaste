@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 
 class QWidget;
 class QScreen;
@@ -38,5 +39,17 @@ bool applyPanelRole(QWidget *widget, QScreen *screen, const PanelPlacement &plac
 // layer-shell мышью — положение задаёт программа. Смена монитора пересоздаёт поверхность.
 // false — панель не layer-shell, её двигает оконный менеджер.
 bool movePanel(QWidget *widget, QScreen *screen, const PanelPlacement &placement);
+
+// Лента без layer-shell, которую программа сама ставит к краю экрана (Windows): окно без рамки,
+// пользователь тянет его за заголовок ленты, а по окончании перетаскивания вызывается
+// onMoveFinished — один раз, а не на каждое движение. false — так нельзя: окно двигает оконный
+// менеджер, программа его положение не трогает.
+bool watchPanelMoves(QWidget *widget, std::function<void()> onMoveFinished);
+
+// Отдать окну клавиатуру сразу после показа. На Windows система не даёт программе стать
+// активной, если последнее событие ввода получила не она — а Print Screen проглатывает наш хук,
+// и событие до программы не доходит. Тогда окно только мигает на панели задач, а Esc и Enter
+// уходят в прежнее окно.
+void forceActivate(QWidget *widget);
 
 } // namespace mp

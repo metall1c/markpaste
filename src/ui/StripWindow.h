@@ -23,7 +23,8 @@ class ShotThumb;
 
 // Лента набора (ТЗ 5.3): миниатюры с буквой и числом комментариев, кнопки и счётчик.
 // На KDE/Sway — панель layer-shell у края экрана, которая не забирает фокус клавиатуры:
-// клик по «Вставить» не уводит фокус из окна чата. Без layer-shell — обычное окно.
+// клик по «Вставить» не уводит фокус из окна чата. На Windows — окно без рамки и без
+// активации, к краю его ставим сами. Иначе — обычное окно.
 class StripWindow : public QWidget
 {
     Q_OBJECT
@@ -58,6 +59,9 @@ signals:
     void saveToFolderRequested();   // APP-6
     void hideRequested();   // «свернуть в трей»
 
+protected:
+    void paintEvent(QPaintEvent *event) override;
+
 private:
     friend class ShotThumb;
     friend class StripHeader;
@@ -72,6 +76,8 @@ private:
     // Положение поверхности layer-shell Qt не знает — считаем сами из края и отступов.
     QPoint topLeftFor(QScreen *screen, const PanelPlacement &placement) const;
     QPoint assumedTopLeft() const { return topLeftFor(currentScreen(), m_placement); }
+    void snapToEdge();          // встать по m_placement
+    void onMovedByUser();       // пользователь отпустил перетащенную ленту
     void loadPlacement();
     void savePlacement() const;
     void rebuild();
@@ -108,6 +114,7 @@ private:
     DragProvider m_dragProvider;
     bool m_roleApplied = false;
     bool m_layerShell = false;
+    bool m_snapToEdge = false;   // окно без рамки, к краю его ставим сами (Windows)
     PanelPlacement m_placement;
     QString m_screenName;
     QPoint m_movePress;
