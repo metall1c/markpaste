@@ -141,6 +141,7 @@ bool CommentPopup::eventFilter(QObject *watched, QEvent *event)
             }
             if (enter && !(ke->modifiers() & Qt::ShiftModifier)) {
                 commit();
+                emit submitted();
                 return true;
             }
             if (ke->key() == Qt::Key_Escape) {

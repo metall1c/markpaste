@@ -36,6 +36,10 @@ ShotCanvas::ShotCanvas(CaptureSetModel *model, QWidget *parent)
         update();
     });
     connect(m_popup, &CommentPopup::finishRequested, this, &ShotCanvas::finishRequested);
+    connect(m_popup, &CommentPopup::submitted, this, [this] {
+        setSelection(Hit{});
+        update();
+    });
     connect(m_popup, &CommentPopup::committed, this, [this](const QUuid &markId, const QString &text) {
         m_model->setMarkComment(m_shotId, markId, text);
         setFocus();

@@ -73,6 +73,7 @@ TEST(ShotEditorUi, PlainEnterInCommentOnlySaves)
     QTest::keyClick(edit, Qt::Key_Return);
     EXPECT_EQ(f.done, 0);
     EXPECT_EQ(f.model.shot(f.shot)->marks[0].comment, QStringLiteral("x"));
+    EXPECT_TRUE(f.canvas()->selectedMark().isNull());   // Enter снимает выделение
 }
 
 namespace {
@@ -308,6 +309,39 @@ TEST(ShotEditorUi, OvalIsHitInsideButNotInItsCorner)
     const QRect before = f.model.shot(f.shot)->marks[0].rect;
     dragSource(f.canvas(), {{200, 150}, {210, 160}});
     EXPECT_EQ(f.model.shot(f.shot)->marks[0].rect, before.translated(10, 10));
+}
+
+// После Enter выбор формы и цвета — для следующей метки: нарисованная не меняется
+TEST(ShotEditorUi, StyleChosenAfterEnterIsForNextMark)
+{
+    EditorFixture f;
+    f.editor.resize(900, 600);
+    QTest::qWait(20);
+    dragSource(f.canvas(), {{20, 20}, {120, 100}});
+    ASSERT_EQ(f.model.shot(f.shot)->marks.size(), 1);
+    auto *edit = f.canvas()->findChild<QPlainTextEdit *>();
+    ASSERT_TRUE(edit && edit->isVisible());
+    edit->setFocus();
+    QTest::keyClicks(edit, QStringLiteral("a"));
+    QTest::keyClick(edit, Qt::Key_Return);
+    const MarkPen drawn = f.model.shot(f.shot)->marks[0].pen;
+
+    auto *picker = f.editor.findChild<PenPicker *>();
+    MarkPen red = picker->pen();
+    red.color = Qt::red;
+    picker->setPen(red);
+    emit picker->penChanged(red);
+    for (QToolButton *b : f.editor.findChildren<QToolButton *>())
+        if (b->text() == QStringLiteral("Frame shape") && b->menu())
+            for (QAction *a : b->menu()->actions())
+                if (a->text() == QStringLiteral("Oval"))
+                    a->trigger();
+    EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen, drawn);
+
+    dragSource(f.canvas(), {{200, 150}, {300, 220}});
+    ASSERT_EQ(f.model.shot(f.shot)->marks.size(), 2);
+    EXPECT_EQ(f.model.shot(f.shot)->marks[1].pen.color, QColor(Qt::red));
+    EXPECT_EQ(f.model.shot(f.shot)->marks[1].pen.frame, FrameShape::Ellipse);
 }
 
 TEST(ShotEditorUi, SelectingMarkShowsItsPen)

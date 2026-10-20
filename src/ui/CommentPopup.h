@@ -25,6 +25,10 @@ public:
 signals:
     void committed(const QUuid &markId, const QString &text);
     void finishRequested();   // Ctrl+Enter в поле: сохранить и закрыть редактор
+    // Enter в поле: комментарий готов. Холст снимает выделение — следующий выбор формы и цвета
+    // относится к новой метке, а не к этой. Сохранение щелчком мимо поля этого не делает:
+    // щёлкнув по цвету, человек хочет перекрасить как раз эту метку.
+    void submitted();
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
