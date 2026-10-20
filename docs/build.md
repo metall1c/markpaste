@@ -112,6 +112,25 @@ xdotool mousemove 400 300 click 1; xdotool key Print        # дальше — x
 - **Wine ≠ Windows.** DXGI Desktop Duplication в Wine не реализован (`DuplicateOutput: 0x887a0004`) — захват идёт через GDI. В Xvfb dxgi.dll из Wine падает с делением на ноль — там `MARKPASTE_CAPTURE=gdi`. Без оконного менеджера скрытые окна остаются на экране (картинка не обновляется) — запускайте xfwm4. Клавиши (`RegisterHotKey`, хук) Wine видит, только когда фокус в окне Wine.
 - **Размер ZIP — 35 МБ** (каталог 81 МБ): Qt из Fedora тянет ICU (32 МБ), OpenSSL, GLib. Для релиза — официальный Qt (ADR 0017).
 
+### Проверка в VirtualBox
+
+Проверено 2026-10-20: VirtualBox 7.2, гость Windows 11 24H2 с Guest Additions 7.2.18, пользователь вошёл на консоли.
+
+```bash
+export MP_VM=Win11-test MP_VM_USER=admin MP_VM_PASS=…
+tools/dev/winvm/vm.sh setup                                   # помощники в C:\mp
+tools/dev/winvm/vm.sh deploy build-win/package/Markpaste-0.1.0-win64-portable.zip
+tools/dev/winvm/vm.sh start                                   # в сеансе пользователя
+tools/dev/winvm/vm.sh key e0 2a e0 37 e0 b7 e0 aa             # Print Screen
+tools/dev/winvm/vm.sh drag 300 250 800 500; tools/dev/winvm/vm.sh shot /tmp/vm.png; tools/dev/winvm/vm.sh log
+```
+
+- Процесс от `guestcontrol run` живёт вне сеанса пользователя: его окон не видно. Программы запускаются задачей планировщика с `LogonType Interactive` (`run.ps1`).
+- Аргументы после `--` у `guestcontrol run` уходят программе целиком: имя программы повторять не надо (`-- /c dir`, а не `-- cmd /c dir`).
+- У `guestcontrol` урезанный токен администратора (UAC): повышенные действия (брандмауэр, HKLM) не проходят.
+- Мышь — `SendInput` из `input.ps1` через `conhost --headless`: обычное окно консоли забирает фокус, и вставка честно останавливается «окно сменилось».
+- Клавиши `keyboardputscancode` для Windows — настоящая клавиатура: так проверяется хук Print Screen.
+
 ## Что получается
 
 | Файл | Что это |

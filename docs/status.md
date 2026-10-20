@@ -77,16 +77,16 @@
 
 ## Windows (начата 2026-10-20)
 
-Linux-версия готова; Windows-версия собирается кросс-компиляцией на Fedora и проверяется под Wine ([ADR 0016](decisions/0016-windows-platform.md), [ADR 0017](decisions/0017-windows-cross-build.md)). Ядро и интерфейс — общие с Linux, новые только реализации в `src/platform/windows/`. **На настоящей Windows ещё ничего не запускалось.**
+Linux-версия готова; Windows-версия собирается кросс-компиляцией на Fedora и проверяется под Wine ([ADR 0016](decisions/0016-windows-platform.md), [ADR 0017](decisions/0017-windows-cross-build.md)). Ядро и интерфейс — общие с Linux, новые только реализации в `src/platform/windows/`. На настоящей Windows 11 (VirtualBox) 2026-10-20 прошёл главный сценарий: Print → область → метка → Ctrl+Alt+V в Блокнот, кнопка ленты → картинка в Paint (platform-matrix.md). Пользователь на Windows Server 2022 по RDP получил чёрный снимок — исправлено, ждёт проверки.
 
 | Что | Статус | Что осталось |
 | --- | --- | --- |
-| Захват (CAP-1…4, CAP-8) | 🟡 | DXGI Desktop Duplication + GDI на монитор. Под Wine — только GDI (DXGI там нет). На Windows: DXGI, HDR, разный масштаб (CAP-6), повёрнутый монитор |
+| Захват (CAP-1…4, CAP-8) | 🟡 | DXGI Desktop Duplication + GDI на монитор; в RDP — только GDI. DXGI проверен на Windows 11 в VirtualBox. Осталось: RDP, HDR, разный масштаб (CAP-6), повёрнутый монитор |
 | Глобальные клавиши (CAP-7, PST-2) | 🟡 | `RegisterHotKey`, Print Screen — хуком в своём потоке. Под Wine работают. На Windows 11 — перехват Print у «Ножниц» |
 | Буфер (режимы 1 и 2, NFR-4) | 🟡 | OLE + `PNG` + пометки «не в историю»; форматы проверены тестом под Wine. На Windows — журнал Win+V, вставка в чаты |
 | Ctrl+V (режим 1) | 🟡 | `SendInput`, ожидание модификаторов, остановка при смене окна, проверка UIPI. Под Wine вставка в Блокнот работает |
 | Лента (STR-1, STR-5) | 🟡 | Окно без рамки и без активации, перенос к краю. Под Wine с xfwm4 работает |
-| Оверлей: фокус после Print | ❔ | `forceActivate` (`AttachThreadInput`) — проверить на Windows |
+| Оверлей: фокус после Print | ✅ | `forceActivate` (`AttachThreadInput`): на Windows 11 Esc сразу закрывает оверлей |
 | Автозапуск, настройки, журнал, NFR-5 | 🟡 | Реестр `Run`, настройки в реестре, `%LOCALAPPDATA%`. Тест под Wine; вход в систему не проверялся |
 | Мастер первого запуска | 🟡 | Работает под Wine. Нет подсказки про «Ножницы» на Print |
 | Портативный ZIP | 🟡 | 35 МБ, Qt из Fedora с ICU. Запускается под Wine без путей к Qt |

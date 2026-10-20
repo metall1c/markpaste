@@ -114,6 +114,7 @@ QImage dxgiGrab(IDXGIAdapter1 *adapter, IDXGIOutput *output, QString *error)
     dup->GetDesc(&desc);
 
     QImage image;
+    bool presented = false;   // кадр с настоящей отрисовкой, а не пустая поверхность
     for (int attempt = 0; attempt < 2; ++attempt) {
         DXGI_OUTDUPL_FRAME_INFO info;
         Com<IDXGIResource> resource;
@@ -158,11 +159,14 @@ QImage dxgiGrab(IDXGIAdapter1 *adapter, IDXGIOutput *output, QString *error)
         }
         image = fromBgra(static_cast<const uchar *>(mapped.pData), int(mapped.RowPitch), int(td.Width), int(td.Height));
         context->Unmap(staging.get(), 0);
-        if (info.LastPresentTime.QuadPart != 0 || !looksBlack(image))
+        presented = info.LastPresentTime.QuadPart != 0 || !looksBlack(image);
+        if (presented)
             break;
     }
-    if (image.isNull()) {
-        *error = QStringLiteral("no frame");
+    if (image.isNull() || !presented) {
+        // Чёрный кадр без отрисовки — не снимок: так DXGI отвечает, например, в сеансе RDP.
+        // Лучше GDI, чем чёрный экран (docs/problems.md, 2026-10-20)
+        *error = image.isNull() ? QStringLiteral("no frame") : QStringLiteral("empty black frame");
         return {};
     }
     // Поверхность дублирования — в собственной ориентации панели, без поворота экрана
@@ -218,6 +222,13 @@ QImage DxgiCapture::gdiGrab(const QRect &r)
 
 CaptureResult DxgiCapture::grab(const QList<ScreenInfo> &screens, bool useDxgi)
 {
+    // Удалённый рабочий стол: рабочий стол сеанса рисует не видеокарта, DXGI отдаёт пустые
+    // чёрные кадры. GDI в RDP работает (docs/problems.md, 2026-10-20)
+    const bool remote = GetSystemMetrics(SM_REMOTESESSION) != 0;
+    if (remote && useDxgi) {
+        qCInfo(lcDxgi) << "remote desktop session: DXGI off, using GDI";
+        useDxgi = false;
+    }
     std::vector<Output> outputs;
     Com<IDXGIFactory1> factory;
     if (useDxgi && SUCCEEDED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), factory.putVoid()))) {
@@ -284,6 +295,13 @@ CaptureResult DxgiCapture::grab(const QList<ScreenInfo> &screens, bool useDxgi)
     if (result.frames.isEmpty())
         result.status = Status::failure(errors.isEmpty() ? QStringLiteral("no screens") : errors.join(u'\n'));
     return result;
+}
+
+QString DxgiCapture::name() const
+{
+    if (m_useDxgi && GetSystemMetrics(SM_REMOTESESSION))
+        return QStringLiteral("GDI BitBlt (remote desktop)");
+    return m_useDxgi ? QStringLiteral("DXGI Desktop Duplication") : QStringLiteral("GDI BitBlt");
 }
 
 QFuture<CaptureResult> DxgiCapture::captureAllScreens()

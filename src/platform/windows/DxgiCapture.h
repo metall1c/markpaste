@@ -30,10 +30,7 @@ public:
 
     QFuture<CaptureResult> captureAllScreens() override;
     CaptureCaps capabilities() const override { return CaptureCap::Silent; }
-    QString name() const override
-    {
-        return m_useDxgi ? QStringLiteral("DXGI Desktop Duplication") : QStringLiteral("GDI BitBlt");
-    }
+    QString name() const override;
 
     struct ScreenInfo {
         QString name;    // QScreen::name()
