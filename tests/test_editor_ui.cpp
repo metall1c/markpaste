@@ -7,6 +7,7 @@
 #include <QScreen>
 #include <QPlainTextEdit>
 #include <QTest>
+#include <QToolButton>
 #include <QTranslator>
 
 #include <gtest/gtest.h>
@@ -116,17 +117,39 @@ TEST(ShotEditorUi, DoneMakesShotNotFresh)
     EXPECT_FALSE(f.editor.isFreshShot());
 }
 
-// Свежий снимок удалили кнопкой или отменой (Ctrl+Z) — редактор переходит к предыдущему.
-// Тот уже принят: Esc должен только закрыть окно, а не молча удалить его из набора.
-TEST(ShotEditorUi, OlderShotShownAfterFreshIsRemovedIsNotFresh)
+// Снимок удалили кнопкой «Удалить снимок», отменой (Ctrl+Z) или из ленты — редактор закрывается,
+// как по Esc, и не открывает сам другой снимок ленты (docs/problems.md, 2026-10-20).
+TEST(ShotEditorUi, RemovedShotClosesEditor)
 {
     EditorFixture f;                                    // A принят
     const QUuid b = f.model.addShot(makeShot(400, 300));
     f.editor.showShot(b, true);                         // B только что снят
     QTest::qWait(20);
-    f.model.removeShot(b);                              // «Удалить снимок» или Ctrl+Z
-    ASSERT_EQ(f.editor.shotId(), f.shot);
+    f.model.removeShot(b);                              // Ctrl+Z или удаление из ленты
+    EXPECT_FALSE(f.editor.isVisible());
     EXPECT_FALSE(f.editor.isFreshShot());
+    EXPECT_NE(f.model.shot(f.shot), nullptr);           // A на месте
+}
+
+TEST(ShotEditorUi, DeleteShotButtonRemovesAndCloses)
+{
+    EditorFixture f;
+    const QUuid b = f.model.addShot(makeShot(400, 300));
+    f.editor.showShot(b, true);
+    QTest::qWait(20);
+    QToolButton *del = nullptr;
+    for (QToolButton *t : f.editor.findChildren<QToolButton *>())
+        if (t->text() == QStringLiteral("Delete shot"))
+            del = t;
+    ASSERT_NE(del, nullptr);
+    del->click();
+    EXPECT_EQ(f.model.shot(b), nullptr);
+    EXPECT_NE(f.model.shot(f.shot), nullptr);
+    EXPECT_FALSE(f.editor.isVisible());
+
+    // Открытый потом из ленты A не «свежий»: Esc его только закрывает
+    f.editor.showShot(f.shot);
+    QTest::qWait(20);
     QTest::keyClick(f.canvas(), Qt::Key_Escape);
     EXPECT_NE(f.model.shot(f.shot), nullptr);
 }

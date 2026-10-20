@@ -187,13 +187,12 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
 
     connect(m_model, &CaptureSetModel::changed, this, [this] {
         if (!m_model->shot(m_canvas->shotId())) {
-            // Снимок удалён: показываем последний оставшийся или закрываемся.
-            // Оставшийся уже принят — Esc не должен его удалять как только что снятый.
+            // Снимок удалён (кнопкой «Удалить снимок» или из ленты) — закрываемся, как по Esc.
+            // Раньше открывался последний снимок ленты: пользователь его не выбирал (docs/problems.md).
             m_fresh = false;
-            if (m_model->set().isEmpty())
-                hide();
-            else
-                m_canvas->setShot(m_model->set().shots.last().id);
+            hide();
+            if (!m_model->set().isEmpty())
+                m_canvas->setShot(m_model->set().shots.last().id);   // окно не пустое при следующем показе
             updateTools();
         }
         updateTitle();

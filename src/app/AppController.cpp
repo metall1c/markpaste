@@ -6,6 +6,7 @@
 #include "core/SetStorage.h"
 #include "paste/TempFiles.h"
 #include "platform/Autostart.h"
+#include "platform/WindowRoles.h"
 #include "platform/Memory.h"
 #include "ui/CaptureOverlay.h"
 #include "ui/MoveGhost.h"
@@ -66,6 +67,7 @@ void AppController::start()
 {
     m_settings = Settings::load();
     m_platform = createPlatform(QStringLiteral(MARKPASTE_APP_ID));
+    disableWindowAnimations();   // спрятанное перед снимком окно не должно «таять» в кадре
 
     m_paste = new PasteOrchestrator(m_platform.clipboard.get(), m_platform.injector.get(), this);
     connect(m_paste, &PasteOrchestrator::progress, this, [this](int done, int total) {

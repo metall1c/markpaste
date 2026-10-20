@@ -85,7 +85,7 @@ if(WIN32)
         windows/DxgiCapture.h windows/DxgiCapture.cpp
     )
     target_link_libraries(markpaste_platform PUBLIC Qt6::Concurrent)
-    target_link_libraries(markpaste_platform PRIVATE d3d11 dxgi gdi32 user32 advapi32)
+    target_link_libraries(markpaste_platform PRIVATE d3d11 dxgi dwmapi gdi32 user32 advapi32)
     # Без макросов min/max и лишних заголовков из windows.h
     target_compile_definitions(markpaste_platform PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
 endif()

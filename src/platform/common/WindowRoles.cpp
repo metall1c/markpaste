@@ -15,6 +15,7 @@
 #include <QPointer>
 #include <QTimer>
 
+#include <dwmapi.h>
 #include <windows.h>
 #endif
 
@@ -215,6 +216,37 @@ private:
 };
 } // namespace
 #endif
+
+#ifdef Q_OS_WIN
+namespace {
+// DWMWA_TRANSITIONS_FORCEDISABLED — каждому окну верхнего уровня при показе: атрибут живёт,
+// пока живёт HWND, а Qt пересоздаёт его при смене флагов окна
+class NoAnimationFilter : public QObject
+{
+public:
+    using QObject::QObject;
+    bool eventFilter(QObject *obj, QEvent *e) override
+    {
+        if (e->type() == QEvent::Show && obj->isWidgetType()) {
+            auto *w = static_cast<QWidget *>(obj);
+            if (w->isWindow() && w->internalWinId()) {
+                const BOOL off = TRUE;
+                DwmSetWindowAttribute(reinterpret_cast<HWND>(w->internalWinId()), DWMWA_TRANSITIONS_FORCEDISABLED,
+                                      &off, sizeof(off));
+            }
+        }
+        return false;
+    }
+};
+} // namespace
+#endif
+
+void disableWindowAnimations()
+{
+#ifdef Q_OS_WIN
+    QCoreApplication::instance()->installEventFilter(new NoAnimationFilter(QCoreApplication::instance()));
+#endif
+}
 
 bool watchPanelMoves(QWidget *widget, std::function<void()> onMoveFinished)
 {
