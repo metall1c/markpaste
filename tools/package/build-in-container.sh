@@ -2,8 +2,8 @@
 # Builds the release packages in a clean container, so that each Linux package is linked
 # against its distribution's Qt (docs/build.md, "Release packages in containers").
 #   tools/package/build-in-container.sh fedora:44      # → dist/*.rpm, dist/*.tar.gz
-#   tools/package/build-in-container.sh ubuntu:24.04   # → dist/*~ubuntu24.04_amd64.deb (Qt 6.4: also checks the API minimum)
-#   tools/package/build-in-container.sh ubuntu:26.04   # → dist/*~ubuntu26.04_amd64.deb; debian:13 the same way
+#   tools/package/build-in-container.sh ubuntu:24.04   # → dist/*.ubuntu24.04_amd64.deb (Qt 6.4: also checks the API minimum)
+#   tools/package/build-in-container.sh ubuntu:26.04   # → dist/*.ubuntu26.04_amd64.deb; debian:13 the same way
 #   tools/package/build-in-container.sh windows        # → dist/*.zip, dist/*-setup.exe (MinGW on fedora:44)
 # The sources are mounted read-only; the core and UI tests run before packaging (Linux).
 # CONTAINER_ENGINE=docker|podman picks the engine (by default podman, then docker).
@@ -72,7 +72,8 @@ esac
     $tests
     for t in $targets; do cmake --build /tmp/build --target \$t; done
     cd $outdir
-    for f in $keep; do cp -v \"\$f\" /out/; done
+    # GitHub Releases turns ~ in file names into a dot: name the files that way right away
+    for f in $keep; do cp -v \"\$f\" \"/out/\$(echo \"\$f\" | tr '~' '.')\"; done
     chown $(id -u):$(id -g) /out/*
 "
 echo "Packages for $target are in $dist"

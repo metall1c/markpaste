@@ -72,9 +72,9 @@ sudo dnf install ./markpaste-0.2.0-1.fc44.x86_64.rpm
 Возьмите пакет для своей версии (каждый подходит только к ней):
 
 ```bash
-sudo apt install ./markpaste_0.2.0-1~ubuntu26.04_amd64.deb   # Ubuntu 26.04
-sudo apt install ./markpaste_0.2.0-1~ubuntu24.04_amd64.deb   # Ubuntu 24.04
-sudo apt install ./markpaste_0.2.0-1~debian13_amd64.deb      # Debian 13
+sudo apt install ./markpaste_0.2.0-1.ubuntu26.04_amd64.deb   # Ubuntu 26.04
+sudo apt install ./markpaste_0.2.0-1.ubuntu24.04_amd64.deb   # Ubuntu 24.04
+sudo apt install ./markpaste_0.2.0-1.debian13_amd64.deb      # Debian 13
 ```
 
 Глобальные клавиши через портал работают в GNOME 48+ и KDE Plasma; в Ubuntu 24.04 (GNOME 46) привяжите `markpaste --capture` и `markpaste --paste` в настройках клавиатуры GNOME. В Ubuntu 24.04 нет библиотеки layer-shell для Qt 6, поэтому на KDE там лента — обычное окно, и её кнопка вставки копирует набор (сочетание вставки работает как обычно).

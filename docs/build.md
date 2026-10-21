@@ -51,15 +51,15 @@ The release builds the Linux packages in clean containers so that each package m
 
 ```bash
 tools/package/build-in-container.sh fedora:44      # → dist/: .rpm and .tar.gz
-tools/package/build-in-container.sh ubuntu:24.04   # → dist/: markpaste_<version>-1~ubuntu24.04_amd64.deb (Qt 6.4.2)
-tools/package/build-in-container.sh ubuntu:26.04   # → dist/: …-1~ubuntu26.04_amd64.deb
-tools/package/build-in-container.sh debian:13      # → dist/: …-1~debian13_amd64.deb
+tools/package/build-in-container.sh ubuntu:24.04   # → dist/: markpaste_<version>-1.ubuntu24.04_amd64.deb (Qt 6.4.2)
+tools/package/build-in-container.sh ubuntu:26.04   # → dist/: …-1.ubuntu26.04_amd64.deb
+tools/package/build-in-container.sh debian:13      # → dist/: …-1.debian13_amd64.deb
 tools/package/build-in-container.sh windows        # → dist/: the portable .zip and -setup.exe (MinGW in fedora:44)
 ```
 
 - The script mounts the sources read-only, builds in the container's own directory with the same CMake options as above, runs the core and UI tests (Linux targets), and copies the packages to `dist/`. `CONTAINER_ENGINE=docker|podman` picks the engine.
 - Building on Ubuntu 24.04 (Qt 6.4.2) also checks that the code uses no Qt API newer than 6.4 (spec section 7). It passed on the first try for 0.2.0.
-- **A .deb fits only the release it was built on.** Library package names differ between releases (the 64-bit time_t transition renamed `libqt6core6` to `libqt6core6t64` in Ubuntu 24.04, and later releases changed them again), so the Ubuntu 24.04 package does not install on Ubuntu 25.10/26.04 or Debian 12/13 (checked 2026-10-21). Hence one .deb per release, with the release in the Debian revision (`-1~ubuntu24.04`).
+- **A .deb fits only the release it was built on.** Library package names differ between releases (the 64-bit time_t transition renamed `libqt6core6` to `libqt6core6t64` in Ubuntu 24.04, and later releases changed them again), so the Ubuntu 24.04 package does not install on Ubuntu 25.10/26.04 or Debian 12/13 (checked 2026-10-21). Hence one .deb per release, with the release in the Debian revision (`-1~ubuntu24.04`). The file is named with a dot instead of the tilde (`markpaste_0.2.0-1.ubuntu24.04_amd64.deb`): GitHub Releases replaces `~` in asset names, and the names in `SHA256SUMS` must match the downloads.
 - Ubuntu 24.04 has only the Qt 5 LayerShellQt (Plasma 5.27), so the script does not install it there: linking a Qt 5 library into a Qt 6 program would break it. Ubuntu 26.04 and Debian 13 get the Qt 6 one.
 - **LayerShellQt older than 6.4** (Debian 13 has 6.3) has no `Window::setScreen`: the build failed with "'class LayerShellQt::Window' has no member named 'setScreen'". CMake now defines `MARKPASTE_LAYERSHELL_SET_SCREEN` only for 6.4+, and older versions set the output through `QWindow::setScreen` (docs/problems.md, 2026-10-21).
 - The Fedora image is used with `--disablerepo="*openh264*"`: during the 0.2.0 build a mirror of the Cisco openh264 repository failed ("All mirrors were tried"), and nothing from it is needed.

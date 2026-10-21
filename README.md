@@ -72,9 +72,9 @@ sudo dnf install ./markpaste-0.2.0-1.fc44.x86_64.rpm
 Take the package for your release (each one fits only its release):
 
 ```bash
-sudo apt install ./markpaste_0.2.0-1~ubuntu26.04_amd64.deb   # Ubuntu 26.04
-sudo apt install ./markpaste_0.2.0-1~ubuntu24.04_amd64.deb   # Ubuntu 24.04
-sudo apt install ./markpaste_0.2.0-1~debian13_amd64.deb      # Debian 13
+sudo apt install ./markpaste_0.2.0-1.ubuntu26.04_amd64.deb   # Ubuntu 26.04
+sudo apt install ./markpaste_0.2.0-1.ubuntu24.04_amd64.deb   # Ubuntu 24.04
+sudo apt install ./markpaste_0.2.0-1.debian13_amd64.deb      # Debian 13
 ```
 
 Global shortcuts through the portal need GNOME 48+ or KDE Plasma; on Ubuntu 24.04 (GNOME 46) bind `markpaste --capture` and `markpaste --paste` in the GNOME keyboard settings. Ubuntu 24.04 has no Qt 6 layer-shell library, so on KDE there the strip is an ordinary window and its paste button copies the set (the paste hotkey works as usual).

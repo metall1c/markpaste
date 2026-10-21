@@ -25,7 +25,7 @@ Releases are published on GitHub (`github.com/metall1c/markpaste`, [ADR 0024](de
 
    ```bash
    # each .deb in a clean container of its own release
-   docker run --rm -v "$PWD/dist:/d:ro,z" ubuntu:24.04 sh -c 'apt-get update -q && apt-get install -y -q lintian /d/*~ubuntu24.04_amd64.deb && lintian /d/*~ubuntu24.04_amd64.deb'
+   docker run --rm -v "$PWD/dist:/d:ro,z" ubuntu:24.04 sh -c 'apt-get update -q && apt-get install -y -q lintian /d/*.ubuntu24.04_amd64.deb && lintian /d/*.ubuntu24.04_amd64.deb'
    docker run --rm -v "$PWD/dist:/d:ro,z" fedora:44 sh -c 'dnf install -y -q --disablerepo="*openh264*" rpmlint /d/*.rpm && rpmlint /d/*.rpm'
    ```
 
@@ -51,9 +51,9 @@ Releases are published on GitHub (`github.com/metall1c/markpaste`, [ADR 0024](de
 | File | What |
 | --- | --- |
 | `markpaste-X.Y.Z-1.fc44.x86_64.rpm` | Fedora 44 |
-| `markpaste_X.Y.Z-1~ubuntu24.04_amd64.deb` | Ubuntu 24.04 (Qt 6.4) |
-| `markpaste_X.Y.Z-1~ubuntu26.04_amd64.deb` | Ubuntu 26.04 |
-| `markpaste_X.Y.Z-1~debian13_amd64.deb` | Debian 13 |
+| `markpaste_X.Y.Z-1.ubuntu24.04_amd64.deb` | Ubuntu 24.04 (Qt 6.4) |
+| `markpaste_X.Y.Z-1.ubuntu26.04_amd64.deb` | Ubuntu 26.04 |
+| `markpaste_X.Y.Z-1.debian13_amd64.deb` | Debian 13 |
 | `markpaste-X.Y.Z-Linux.tar.gz` | The Fedora 44 build as an archive (needs Qt 6.11) |
 | `Markpaste-X.Y.Z-win64-setup.exe` | Windows 10/11 installer, per-user |
 | `Markpaste-X.Y.Z-win64-portable.zip` | Windows 10/11 portable |

@@ -4,6 +4,14 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 
 ---
 
+## 2026-10-21 · GitHub renames .deb assets: "~" becomes "."
+
+- **Environment:** `gh release create` with `markpaste_0.2.0-1~ubuntu24.04_amd64.deb` and the other .deb files.
+- **Symptom:** the release shows `markpaste_0.2.0-1.ubuntu24.04_amd64.deb`; the names in `SHA256SUMS` and the README no longer match the downloads, `sha256sum -c` would fail.
+- **Cause:** GitHub Releases replaces characters it does not allow in asset names, `~` among them.
+- **Solution:** `build-in-container.sh` names the .deb files with a dot from the start (the package version inside stays `0.2.0-1~ubuntu24.04`); `SHA256SUMS`, the README and the docs use the dotted names.
+- **Status:** solved.
+
 ## 2026-10-21 · Debian 13: the build fails with LayerShellQt 6.3
 
 - **Environment:** `debian:13` container, Qt 6.8, LayerShellQt 6.3.4 (`liblayershellqtinterface-dev`). Found by the first release build for Debian (ADR 0025).
@@ -17,7 +25,7 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Environment:** the .deb built on Ubuntu 24.04; clean `ubuntu:25.10`, `ubuntu:26.04`, `debian:12`, `debian:13` containers.
 - **Symptom:** `apt install ./markpaste_0.2.0_amd64.deb` fails: "Depends: libqt6concurrent6t64 (>= 6.1.2) but none of the choices are installable" (Ubuntu 26.04, Debian 13), "Depends: libqt6widgets6t64 … is not installable" (Debian 12).
 - **Cause:** `dpkg-shlibdeps` writes the library package names of the build system, and they differ between releases: Ubuntu 24.04 renamed the Qt libraries for the 64-bit time_t transition (`…t64`), Debian 12 has the old names, and later releases changed them again.
-- **Solution:** one .deb per release (Ubuntu 24.04, Ubuntu 26.04, Debian 13) with the release in the Debian revision, `markpaste_0.2.0-1~ubuntu24.04_amd64.deb`; each installs in a clean container of its release. lintian then wanted `changelog.Debian.gz` instead of `changelog.gz` (a package with a revision is not "native"), which is now generated.
+- **Solution:** one .deb per release (Ubuntu 24.04, Ubuntu 26.04, Debian 13) with the release in the Debian revision, `markpaste_0.2.0-1.ubuntu24.04_amd64.deb`; each installs in a clean container of its release. lintian then wanted `changelog.Debian.gz` instead of `changelog.gz` (a package with a revision is not "native"), which is now generated.
 - **Status:** solved. No package for Debian 12.
 
 ## 2026-10-21 · lintian errors in the first .deb
