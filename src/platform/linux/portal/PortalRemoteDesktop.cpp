@@ -182,7 +182,8 @@ QFuture<Status> PortalRemoteDesktop::sendModifierMask()
 {
     if (m_session.isEmpty())
         return readyFuture(Status::failure(QStringLiteral("RemoteDesktop session is not started")));
-    // Ctrl↓ Ctrl↑: with Alt held this is not a shortcut, and Alt no longer counts as a lone press
+    // Ctrl↓ Ctrl↑: Alt no longer counts as a lone press. If V is still held and Ctrl+Alt+V is bound too,
+    // the compositor sees a chord change ("released" + "pressed"): PasteOrchestrator settles releases for that
     return key(kKeyLeftCtrl, true).then(this, [this](const Status &s) {
         key(kKeyLeftCtrl, false);
         return s;

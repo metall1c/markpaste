@@ -428,3 +428,11 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Cause:** the extension's `indicatorStatusIcon.js`: a single primary click on an item with a menu toggles the menu (after the double-click time), a double click calls `Activate` (our `QSystemTrayIcon::Trigger`), a middle click calls `SecondaryActivate`. Our item reports `ItemIsMenu = false`; the extension has no setting for a single-click activation.
 - **Solution:** none in the program; a double click shows or hides the strip (checked in the VM). Described in README "On GNOME".
 - **Status:** known difference.
+
+## 2026-10-21 · KDE: Alt+V sometimes pastes nothing, and the set is cleared
+
+- **Environment:** Fedora 44 KDE Plasma 6.7.5, Wayland; paste-set bound to "Ctrl+Alt+V, Alt+V"; "Clear the set after pasting" on.
+- **Symptom:** now and then Alt+V pastes nothing into the chat, the "Remote control session started" notification appears as usual, and the strip is cleared, so the shots are lost. Once four times in a row, until the user switched to another window and back.
+- **Cause:** in the log every failed paste has two `hotkey activated 1` about 160 ms apart; the successful ones have one. For Alt+V the program sends the Ctrl "mask" right away (so that a lone Alt does not open the chat's menu). If V is still held, Ctrl↓ turns Alt+V into Ctrl+Alt+V, which is bound to the same action: KDE reports `Deactivated` + `Activated`, and `Deactivated` again on Ctrl↑. The program took the first `Deactivated` for the release of the user's keys and sent Ctrl+V while Alt (and V) were still physically held, so the chat got Ctrl+Alt+V. The program cannot see that nothing was pasted, so "Clear the set after pasting" cleared the set. Switching windows did not matter: the user simply released the keys faster.
+- **Solution:** `PasteOrchestrator` counts a release only after `releaseSettleMs` (150 ms) without a new press; an activation of the paste shortcut while a paste waits for the release (`hotkeyPressed()`) makes it wait again, up to the first Ctrl+V, with its own timeout. The log now has `hotkey released`. Tests `ChordChangeIsNotARelease`, `LatePressBeforeFirstKeysWaitsAgain`.
+- **Status:** fixed, waiting for the user's check in daily use (it happens rarely).

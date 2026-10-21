@@ -24,6 +24,9 @@ struct PasteTiming {
     int restoreAfterMs = 1000;    // then the clipboard is restored (PST-8)
     int releaseTimeoutMs = 1500;  // how long to wait for the hotkey release
     int afterReleaseMs = 50;
+    // A release followed by a new press within this time is a chord change, not a release: the Ctrl mask
+    // turns a held Alt+V into Ctrl+Alt+V, and KDE reports "released" + "pressed" (problems.md 2026-10-21)
+    int releaseSettleMs = 150;
 };
 
 struct PasteOptions {
@@ -59,8 +62,10 @@ public:
     // may never end (the compositor restarted), and the paste must not hang.
     void cancel();
 
-    // Report that the hotkey was released (IHotkeys::released).
+    // Report that the hotkey was released (IHotkeys::released) or activated again while the paste
+    // is waiting for the release (IHotkeys::activated): the keys are held again, wait for the next release.
     void hotkeyReleased();
+    void hotkeyPressed();
 
     // Prepared items for the modes, public for drag and drop and tests.
     struct Item {
@@ -95,6 +100,8 @@ private:
     bool m_sessionOpening = false;
     QList<std::function<void()>> m_sessionWaiters;
     bool m_released = false;
+    quint64 m_releaseEpoch = 0;   // a newer release or press cancels the pending settle of an older release
+    bool m_firstKeysSent = false;
     std::function<void()> m_onReleased;
     quint64 m_generation = 0;   // guards against delayed callbacks of an earlier run
 };

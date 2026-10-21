@@ -120,6 +120,8 @@ void PasteOrchestrator::start(const CaptureSet &set, const PasteOptions &options
     m_sessionOpening = false;
     m_sessionWaiters.clear();
     m_released = !options.waitHotkeyRelease;
+    m_firstKeysSent = false;
+    ++m_releaseEpoch;
     m_onReleased = nullptr;
     m_options = options;
     m_saved = {};
@@ -235,15 +237,53 @@ void PasteOrchestrator::runSequence(QList<Item> items)
 
 void PasteOrchestrator::hotkeyReleased()
 {
-    m_released = true;
-    if (auto fn = std::exchange(m_onReleased, nullptr))
-        fn();
+    if (!m_running || m_released)
+        return;
+    // Settle first: a new press may follow within a moment (a chord change), then the keys are still held
+    const quint64 epoch = ++m_releaseEpoch;
+    const auto settle = [this, epoch] {
+        if (epoch != m_releaseEpoch || m_released)
+            return;
+        m_released = true;
+        if (auto fn = std::exchange(m_onReleased, nullptr))
+            fn();
+    };
+    if (m_options.timing.releaseSettleMs > 0)
+        after(m_options.timing.releaseSettleMs, settle);
+    else
+        settle();
+}
+
+void PasteOrchestrator::hotkeyPressed()
+{
+    // Only before the first Ctrl+V: later the keys are ours anyway
+    if (!m_running || !m_options.waitHotkeyRelease || m_firstKeysSent)
+        return;
+    ++m_releaseEpoch;   // cancels a pending settle
+    if (m_released)
+        qCInfo(lcPaste) << "hotkey pressed again before the paste: waiting for its release";
+    m_released = false;
+    // The compositor may not report the release of a chord it has replaced: do not wait forever
+    const quint64 epoch = m_releaseEpoch;
+    after(m_options.timing.releaseTimeoutMs, [this, epoch] {
+        if (epoch == m_releaseEpoch && !m_released) {
+            qCInfo(lcPaste) << "hotkey release not reported after a new press, continuing by timeout";
+            hotkeyReleased();
+        }
+    });
 }
 
 void PasteOrchestrator::step()
 {
     if (m_cancelled)
         return finish(Status::failure(tr("Cancelled")));
+
+    // The hotkey was pressed again after the release had been counted (a chord change): wait again,
+    // otherwise Ctrl+V goes out while Alt is still held and the chat gets Ctrl+Alt+V
+    if (!m_firstKeysSent && !m_released) {
+        m_onReleased = [this] { after(m_options.timing.afterReleaseMs, [this] { step(); }); };
+        return;
+    }
 
     if (m_index >= m_items.size()) {
         // Key events reach the compositor asynchronously: the session is not closed right away,
@@ -282,6 +322,7 @@ void PasteOrchestrator::step()
         after(m_options.timing.settleMs, [this] {
             const quint64 gen2 = m_generation;
             m_keysInFlight = true;
+            m_firstKeysSent = true;
             m_injector->sendPaste().then(this, [this, gen2](const Status &k) {
                 if (gen2 != m_generation || !m_running)
                     return;

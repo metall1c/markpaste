@@ -165,6 +165,60 @@ TEST(PasteOrchestrator, AltHotkeyIsMaskedWhileHeld)
     EXPECT_LT(cb.log.indexOf(QStringLiteral("begin")), cb.log.indexOf(QStringLiteral("mask")));
 }
 
+// The Ctrl mask turns a held Alt+V into Ctrl+Alt+V, and KDE reports "released" and right after it "pressed"
+// (problems.md 2026-10-21): no Ctrl+V while the keys are held, only after the real release
+TEST(PasteOrchestrator, ChordChangeIsNotARelease)
+{
+    FakeClipboard cb;
+    FakeInjector inj(&cb);
+    PasteOrchestrator o(&cb, &inj);
+    PasteOptions opt = fastOptions();
+    opt.waitHotkeyRelease = true;
+    opt.maskAltTap = true;
+    opt.timing.releaseTimeoutMs = 10000;
+    opt.timing.releaseSettleMs = 100;
+    o.start(threeShots(), opt);
+    auto spin = [](int ms) {
+        QElapsedTimer t;
+        t.start();
+        while (t.elapsed() < ms)
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 5);
+    };
+    spin(30);
+    o.hotkeyReleased();   // Alt+V "released" because of the injected Ctrl…
+    spin(20);
+    o.hotkeyPressed();    // …and Ctrl+Alt+V "pressed"
+    spin(300);
+    EXPECT_EQ(inj.pasted.size(), 0);   // still held: nothing sent
+    o.hotkeyReleased();   // the real release
+    ASSERT_TRUE(runToEnd(o).ok);
+    EXPECT_EQ(inj.pasted.size(), 4);
+}
+
+// A press reported after the release had already settled, but before the first Ctrl+V: wait again
+TEST(PasteOrchestrator, LatePressBeforeFirstKeysWaitsAgain)
+{
+    FakeClipboard cb;
+    FakeInjector inj(&cb);
+    PasteOrchestrator o(&cb, &inj);
+    PasteOptions opt = fastOptions();
+    opt.waitHotkeyRelease = true;
+    opt.timing.releaseTimeoutMs = 10000;
+    opt.timing.releaseSettleMs = 0;
+    opt.timing.afterReleaseMs = 200;
+    o.start(threeShots(), opt);
+    o.hotkeyReleased();
+    o.hotkeyPressed();   // within afterReleaseMs: the step must not send keys
+    QElapsedTimer t;
+    t.start();
+    while (t.elapsed() < 400)
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 5);
+    EXPECT_EQ(inj.pasted.size(), 0);
+    o.hotkeyReleased();
+    ASSERT_TRUE(runToEnd(o).ok);
+    EXPECT_EQ(inj.pasted.size(), 4);
+}
+
 TEST(PasteOrchestrator, NoMaskWithoutAltOrAfterRelease)
 {
     for (const bool mask : {false, true}) {

@@ -151,6 +151,10 @@ void AppController::start()
     if (m_platform.hotkeys) {
         connect(m_platform.hotkeys.get(), &IHotkeys::activated, this, [this](Action a, const ActivationContext &) {
             qCInfo(lcApp) << "hotkey activated" << int(a);
+            if (a == Action::PasteSet && m_paste->isRunning()) {
+                m_paste->hotkeyPressed();   // a chord change while the keys are held (the Ctrl mask)
+                return;
+            }
             // While the wizard is open, a hotkey is only tested, it does not trigger the action
             if (m_wizard && m_wizard->isVisible()) {
                 m_wizard->hotkeyActivated(a);
@@ -171,8 +175,10 @@ void AppController::start()
             updatePasteCaption();   // shortcuts on the paste button and in the empty strip hint
         });
         connect(m_platform.hotkeys.get(), &IHotkeys::released, this, [this](Action a) {
-            if (a == Action::PasteSet)
+            if (a == Action::PasteSet) {
+                qCInfo(lcApp) << "hotkey released" << int(a);
                 m_paste->hotkeyReleased();
+            }
         });
         bindHotkeys();
     }
