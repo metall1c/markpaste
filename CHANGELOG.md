@@ -40,7 +40,7 @@ The first public release.
 
 ### Known limitations
 
-- GNOME, Sway/Hyprland and a real X11 session have been checked only partly; Windows is a beta.
+- GNOME, Sway/Hyprland, a real X11 session and Windows 10 have been checked only partly.
 - The Windows files are not signed (SmartScreen warns), and there is no auto-update yet.
 - On Ubuntu 24.04 there is no Qt 6 LayerShellQt: on KDE there the strip is an ordinary window, and its paste button copies the set instead of pasting it (the paste hotkey works).
 - KDE shows a "Remote control session started" notification on every paste (the portal's own notification).

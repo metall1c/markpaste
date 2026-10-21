@@ -7,7 +7,7 @@ An open alternative to Snapik for Windows 10/11 and Linux: **Markpaste** (ID `su
 - The full spec: [TZ.md](TZ.md). It is the source of requirements (IDs like CAP-1, EDT-3, PST-1, NFR-2), referenced in code, commits and documentation.
 - Stack: C++20, Qt 6 (Widgets + QPainter), CMake + Ninja. On Linux the system Qt, no API newer than Qt 6.4.
 - The main Linux platform is **Fedora 44 KDE Plasma on Wayland** (the user's decision, refining the spec: see `docs/decisions/0001-*.md`). Every feature is first built and checked here. Then GNOME 50 and Sway, X11 last. The developer machine is the reference system itself (Fedora 44 KDE, Wayland), so everything is checked in the live session.
-- The user works with the Linux version; Windows is a separate stage, but the core and UI code is platform-independent from the start.
+- The user works daily with the Linux version (Fedora 44 KDE) and the Windows 11 version; both are release platforms. The core and UI code is platform-independent.
 - Architecture: UI → core → 4 platform interfaces (`ICapture`, `IHotkeys`, `IClipboard`, `IInputInjector`) → implementations in `platform/`. Platform code (`#ifdef _WIN32` and the like) only in `platform/`. The core picks its behavior by `capabilities()`, not by the OS name.
 - Default license: GPL-3.0-or-later.
 
@@ -46,6 +46,6 @@ The spec describes intentions, not what came out. As the implementation goes, re
 
 - After each significant change (a feature, a bug fix, a notable documentation change), commit and push right away, without waiting for a separate request: to `origin` (`git@gitlab.525.su:che/main/markpaste.git`) and to `github` (`git@github.com:metall1c/markpaste.git`), branch `main`.
 - Before committing: the build has no errors, the `markpaste_core_tests` and `markpaste_ui_tests` tests pass, the documentation is updated per the rules above.
-- Commit messages are in Russian: the first line says what was done, below it why, with links to spec requirement IDs and docs/.
+- Commit messages are in English (since 2026-10-21, in both repositories): the first line says what was done, below it why, with links to spec requirement IDs and docs/.
 - Program version: after each code change (not documentation only), bump the version in `project(Markpaste VERSION …)` in the root `CMakeLists.txt` in the same commit: the last digit by default (0.1.1 → 0.1.2); the middle one for a notable new feature if the user says so. Mention the new version in the commit message.
 - Releases: tag `vX.Y.Z` on `main`, push the tag to both remotes, publish a GitHub release with the packages (`docs/release.md`).

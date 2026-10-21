@@ -86,6 +86,8 @@ A check without a separate system: `WLR_BACKENDS=headless sway` inside the KDE s
 
 ## Windows 11 24H2 (VirtualBox 7.2, console)
 
+Since 0.2.0 the user works with the Windows 11 version daily (reported 2026-10-21), so Windows 11 is a release platform; the table below is the developer's own check in a VM.
+
 Build 26100.9711, VBoxSVGA without 3D, one monitor 1920×967, 100 %. The portable ZIP (MinGW, Qt 6.11.2). Controlled with `tools/dev/winvm/vm.sh` (docs/build.md): keys are VirtualBox scancodes (for Windows this is a real keyboard, not `SendInput`), the mouse is `SendInput` from the user's session.
 
 | Capability | Mechanism | Status | Date | Note |

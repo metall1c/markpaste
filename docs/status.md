@@ -81,7 +81,9 @@ On 2026-10-20 the shot window and the strip were redone after an approved mock-u
 | CI: build on Fedora 44 and Ubuntu 24.04, tests, portals via python-dbusmock | 🟡 — GitHub Actions: build, tests and packages for Fedora 44, Ubuntu 24.04/26.04, Debian 13 and the Windows cross-build (`.github/workflows/ci.yml`); no portal tests |
 | LICENSE, README, CONTRIBUTING | 🟡 — LICENSE (GPL-3.0-or-later), README in English and Russian with a user guide; no CONTRIBUTING |
 
-## Windows (started 2026-10-20)
+## Windows (started 2026-10-20; a release platform since 0.2.0)
+
+Since 0.2.0 Windows 11 is a release platform, not a beta: the user works with it daily (2026-10-21). Windows 10 is not checked yet.
 
 The Linux version is ready; the Windows version is cross-compiled on Fedora and checked under Wine ([ADR 0016](decisions/0016-windows-platform.md), [ADR 0017](decisions/0017-windows-cross-build.md)). The core and the UI are shared with Linux; only the implementations in `src/platform/windows/` are new. On real Windows 11 (VirtualBox) on 2026-10-20 the main scenario passed: Print → area → mark → Ctrl+Alt+V into Notepad, the strip button → an image into Paint (platform-matrix.md). A user on Windows Server 2022 over RDP got a black shot; fixed, waiting for a check. Code review (2026-10-20): fixed writing into a busy clipboard, pasting into our own window, the strip over the taskbar and beyond the screen edge (problems.md); on Windows 11 all three test suites pass: core 63, windows 36, platform 11.
 

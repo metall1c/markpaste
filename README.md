@@ -12,7 +12,7 @@ A1 Make the Buy button brighter
 A2 Larger price
 ```
 
-An open source alternative to Snapik for Linux (the main platform is KDE Plasma on Wayland) and Windows 10/11. No network, no accounts, no telemetry.
+Open source, for Linux (KDE Plasma on Wayland first) and Windows 10/11. No network, no accounts, no telemetry.
 
 ![The shot editor: marks A1–A5 with comments on the right](docs/images/en/editor.png)
 
@@ -48,12 +48,13 @@ An open source alternative to Snapik for Linux (the main platform is KDE Plasma 
 
 | Environment | Status |
 | --- | --- |
-| Fedora 44 KDE Plasma 6, Wayland | ✅ The main platform: everything is checked in daily use |
+| Fedora 44 KDE Plasma 6, Wayland | ✅ The main platform: checked in daily use |
 | Other KDE Plasma 6 distributions on Wayland | ✅ Expected to work the same (needs Qt 6.4+, xdg-desktop-portal) |
 | Sway, Hyprland | 🟡 Sequential paste works in tests; bind `markpaste --capture` in the compositor config (Sway has no global shortcuts portal) |
 | GNOME 48+ on Wayland | 🟡 Implemented (the Clipboard portal), not checked on a live GNOME yet |
 | X11 (KDE, Xfce…) | 🟡 Global hotkeys and paste work in tests (Xvfb); not checked in a real X11 session |
-| Windows 10/11 x64 | 🟡 Beta: the main scenario works on Windows 11; the installer is not signed |
+| Windows 11 x64 | ✅ Checked in daily use; the installer is not signed yet |
+| Windows 10 x64 | 🟡 Expected to work the same, not checked yet |
 
 Chats checked so far: Claude Code (in a terminal), ChatGPT and Claude in a browser, Telegram Desktop, Mattermost. Details: [docs/platform-matrix.md](docs/platform-matrix.md).
 
