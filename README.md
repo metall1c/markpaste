@@ -2,6 +2,8 @@
 
 **English** | [Русский](README.ru.md)
 
+[![Support on Boosty](https://img.shields.io/badge/Boosty-support-F15F2C?logo=boosty&logoColor=white)](https://boosty.to/andrey_che_metallic)
+
 Screenshots with numbered marks and comments, pasted into any chat in one action.
 
 Press a hotkey, select a screen area, put marks A1, A2… on it (frames, arrows, freehand, points) and comment each one. One more hotkey pastes the whole set, images and text, into a chat or an AI assistant:
