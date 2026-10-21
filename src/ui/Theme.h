@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QColor>
+#include <QLocale>
 #include <QFont>
 #include <QPixmap>
 #include <QString>
@@ -44,6 +45,11 @@ struct UiColors {
 // The UI accent: one per program, changes together with the settings
 void setUiAccent(const QColor &accent);
 QColor uiAccent();
+
+// The UI language as a locale, for numbers and sizes in windows ("79.7 KB"). It may differ from
+// the system locale when the language is chosen in settings; set once at startup.
+void setUiLocale(const QLocale &locale);
+QLocale uiLocale();
 
 QColor mixColors(const QColor &a, const QColor &b, qreal t);
 

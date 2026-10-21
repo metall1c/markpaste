@@ -162,7 +162,7 @@ void PreviewDialog::fill(const QList<PasteOrchestrator::Item> &items)
                                  .arg(name)
                                  .arg(img.width())
                                  .arg(img.height())
-                                 .arg(QLocale().formattedDataSize(image->data.size(), 1, QLocale::DataSizeTraditionalFormat), format));
+                                 .arg(uiLocale().formattedDataSize(image->data.size(), 1, QLocale::DataSizeTraditionalFormat), format));
             QPixmap px = QPixmap::fromImage(img);
             if (px.width() > kPreviewWidth * devicePixelRatioF())
                 px = px.scaledToWidth(int(kPreviewWidth * devicePixelRatioF()), Qt::SmoothTransformation);
@@ -193,7 +193,7 @@ void PreviewDialog::fill(const QList<PasteOrchestrator::Item> &items)
 
     m_summary->setText(items.isEmpty() ? tr("The set is empty")
                                        : tr("This goes to the chat: %n image(s) (%1)%2", nullptr, m_imageCount)
-                                             .arg(QLocale().formattedDataSize(bytes, 1, QLocale::DataSizeTraditionalFormat),
+                                             .arg(uiLocale().formattedDataSize(bytes, 1, QLocale::DataSizeTraditionalFormat),
                                                   m_text.isEmpty() ? tr(", no text") : tr(" and text")));
     m_copyText->setEnabled(!m_text.isEmpty());
     m_ready = true;

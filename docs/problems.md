@@ -4,6 +4,14 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 
 ---
 
+## 2026-10-21 · English UI on a Russian system: sizes in the preview are in Russian ("79,7 кБ")
+
+- **Environment:** Fedora 44, `LANG=ru_RU.UTF-8`, the interface language set to English in settings. Found while making the English README screenshots.
+- **Symptom:** the message preview says "This goes to the chat: 2 image(s) (79,7 кБ)": English text with Russian units and a decimal comma.
+- **Cause:** `PreviewDialog` formatted sizes with `QLocale()`, the system locale, while the UI language comes from settings and may differ from it.
+- **Solution:** the UI locale is set once at startup (`mp::setUiLocale` in `main.cpp`, the same locale the translations are loaded for) and `PreviewDialog` formats sizes with `uiLocale()`. `QLocale::setDefault` was not used on purpose: the "Like the system" message language must keep following the system.
+- **Status:** solved.
+
 ## 2026-10-20 · KDE: the new "Capture to strip" shortcut (now "Capture without editor") was left without a key
 
 - **Environment:** Fedora 44 KDE Plasma 6.7.5, Wayland, xdg-desktop-portal 1.22.1 + -kde 6.7.5, GlobalShortcuts v2. The program 0.1.1 → 0.1.2, a third id `capture-to-strip` was added to `BindShortcuts` (ADR 0022).

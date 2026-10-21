@@ -1,5 +1,6 @@
 #include "AppController.h"
 #include "AppIcon.h"
+#include "ui/Theme.h"
 #include "LogFile.h"
 #include "SingleInstance.h"
 #include "platform/Process.h"
@@ -33,6 +34,7 @@ int main(int argc, char **argv)
     const QLocale uiLocale = uiLanguage == u"ru"   ? QLocale(QLocale::Russian)
                            : uiLanguage == u"en" ? QLocale(QLocale::English)
                                                  : QLocale();
+    mp::setUiLocale(uiLocale);
     QTranslator qtTranslator;
     if (qtTranslator.load(uiLocale, QStringLiteral("qtbase"), QStringLiteral("_"),
                           QLibraryInfo::path(QLibraryInfo::TranslationsPath)))

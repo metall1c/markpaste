@@ -64,6 +64,24 @@ QColor uiAccent()
     return g_accent;
 }
 
+namespace {
+QLocale &uiLocaleStorage()
+{
+    static QLocale locale;
+    return locale;
+}
+} // namespace
+
+void setUiLocale(const QLocale &locale)
+{
+    uiLocaleStorage() = locale;
+}
+
+QLocale uiLocale()
+{
+    return uiLocaleStorage();
+}
+
 QColor mixColors(const QColor &a, const QColor &b, qreal t)
 {
     const QColor x = a.toRgb(), y = b.toRgb();
