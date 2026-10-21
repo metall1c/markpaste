@@ -356,7 +356,7 @@ void SetupWizard::updateDesktopKeys()
         return;
     m_desktopKeyStatus->setState(StatusLine::State::Warning,
                                  holders.join(u' ') + u' '
-                                     + tr("The button frees the key in the system settings and restarts Markpaste; "
+                                     + tr("The button frees the key in the system settings; "
                                           "the program settings can give it back."));
     m_desktopKeyButton->setText(tr("Give %1 to Markpaste").arg(m_heldKeys.join(QStringLiteral(", "))));
 }
@@ -369,8 +369,9 @@ void SetupWizard::releaseDesktopKeys()
             m_desktopKeyStatus->setState(StatusLine::State::Failed, tr("Could not free %1: %2").arg(key, st.error));
             return;
         }
+        m_keyHolders.remove(key);   // check again: GNOME applies the change at once
     }
-    emit restartRequested();
+    updateHotkeys();
 }
 
 void SetupWizard::checkPaste()

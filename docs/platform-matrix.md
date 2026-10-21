@@ -52,6 +52,14 @@ System: Ubuntu 26.04, GNOME (Mutter), the user's test machine; component version
 | Strip above other windows | GNOME window menu "Always on Top" (right click on the header) | ✅ | 2026-10-21 | Right click on the strip header → the GNOME window menu → "Always on Top"; survives captures. Lost when the strip is hidden |
 | Program icon in the app grid | `hicolor/scalable` SVG | ✅ | 2026-10-21 | Before: the SVG was sniffed as `application/xml` (problems.md); shown after the fix |
 | Print for Markpaste | GlobalShortcuts portal + releasing `show-screenshot-ui` | ✅ | 2026-10-21 | GNOME's screenshot tool takes Print first; the wizard button frees it and restarts the program, then Print starts our capture |
+| Marks in the editor | frame, arrow, point, freehand, blur, Ctrl+Z, comments | ✅ | 2026-10-21 | Comment field gets the keyboard; numbering B1…B4 across shapes. The status bar hint of the blur tool is cut off in a narrow editor |
+| Sequential paste (mode 1), 2 images + text | Clipboard portal + RemoteDesktop | ✅ | 2026-10-21 | Into a Firefox test page: both images and the text arrive, ~1.1 s. The clipboard is not restored afterwards (problems.md) |
+| "Copy set" (mode 2) | QClipboard outside a session | ✅ | 2026-10-21 | Failed before the fix ("no RemoteDesktop session") |
+| Dragging the set into a chat | Qt drag-and-drop | ✅ | 2026-10-21 | Firefox drop: 3 PNG files; the text then pasted with Ctrl+V |
+| Capture without editor (Ctrl+Print) | GlobalShortcuts | ✅ | 2026-10-21 | The shot goes straight into the strip |
+| Preview, save to folder | the GNOME folder dialog through the portal | ✅ | 2026-10-21 | A.png, B.png, C.png, message.md; the "…" menu stays drawn while the folder dialog is open |
+| Strip size with new shots | SetFixedSize + reassert | ✅ | 2026-10-21 | Did not grow before the fix (problems.md) |
+| Tray menu | AppIndicator (Ubuntu) | ✅ | 2026-10-21 | All items; "Show set" brings the strip back (GNOME places it) |
 | Paste test into the wizard field | Clipboard portal + RemoteDesktop | ✅ | 2026-10-21 | Before: our own window could not read the selection (problems.md). Now "Ctrl+V reached the window". Pasting into chats not checked yet |
 
 ## Memory and speed measurements (NFR-1, NFR-2)

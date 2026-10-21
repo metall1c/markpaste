@@ -9,6 +9,7 @@
 #include <QDBusPendingReply>
 #include <QDBusReply>
 #include <QDBusUnixFileDescriptor>
+#include <QElapsedTimer>
 #include <QLoggingCategory>
 #include <QMutexLocker>
 
@@ -81,7 +82,7 @@ QFuture<Status> PortalClipboard::write(const ClipboardPayload &payload, Clipboar
 {
     const QString session = sessionHandle();
     if (session.isEmpty())
-        return readyFuture(Status::failure(QStringLiteral("Clipboard portal: no RemoteDesktop session")));
+        return m_focusClipboard.write(payload, flags);   // "Copy set": needs our window to have focus
     if (!m_session->clipboardEnabled())
         return readyFuture(Status::failure(QStringLiteral("Clipboard portal: access was not granted")));
 
@@ -90,6 +91,7 @@ QFuture<Status> PortalClipboard::write(const ClipboardPayload &payload, Clipboar
         m_payload.entries.append({QStringLiteral("x-kde-passwordManagerHint"), QByteArrayLiteral("secret")});
     m_owner = true;
     m_server->setSelection(session, m_payload);
+    qCDebug(lcPortal) << "SetSelection" << m_payload.mimeTypes();
     return PortalBus::instance().call(
         kIface, QStringLiteral("SetSelection"),
         {QVariant::fromValue(QDBusObjectPath(session)),
@@ -126,6 +128,8 @@ void PortalSelectionServer::onSelectionTransfer(const QDBusObjectPath &session, 
     }
     QDBusConnection bus = PortalBus::instance().connection();
     bool ok = false;
+    QElapsedTimer timer;
+    timer.start();
     if (have) {
         QDBusMessage m = QDBusMessage::createMethodCall(PortalBus::kService, PortalBus::kPath, kIface,
                                                         QStringLiteral("SelectionWrite"));
@@ -140,6 +144,8 @@ void PortalSelectionServer::onSelectionTransfer(const QDBusObjectPath &session, 
                 qCWarning(lcPortal) << "clipboard transfer of" << mimeType << "was not completed";
         }
     }
+    qCDebug(lcPortal) << "transfer" << serial << mimeType << (have ? data.size() : -1) << "bytes," << (ok ? "ok" : "FAILED")
+                      << "in" << timer.elapsed() << "ms";
     QDBusMessage done = QDBusMessage::createMethodCall(PortalBus::kService, PortalBus::kPath, kIface,
                                                        QStringLiteral("SelectionWriteDone"));
     done << QVariant::fromValue(session) << serial << ok;
@@ -150,6 +156,8 @@ void PortalClipboard::onSelectionOwnerChanged(const QDBusObjectPath &session, co
 {
     if (session.path() != sessionHandle())
         return;
+    qCDebug(lcPortal) << "SelectionOwnerChanged: ours" << options.value(QStringLiteral("session_is_owner")).toBool()
+                      << options.value(QStringLiteral("mime_types")).toStringList();
     if (!options.value(QStringLiteral("session_is_owner")).toBool()) {
         m_owner = false;
         m_server->clear();

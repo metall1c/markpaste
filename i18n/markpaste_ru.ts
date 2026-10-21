@@ -221,10 +221,6 @@
         <translation>Markpaste запущен через XWayland: глобальные клавиши и захват работать не будут.</translation>
     </message>
     <message>
-        <source>Restart Markpaste to apply the change</source>
-        <translation>Перезапустите Markpaste, чтобы изменение заработало</translation>
-    </message>
-    <message>
         <source>Markpaste is in the tray. Press %1 to capture an area.</source>
         <translation>Markpaste работает в трее. Нажмите %1, чтобы снять область.</translation>
     </message>
@@ -941,10 +937,6 @@
         <translation>Клавишу %1 перехватывает %2, поэтому Markpaste её не получает.</translation>
     </message>
     <message>
-        <source>The button frees the key in the system settings and restarts Markpaste; the program settings can give it back.</source>
-        <translation>Кнопка освободит клавишу в настройках системы и перезапустит Markpaste; вернуть её можно в настройках программы.</translation>
-    </message>
-    <message>
         <source>%1 — works</source>
         <translation>%1 — работает</translation>
     </message>
@@ -955,6 +947,10 @@
     <message>
         <source>press %1 to test</source>
         <translation>нажмите %1 для проверки</translation>
+    </message>
+    <message>
+        <source>The button frees the key in the system settings; the program settings can give it back.</source>
+        <translation>Кнопка освободит клавишу в настройках системы; вернуть её можно в настройках программы.</translation>
     </message>
     <message>
         <source>Give %1 to Markpaste</source>

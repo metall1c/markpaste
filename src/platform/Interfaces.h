@@ -44,7 +44,7 @@ public:
     // fires. Returns who holds it, for the user; empty: nobody known. trigger is the bound one ("Print").
     virtual QString desktopKeyHolder(const QString &trigger) const { Q_UNUSED(trigger); return {}; }
     // Take the key away from the desktop. The old value is kept for restoreDesktopKeys().
-    // A new binding is needed afterwards: on Wayland that is a new portal session, i.e. a restart.
+    // GNOME 50 passes the key to the existing portal shortcut at once, no rebinding needed.
     virtual Status releaseDesktopKey(const QString &trigger) { Q_UNUSED(trigger); return Status::failure(QStringLiteral("not supported")); }
     virtual bool canRestoreDesktopKeys() const { return false; }
     virtual Status restoreDesktopKeys() { return Status::success(); }

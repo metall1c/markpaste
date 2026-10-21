@@ -173,10 +173,9 @@ TEST(SetupWizard, OffersToFreeKeyTakenByDesktop)
     ASSERT_NE(give, nullptr);
     EXPECT_FALSE(give->isHidden());
 
-    QSignalSpy restart(&wizard, &SetupWizard::restartRequested);
     give->click();
     EXPECT_EQ(hotkeys->released, QStringList{QStringLiteral("Print")});
-    EXPECT_EQ(restart.count(), 1);
+    EXPECT_TRUE(give->isHidden());   // the key is free now: no more offer
 
     // A key that has fired is ours: no offer
     hotkeys->desktopHolders.insert(QStringLiteral("Print"), QStringLiteral("the GNOME screenshot tool"));

@@ -373,8 +373,8 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Environment:** Ubuntu 26.04 GNOME, GlobalShortcuts portal.
 - **Symptom:** the portal bound Print to "Capture with editor", but Print opens the GNOME screenshot UI; in the log the capture hotkey never activates (Ctrl+Print and Ctrl+Alt+V do).
 - **Cause:** GNOME Shell's own binding `org.gnome.shell.keybindings show-screenshot-ui = ['Print']` takes the key first. Expected by the spec (section 9).
-- **Solution:** the setup wizard detects it and offers "Give Print to Markpaste": the key is removed from the GNOME setting with gsettings, the old value is saved, the program restarts; the settings can give it back (ADR 0026). Checked with `pastetest --gnome-keys Print --gnome-action release|restore` on a local copy of the schema.
-- **Status:** solved, checked on Ubuntu 26.04 GNOME on 2026-10-21: the wizard showed the warning, the button set `show-screenshot-ui` to `@as []` and restarted the program with the wizard, and Print then activated our capture ("Print — works"). "Give the keys back" in the settings was not clicked on GNOME.
+- **Solution:** the setup wizard detects it and offers "Give Print to Markpaste": the key is removed from the GNOME setting with gsettings and the old value is saved; the settings can give it back (ADR 0026). Checked with `pastetest --gnome-keys Print --gnome-action release|restore` on a local copy of the schema.
+- **Status:** solved, checked on Ubuntu 26.04 GNOME on 2026-10-21: the wizard showed the warning, the button set `show-screenshot-ui` to `@as []` (the first version also restarted the program; not needed, GNOME passes the key to the existing portal shortcut at once), and Print then activated our capture ("Print — works"). "Give the keys back" in the settings was not clicked on GNOME.
 
 ## 2026-10-21 · Remote testing of the Ubuntu VM from the host
 
@@ -382,3 +382,40 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **How:** screenshots with `VBoxManage controlvm Ubuntu26.04-test screenshotpng`; commands over SSH as root (the user installed openssh-server); commands in the GNOME session as `ubuntu` with the environment of `gnome-shell` (`/usr/local/bin/insession` in the VM, plus `WAYLAND_DISPLAY=wayland-0`); mouse and keys with `ydotool` (`ydotoold` as root, uinput) after `gsettings set org.gnome.desktop.peripherals.mouse accel-profile flat`, then `ydotool mousemove --absolute` hits screen pixels exactly.
 - **Pitfall:** Escape sent to close the app grid also closes a Markpaste dialog that has just got focus.
 - **Status:** works; the live session loses all of it on reboot.
+
+## 2026-10-21 · GNOME: "Copy set" fails with "Clipboard portal: no RemoteDesktop session"
+
+- **Environment:** Ubuntu 26.04 GNOME, Wayland, the Clipboard portal as the program clipboard (no data-control).
+- **Symptom:** the "Copy set" button (mode 2, files + text) shows "Paste failed: Clipboard portal: no RemoteDesktop session". The main fallback mode of GNOME (spec section 9) did not work at all.
+- **Cause:** mode 2 writes the clipboard without an input session, and `PortalClipboard` can write only inside a RemoteDesktop session. Opening one would not help: what is written in the session disappears when it closes (ADR 0010).
+- **Solution:** outside a session `PortalClipboard` writes through `QClipboard`. The click on "Copy set" gives the strip keyboard focus, which Mutter requires for `wl_data_device.set_selection`; the content lives as long as the program.
+- **Status:** solved, checked in the VM on 2026-10-21: "Set copied — press Ctrl+V in the chat", Firefox receives `shot-A.png` on Ctrl+V. Firefox takes only the first file and no text from the files + text entry (a known property of mode 2, spec section 10).
+
+## 2026-10-21 · GNOME: the strip does not grow when a shot is added
+
+- **Environment:** the same, the strip without "Always on Top".
+- **Symptom:** after the second shot the strip keeps the height for one shot; the second thumbnail is under "Copy set" and "New shot".
+- **Cause:** the Qt log (`QT_LOGGING_RULES=qt.qpa.wayland.debug=true`): `Received xdg_toplevel.configure with QSize(254, 288) … WindowActive`, `Applied pending xdg_toplevel configure event: QSize(254, 288)`. When the active window changes, Mutter sends the strip a configure with its old size, and Qt resizes the window to it, undoing `adjustSize()`. The strip window was resizable.
+- **Solution:** two parts. `QLayout::SetFixedSize` on the strip layout (min = max = content; GNOME's window menu then greys out Maximize and Resize). That alone did not help: the resize made while the strip was transparent and covered by the capture overlay never reached Mutter (`Didn't receive frame callback in time, window should now be inexposed`: Qt does not commit without frame callbacks), so Mutter kept sending the old size. `StripWindow::resizeEvent` now resizes the window back to its content size when the compositor imposes another one.
+- **Status:** solved, checked in the VM on 2026-10-21: two and three shots in a row, the strip grows; deleting a shot shrinks it.
+
+## 2026-10-21 · GNOME: the clipboard is empty after a sequential paste (PST-8)
+
+- **Environment:** Ubuntu 26.04 GNOME, Clipboard portal; checked in the VM with a test page in Firefox.
+- **Symptom:** "ORIGINAL-CLIPBOARD" copied in Firefox, then Ctrl+Alt+V pastes the set correctly (A 16462 bytes, B 7865 bytes, the text; every transfer served in ~1 ms), but a Ctrl+V afterwards pastes nothing: the clipboard is empty.
+- **Cause:** the program saves the clipboard (`saved clipboard: text/plain…`) and writes it back through the portal before closing the session (`restoring clipboard … SetSelection`), but Mutter drops a selection set in a RemoteDesktop session when the session closes. On KDE the previous content comes back instead (ADR 0010).
+- **Possible solutions (not done):** keep the RemoteDesktop session open after a paste until someone else takes the clipboard or for a few minutes (GNOME shows the remote control indicator meanwhile); or accept it and say so in the help.
+- **Status:** open, a product decision.
+
+## 2026-10-21 · Firefox puts pasted pieces out of order (test page only)
+
+- **Environment:** Firefox (snap) on Ubuntu 26.04, a plain `contenteditable` test page.
+- **Symptom:** after a sequential paste the second image sometimes stands after the text, or an image appears where the caret was later.
+- **Cause:** Firefox's caret after an inserted image in a `contenteditable` (and its later node normalization); the program's log shows the right order and sizes. Real chats take images as attachments, not inline.
+- **Status:** not a program bug; check in real chats (spec section 12).
+
+## 2026-10-21 · VM testing: ydotool absolute moves close GNOME menus
+
+- **Symptom:** clicks on items of the tray menu (an AppIndicator menu drawn by GNOME Shell) did nothing.
+- **Cause:** `ydotool mousemove --absolute` first moves the pointer to (0, 0), the Activities hot corner, which closes Shell menus. Qt's own menus are not affected.
+- **Workaround:** inside a Shell menu move relatively (`ydotool mousemove -x DX -y DY`).

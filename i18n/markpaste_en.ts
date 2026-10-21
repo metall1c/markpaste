@@ -221,10 +221,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Restart Markpaste to apply the change</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Markpaste is in the tray. Press %1 to capture an area.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -939,10 +935,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The button frees the key in the system settings and restarts Markpaste; the program settings can give it back.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>%1 — works</source>
         <translation type="unfinished"></translation>
     </message>
@@ -952,6 +944,10 @@
     </message>
     <message>
         <source>press %1 to test</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The button frees the key in the system settings; the program settings can give it back.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

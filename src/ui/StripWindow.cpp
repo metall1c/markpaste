@@ -481,6 +481,10 @@ StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
     setAttribute(Qt::WA_DeleteOnClose, false);
 
     auto *layout = new QVBoxLayout(this);
+    // The window is exactly as big as its content (min = max size). Otherwise GNOME's xdg_toplevel.configure with
+    // the old size, sent when another window gets activated, shrank the strip back after a shot was added
+    // (problems.md 2026-10-21)
+    layout->setSizeConstraint(QLayout::SetFixedSize);
     layout->setContentsMargins(10, 10, 10, 10);
     layout->setSpacing(8);
 
@@ -872,6 +876,15 @@ void StripWindow::resizeEvent(QResizeEvent *event)
     // so as not to go below the work area under the taskbar
     if (m_snapToEdge && isVisible())
         snapToEdge();
+    // The compositor imposed another size: GNOME sends xdg_toplevel.configure with the size it knows, and a resize
+    // made while the strip was covered by the capture overlay may not have reached it (no frame callbacks, Qt
+    // does not commit). The content defines the size (SetFixedSize): assert it again (problems.md 2026-10-21).
+    if (isVisible() && minimumSize() == maximumSize() && size() != minimumSize()) {
+        QTimer::singleShot(0, this, [this] {
+            if (minimumSize() == maximumSize() && size() != minimumSize())
+                resize(minimumSize());
+        });
+    }
 }
 
 void StripWindow::paintEvent(QPaintEvent *)

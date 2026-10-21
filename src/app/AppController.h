@@ -36,7 +36,6 @@ public:
     void handleCommand(const QString &command);
     // First-start command: without an explicit command and with an empty set, only the tray
     void handleStartup(const QString &command);
-    void restart(const QStringList &args);   // start again with args once this process has exited
 
 public slots:
     void capture();

@@ -48,8 +48,6 @@ public slots:
 
 signals:
     void openSettingsRequested();
-    // The desktop gave up a key (GNOME Print): binding it needs a new portal session, i.e. a restart
-    void restartRequested();
 
 private:
     void setStatus(StatusLine *label, Result result, const QString &text);

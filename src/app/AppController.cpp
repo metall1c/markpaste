@@ -6,7 +6,6 @@
 #include "core/SetStorage.h"
 #include "paste/TempFiles.h"
 #include "platform/Autostart.h"
-#include "platform/Process.h"
 #include "platform/WindowRoles.h"
 #include "platform/Memory.h"
 #include "ui/AboutDialog.h"
@@ -263,17 +262,6 @@ void AppController::handleCommand(const QString &command)
     }
     else   // show, and a repeated launch from the menu (APP-1)
         showStrip();
-}
-
-void AppController::restart(const QStringList &args)
-{
-    // The same as "Quit" in the tray, then a new start
-    if (!restartWhenExited(args)) {
-        notify(tr("Restart Markpaste to apply the change"));
-        return;
-    }
-    qCInfo(lcApp) << "restarting with" << args;
-    QApplication::quit();
 }
 
 void AppController::handleStartup(const QString &command)
@@ -582,7 +570,6 @@ void AppController::showSetupWizard()
         m_wizard->setWindowIcon(appIcon());
         m_wizard->setTriggers(m_boundTriggers);
         connect(m_wizard, &SetupWizard::openSettingsRequested, this, &AppController::showSettings);
-        connect(m_wizard, &SetupWizard::restartRequested, this, [this] { restart({QStringLiteral("--setup")}); });
     }
     m_wizard->show();
     m_wizard->raise();

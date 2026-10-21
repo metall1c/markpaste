@@ -1,6 +1,7 @@
 #pragma once
 
 #include "platform/Interfaces.h"
+#include "platform/common/QtClipboard.h"
 
 #include <QDBusObjectPath>
 #include <QHash>
@@ -47,6 +48,9 @@ private:
 // - reading and writing are possible only between IInputInjector::begin() and end();
 // - needsInputSession() = true: the paste orchestrator opens the session before
 //   saving the clipboard and restores the clipboard before closing the session.
+// Outside a session (the "Copy set" button, mode 2) the clipboard goes through QClipboard: the click gives our
+// window keyboard focus, which is enough on GNOME, and the content lives as long as the program, not the session
+// (problems.md 2026-10-21).
 // Writing: SetSelection(types) → the portal sends SelectionTransfer(type, serial) for every
 // receiver request → SelectionWrite(serial) gives an fd → we write the data → SelectionWriteDone.
 class PortalClipboard : public IClipboard
@@ -76,6 +80,7 @@ private:
     bool m_owner = false;
     QThread m_serverThread;
     std::unique_ptr<PortalSelectionServer> m_server;
+    QtClipboard m_focusClipboard{false};   // outside a RemoteDesktop session
     QStringList m_selectionMimes;    // types of the current foreign selection (SelectionOwnerChanged)
 };
 

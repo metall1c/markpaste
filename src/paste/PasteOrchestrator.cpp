@@ -221,6 +221,7 @@ void PasteOrchestrator::runSequence(QList<Item> items)
             if (gen != m_generation || !m_running)
                 return;
             m_saved = saved;
+            qCDebug(lcPaste) << "saved clipboard:" << saved.mimeTypes();
             next();
         });
     };
@@ -257,6 +258,7 @@ void PasteOrchestrator::step()
             if (m_saved.isEmpty())
                 return finish(Status::success());
             after(m_options.timing.restoreAfterMs, [this] {
+                qCDebug(lcPaste) << "restoring clipboard:" << m_saved.mimeTypes();
                 const quint64 gen = m_generation;
                 m_clipboard->write(m_saved, ClipboardFlag::None).then(this, [this, gen](const Status &) {
                     if (gen == m_generation) {
@@ -270,6 +272,7 @@ void PasteOrchestrator::step()
     }
 
     const Item &item = m_items[m_index];
+    qCDebug(lcPaste) << "step" << m_index << item.what << item.payload.mimeTypes();
     const quint64 gen = m_generation;
     m_clipboard->write(item.payload, ClipboardFlag::ExcludeFromHistory).then(this, [this, gen](const Status &w) {
         if (gen != m_generation || !m_running)
