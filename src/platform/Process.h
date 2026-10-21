@@ -2,9 +2,9 @@
 
 namespace mp {
 
-// Настройка процесса под ОС — первым делом в main(), до QApplication.
-// Unix: запись в pipe получателя, который закрыл свой конец, не должна убивать процесс (SIGPIPE).
-// Windows: ничего особенного — Qt сам включает DPI awareness per-monitor v2.
+// OS-specific process setup, first thing in main(), before QApplication.
+// Unix: writing to a pipe whose reader closed its end must not kill the process (SIGPIPE).
+// Windows: nothing special, Qt itself enables per-monitor v2 DPI awareness.
 void prepareProcess();
 
 } // namespace mp

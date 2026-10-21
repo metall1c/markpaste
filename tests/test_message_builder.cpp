@@ -39,29 +39,29 @@ TEST(MessageBuilder, MarksWithoutCommentAreSkipped)
     CaptureSet set;
     set.shots << shotWith({"", "кнопка", "  "});
     const MessageTemplate tpl = MessageTemplate::defaultFor(QLocale(QLocale::Russian));
-    // Номер — как на картинке: A2, хотя A1 в тексте нет
+    // The number is as on the image: A2, although A1 is not in the text
     EXPECT_EQ(buildMessage(set, tpl), QStringLiteral("Снимок A\nA2 кнопка"));
 }
 
 TEST(MessageBuilder, SingleShotWithoutCommentsGivesNoText)
 {
     CaptureSet set;
-    set.shots << shotWith({"", " "});   // стрелка, рамка — без слов
+    set.shots << shotWith({"", " "});   // an arrow and a frame without words
     MessageTemplate tpl = MessageTemplate::defaultFor(QLocale(QLocale::Russian));
     EXPECT_EQ(buildMessage(set, tpl), QString());
 
     set.shots = {shotWith({})};
     EXPECT_EQ(buildMessage(set, tpl), QString());
 
-    // Вводная и заключительная фразы — от пользователя: остаются
+    // The opening and closing phrases come from the user: they stay
     tpl.intro = QStringLiteral("Посмотри:");
     EXPECT_EQ(buildMessage(set, tpl), QStringLiteral("Посмотри:"));
 }
 
 TEST(MessageBuilder, SeveralShotsWithoutCommentsGiveNoText)
 {
-    // Три снимка с метками, но без единого комментария — никакого текста: ни «Снимок A»,
-    // ни номеров меток
+    // Three shots with marks but without a single comment: no text at all, no "Shot A",
+    // no mark numbers
     CaptureSet set;
     set.shots << shotWith({"", " "}) << shotWith({}) << shotWith({""});
     EXPECT_EQ(buildMessage(set, MessageTemplate::defaultFor(QLocale(QLocale::Russian))), QString());

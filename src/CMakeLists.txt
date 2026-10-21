@@ -1,4 +1,4 @@
-# Ядро: модель, текст сообщения, запекание. Без кода под конкретную ОС (NFR-11).
+# Core: model, message text, baking. No OS-specific code (NFR-11).
 add_library(markpaste_core STATIC
     core/CaptureSet.h core/CaptureSet.cpp
     core/Geometry.h core/Geometry.cpp
@@ -14,7 +14,7 @@ target_link_libraries(markpaste_core PUBLIC Qt6::Core Qt6::Gui Qt6::Concurrent m
 
 add_subdirectory(platform)
 
-# Интерфейс: оверлей, редактор, лента. Без кода под конкретную ОС.
+# UI: overlay, editor, strip. No OS-specific code.
 add_library(markpaste_ui STATIC
     ui/CaptureOverlay.h ui/CaptureOverlay.cpp
     ui/CommentPopup.h ui/CommentPopup.cpp
@@ -30,7 +30,7 @@ add_library(markpaste_ui STATIC
     ui/AboutDialog.h ui/AboutDialog.cpp
 )
 target_link_libraries(markpaste_ui PUBLIC markpaste_core markpaste_platform Qt6::Widgets Qt6::Svg)
-# Значки интерфейса: :/icons/ui/<имя>.svg
+# UI icons: :/icons/ui/<name>.svg
 file(GLOB MARKPASTE_UI_ICONS CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/data/icons/ui/*.svg)
 qt_add_resources(markpaste_ui ui_icons
     PREFIX /icons/ui
@@ -60,7 +60,7 @@ target_compile_definitions(markpaste PRIVATE
 install(TARGETS markpaste RUNTIME DESTINATION ${MARKPASTE_INSTALL_BINDIR})
 
 if(WIN32)
-    # Без окна консоли; значок, версия и манифест — в ресурсах .exe
+    # No console window; icon, version and manifest are in the .exe resources
     set_target_properties(markpaste PROPERTIES WIN32_EXECUTABLE ON)
     set(MARKPASTE_ICO ${PROJECT_SOURCE_DIR}/data/icons/app.ico)
     set(MARKPASTE_MANIFEST ${PROJECT_SOURCE_DIR}/data/windows/markpaste.exe.manifest)
@@ -68,8 +68,8 @@ if(WIN32)
     target_sources(markpaste PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/markpaste.rc)
 endif()
 
-# Переводы (APP-5, NFR-10): .ts в i18n/, .qm встраиваются в программу под :/i18n.
-# Обновить строки: cmake --build build --target update_translations
+# Translations (APP-5, NFR-10): .ts in i18n/, .qm are embedded into the program under :/i18n.
+# Update the strings: cmake --build build --target update_translations
 qt_add_translations(markpaste
     TS_FILES ${PROJECT_SOURCE_DIR}/i18n/markpaste_ru.ts ${PROJECT_SOURCE_DIR}/i18n/markpaste_en.ts
     RESOURCE_PREFIX /i18n

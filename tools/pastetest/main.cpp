@@ -1,6 +1,6 @@
-// Прототип вставки (ТЗ разд. 13, первый этап): вставляет картинки и текст в активное окно
-// режимом 1 (последовательная вставка) или кладёт их в буфер режимом 2 (файлы + текст).
-// Нужен, чтобы заполнить матрицу совместимости до того, как строить основное приложение.
+// Paste prototype (spec section 13, first stage): pastes images and text into the active window
+// in mode 1 (sequential paste) or puts them into the clipboard in mode 2 (files + text).
+// Needed to fill in the compatibility matrix before building the main application.
 
 #include "SelfTest.h"
 #include "core/CaptureSet.h"
@@ -151,8 +151,8 @@ QString textOf(const ClipboardPayload &p)
     return e ? QString::fromUtf8(e->data) : QStringLiteral("<no text: %1>").arg(p.mimeTypes().join(u','));
 }
 
-// Проверка портала Clipboard (запасной буфер для GNOME) на окружении, где есть и data-control:
-// пишем через портал, читаем обратно через data-control, и наоборот.
+// Checking the Clipboard portal (the fallback clipboard for GNOME) in an environment that also has data-control:
+// write through the portal, read back through data-control, and the other way round.
 int runPortalClipboard(bool forgetToken)
 {
     PortalBus &bus = PortalBus::instance();
@@ -193,7 +193,7 @@ int runPortalClipboard(bool forgetToken)
     say(QStringLiteral("   started in %1 ms, clipboard_enabled = %2").arg(t.elapsed()).arg(rd.clipboardEnabled()));
     if (!rd.clipboardEnabled())
         return 6;
-    sleepMs(300);   // SelectionOwnerChanged приходит после Start
+    sleepMs(300);   // SelectionOwnerChanged arrives after Start
 
     t.restart();
     const ClipboardPayload snap = await(portal.snapshot());
@@ -220,8 +220,8 @@ int runPortalClipboard(bool forgetToken)
     return 0;
 }
 
-// Глобальные клавиши X11: захватить Print и Ctrl+Alt+V, нажать их через xdotool (XTEST),
-// проверить activated/released. holdMs > 0 — держать захват (для проверки «занято»).
+// X11 global hotkeys: grab Print and Ctrl+Alt+V, press them via xdotool (XTEST),
+// check activated/released. holdMs > 0 keeps the grab (to check "taken").
 int runX11Hotkeys(int holdMs)
 {
 #ifdef MARKPASTE_HAVE_X11
@@ -235,7 +235,7 @@ int runX11Hotkeys(int holdMs)
         events << QStringLiteral("activated %1").arg(int(a));
     });
     QObject::connect(hk.get(), &IHotkeys::released, [&events](Action a) { events << QStringLiteral("released %1").arg(int(a)); });
-    // Print и Ctrl+Print — на одной клавише: срабатывать должно только сочетание с теми же модификаторами
+    // Print and Ctrl+Print are on the same key: only the shortcut with the same modifiers must fire
     const auto bound = await(hk->bindAll({{Action::Capture, QStringLiteral("Print")},
                                           {Action::PasteSet, QStringLiteral("Primary+Alt+V")},
                                           {Action::CaptureToStrip, QStringLiteral("Primary+Print")}}));
@@ -255,7 +255,7 @@ int runX11Hotkeys(int holdMs)
         QProcess::execute(QStringLiteral("xdotool"), {QStringLiteral("key"), k});
         sleepMs(150);
     }
-    // Удержание с автоповтором: одно срабатывание, одно отпускание
+    // Holding with autorepeat: one activation, one release
     QProcess::execute(QStringLiteral("xdotool"), {QStringLiteral("keydown"), QStringLiteral("Print")});
     sleepMs(900);
     QProcess::execute(QStringLiteral("xdotool"), {QStringLiteral("keyup"), QStringLiteral("Print")});
@@ -333,7 +333,7 @@ int main(int argc, char **argv)
     if (cli.isSet(receiverOpt))
         return runReceiver();
 
-    // --- Входные данные ---
+    // --- Input data ---
     QList<QByteArray> images;
     const QStringList files = cli.positionalArguments();
     if (files.isEmpty()) {
@@ -353,7 +353,7 @@ int main(int argc, char **argv)
     if (text.isEmpty()) {
         QStringList lines;
         for (int i = 0; i < images.size(); ++i)
-            lines << QStringLiteral("Снимок %1\n%2 Тестовый комментарий").arg(shotLetter(i)).arg(markLabel(i, 0));
+            lines << QStringLiteral("Shot %1\n%2 Test comment").arg(shotLetter(i)).arg(markLabel(i, 0));
         text = lines.join(QStringLiteral("\n\n"));
     }
 
@@ -377,7 +377,7 @@ int main(int argc, char **argv)
 
     const int mode = cli.value(modeOpt).toInt();
 
-    // --- Режим 2: одна запись с файлами, текстом и первой картинкой ---
+    // --- Mode 2: one entry with files, text and the first image ---
     if (mode == 2) {
         const QString dir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + QStringLiteral("/markpaste");
         QDir().mkpath(dir);
@@ -407,7 +407,7 @@ int main(int argc, char **argv)
         return s.ok ? app.exec() : 4;
     }
 
-    // --- Режим 1: последовательная вставка ---
+    // --- Mode 1: sequential paste ---
     QSettings settings;
     PortalRemoteDesktop injector;
     if (cli.isSet(forgetOpt))

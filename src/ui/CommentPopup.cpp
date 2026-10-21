@@ -58,7 +58,7 @@ void CommentPopup::open(const QUuid &markId, const QString &label, const QString
     m_edit->moveCursor(QTextCursor::End);
     adjustSize();
 
-    // Под меткой; не влезает — над ней; всегда внутри холста.
+    // Below the mark; if it does not fit, above it; always inside the canvas.
     const QWidget *p = parentWidget();
     QPoint pos(anchor.left(), anchor.bottom() + 8);
     if (pos.y() + height() > p->height())
@@ -74,7 +74,7 @@ void CommentPopup::open(const QUuid &markId, const QString &label, const QString
 
 void CommentPopup::applyColors()
 {
-    // Цвета — на каждое открытие: акцент мог смениться в настройках, тема — в системе
+    // Colors on every opening: the accent may have changed in settings, the theme in the system
     const UiColors c = UiColors::from(parentWidget()->palette());
     for (QLabel *l : {m_counter, m_keys}) {
         QPalette pal = l->palette();
@@ -117,7 +117,7 @@ void CommentPopup::updateCounter()
 {
     const int n = int(m_edit->toPlainText().size());
     if (n > kMaxCommentLength) {
-        // Обрезаем сразу, чтобы человек видел лимит (EDT-5)
+        // Truncate right away so that the person sees the limit (EDT-5)
         QTextCursor c = m_edit->textCursor();
         m_edit->setPlainText(m_edit->toPlainText().left(kMaxCommentLength));
         c.movePosition(QTextCursor::End);
@@ -133,7 +133,7 @@ bool CommentPopup::eventFilter(QObject *watched, QEvent *event)
         if (event->type() == QEvent::KeyPress) {
             auto *ke = static_cast<QKeyEvent *>(event);
             const bool enter = ke->key() == Qt::Key_Return || ke->key() == Qt::Key_Enter;
-            // Ctrl+Enter — «Готово» для всего окна: сохраняем и отдаём событие окну редактора
+            // Ctrl+Enter is "Done" for the whole window: save and pass the event to the editor window
             if (enter && (ke->modifiers() & Qt::ControlModifier)) {
                 commit();
                 emit finishRequested();
@@ -150,7 +150,7 @@ bool CommentPopup::eventFilter(QObject *watched, QEvent *event)
                 return true;
             }
         } else if (event->type() == QEvent::FocusOut && isVisible()) {
-            // Клик мимо поля — тоже сохранить: так не теряется набранное.
+            // A click outside the field saves too: this way nothing typed is lost.
             commit();
         }
     }

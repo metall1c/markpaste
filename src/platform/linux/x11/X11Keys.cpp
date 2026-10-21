@@ -28,7 +28,7 @@ uint32_t x11RootWindow()
 static uint32_t keysymForQtKey(int key)
 {
     if (key >= Qt::Key_A && key <= Qt::Key_Z)
-        return uint32_t(key - Qt::Key_A + 'a');   // keysym латинских букв — строчные
+        return uint32_t(key - Qt::Key_A + 'a');   // keysyms of Latin letters are lowercase
     if (key >= Qt::Key_0 && key <= Qt::Key_9)
         return uint32_t(key);
     if (key >= Qt::Key_F1 && key <= Qt::Key_F35)
@@ -55,7 +55,7 @@ static uint32_t keysymForQtKey(int key)
     case Qt::Key_Backspace: return 0xff08;
     case Qt::Key_Space: return 0x20;
     default:
-        // Остальные печатные символы Latin-1: keysym совпадает с кодом символа
+        // Other printable Latin-1 characters: the keysym equals the character code
         return key > 0x20 && key < 0x100 ? uint32_t(key) : 0;
     }
 }
@@ -122,7 +122,7 @@ bool anyModifierDown()
         return false;
     const xcb_keycode_t *codes = xcb_get_modifier_mapping_keycodes(mm.get());
     const int n = xcb_get_modifier_mapping_keycodes_length(mm.get());
-    // Индексы 0–7: Shift, Lock, Control, Mod1…Mod5. Lock (Caps) и Mod2 (NumLock) — фиксируемые, не считаем
+    // Indices 0–7: Shift, Lock, Control, Mod1…Mod5. Lock (Caps) and Mod2 (NumLock) are lock keys, not counted
     for (int i = 0; i < n; ++i) {
         const int modIndex = i / mm->keycodes_per_modifier;
         if (modIndex == 1 || modIndex == 4 || codes[i] == 0)

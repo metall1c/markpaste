@@ -3,7 +3,7 @@
 namespace mp::win {
 
 namespace {
-// Хук — глобальная функция без контекста: экземпляр один на процесс
+// The hook is a global function without context: one instance per process
 std::atomic<KeyboardHook *> g_instance{nullptr};
 } // namespace
 
@@ -35,7 +35,7 @@ void KeyboardHook::start()
 {
     KeyboardHook *expected = nullptr;
     if (!g_instance.compare_exchange_strong(expected, this))
-        return;   // второй хук в процессе не нужен
+        return;   // a second hook in the process is not needed
     std::promise<bool> started;
     std::future<bool> ready = started.get_future();
     m_thread = std::thread([this, &started] { run(&started); });
@@ -57,7 +57,7 @@ void KeyboardHook::stop()
 
 void KeyboardHook::run(std::promise<bool> *started)
 {
-    // Очередь сообщений потока появляется с первым вызовом функции сообщений — до PostThreadMessage из stop()
+    // The thread's message queue appears with the first call of a message function, before PostThreadMessage from stop()
     MSG msg;
     PeekMessageW(&msg, nullptr, WM_USER, WM_USER, PM_NOREMOVE);
     m_threadId = GetCurrentThreadId();
@@ -79,7 +79,7 @@ bool KeyboardHook::handle(unsigned vk, bool down)
         if (s.trigger.keys.vk != vk)
             continue;
         if (down) {
-            // Модификаторы — ровно те, что в сочетании: Ctrl+Print не должен срабатывать на Print
+            // Exactly the modifiers of the shortcut: Ctrl+Print must not fire on Print
             const unsigned all = MOD_SHIFT | MOD_CONTROL | MOD_ALT | MOD_WIN;
             const unsigned want = s.trigger.keys.modifiers;
             if (!s.down && (modifiersDown(all & ~want) || (want && !modifiersDownAll(want))))
@@ -88,7 +88,7 @@ bool KeyboardHook::handle(unsigned vk, bool down)
                 s.down = true;
                 emit pressed(s.trigger.id);
             }
-            return true;   // и автоповтор тоже
+            return true;   // autorepeat too
         }
         if (s.down) {
             s.down = false;

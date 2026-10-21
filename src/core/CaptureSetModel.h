@@ -9,12 +9,12 @@
 
 namespace mp {
 
-// Владелец набора и единственная точка его изменения.
+// Owner of the set and the only place where it changes.
 //
-// Отмена устроена на снимках состояния: каждая команда хранит CaptureSet «до» и «после».
-// QByteArray и QList разделяются неявно, поэтому снимок стоит копии списков, а не кадров.
-// Так отмена работает для любых операций, включая удаление и перестановку снимков (EDT-8),
-// и не требует писать обратную операцию к каждой правке.
+// Undo is built on state snapshots: every command keeps the CaptureSet "before" and "after".
+// QByteArray and QList are implicitly shared, so a snapshot costs a copy of the lists, not of the frames.
+// This way undo works for any operation, including deleting and reordering shots (EDT-8),
+// and no inverse operation has to be written for each edit.
 class CaptureSetModel : public QObject
 {
     Q_OBJECT
@@ -25,17 +25,17 @@ public:
     const Shot *shot(const QUuid &shotId) const;
     QUndoStack *undoStack() { return &m_undo; }
 
-    // Снимки. addShot возвращает пустой QUuid, если набор заполнен (CAP-8).
+    // Shots. addShot returns a null QUuid if the set is full (CAP-8).
     QUuid addShot(Shot shot);
     bool removeShot(const QUuid &shotId);
     bool moveShot(const QUuid &shotId, int newIndex);
-    void clear();                                   // очистка набора — тоже отменяется
+    void clear();                                   // clearing the set can be undone too
 
-    // Метки
+    // Marks
     QUuid addMark(const QUuid &shotId, const QRect &rect, const QString &comment = {}, const MarkPen &pen = {});
     bool setMarkRect(const QUuid &shotId, const QUuid &markId, const QRect &rect);
-    // Стрелка, карандаш и точка (EDT-9). Точки обрезаются по видимой области, линия карандаша
-    // упрощается; rect метки становится охватывающим прямоугольником.
+    // Arrow, freehand and point (EDT-9). Points are clipped to the visible area, the freehand line
+    // is simplified; the mark's rect becomes the bounding rectangle.
     QUuid addLinearMark(const QUuid &shotId, MarkShape shape, const QList<QPoint> &points,
                         const QString &comment = {}, const MarkPen &pen = {});
     bool setMarkPoints(const QUuid &shotId, const QUuid &markId, const QList<QPoint> &points);
@@ -43,17 +43,17 @@ public:
     bool setMarkPen(const QUuid &shotId, const QUuid &markId, const MarkPen &pen);
     bool removeMark(const QUuid &shotId, const QUuid &markId);
 
-    // Размытие
+    // Blur
     QUuid addRedaction(const QUuid &shotId, const QRect &rect);
     bool setRedactionRect(const QUuid &shotId, const QUuid &redactionId, const QRect &rect);
     bool removeRedaction(const QUuid &shotId, const QUuid &redactionId);
 
-    // Обрезка (EDT-7): метки и размытия вне новой области удаляются, частично
-    // попавшие — обрезаются по ней (стрелка и карандаш — по линии, а не по рамке). Сколько удалится — заранее говорит marksOutsideCrop.
+    // Crop (EDT-7): marks and blurs outside the new area are removed, the ones partly
+    // inside are clipped to it (arrows and freehand along the line, not the frame). marksOutsideCrop tells in advance how many go away.
     bool setCrop(const QUuid &shotId, const QRect &crop);
     int marksOutsideCrop(const QUuid &shotId, const QRect &crop) const;
 
-    // Без истории: только для загрузки сохранённой сессии.
+    // No history: only for loading a saved session.
     void resetWithoutHistory(const CaptureSet &set);
 
 signals:
@@ -66,7 +66,7 @@ private:
     void setState(const CaptureSet &set);
 
     static QRect normalizedInside(const QRect &rect, const QRect &bounds);
-    // Вписывает метку любой формы в bounds. false — от метки ничего не осталось.
+    // Fits a mark of any shape into bounds. false: nothing is left of the mark.
     static bool fitMark(Mark &mark, const QRect &bounds, qreal dpr);
 
     CaptureSet m_set;

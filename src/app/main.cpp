@@ -15,20 +15,20 @@
 
 int main(int argc, char **argv)
 {
-    // Особенности процесса под ОС: SIGPIPE на Unix и т. п. (platform/Process.h)
+    // OS-specific process setup: SIGPIPE on Unix and so on (platform/Process.h)
     mp::prepareProcess();
 
     QApplication app(argc, argv);
     QCoreApplication::setOrganizationName(QStringLiteral("markpaste"));
     QCoreApplication::setApplicationName(QStringLiteral("markpaste"));
     QCoreApplication::setApplicationVersion(QStringLiteral(MARKPASTE_VERSION));
-    // Имя .desktop-файла = app id: по нему Wayland-композитор и порталы узнают программу.
+    // .desktop file name = app id: the Wayland compositor and portals identify the program by it.
     QGuiApplication::setDesktopFileName(QStringLiteral(MARKPASTE_APP_ID));
     QGuiApplication::setApplicationDisplayName(QStringLiteral("Markpaste"));
     QGuiApplication::setWindowIcon(mp::appIcon());
-    QApplication::setQuitOnLastWindowClosed(false);   // работаем в фоне (APP-1)
+    QApplication::setQuitOnLastWindowClosed(false);   // we run in the background (APP-1)
 
-    // Язык интерфейса — по системе или из настроек (APP-3, APP-5). Переводы Qt — для стандартных кнопок диалогов.
+    // UI language from the system or from settings (APP-3, APP-5). Qt translations are for standard dialog buttons.
     const QString uiLanguage = QSettings().value(QStringLiteral("ui/language")).toString();
     const QLocale uiLocale = uiLanguage == u"ru"   ? QLocale(QLocale::Russian)
                            : uiLanguage == u"en" ? QLocale(QLocale::English)
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
         if (cli.isSet(name))
             command = name;
 
-    // Второй экземпляр — только передаёт команду (APP-2, CAP-7)
+    // A second instance only passes its command (APP-2, CAP-7)
     mp::SingleInstance instance(QStringLiteral(MARKPASTE_APP_ID));
     if (!instance.listen()) {
         if (instance.sendToRunning(command))
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     }
     if (command == u"quit")
         return 0;
-    // Журнал в файл — только у основного экземпляра: второй живёт миг и только передаёт команду
+    // Log file only for the main instance: the second one lives for a moment and only passes a command
     mp::LogFile::install();
     qInfo("Markpaste %s started", MARKPASTE_VERSION);
 

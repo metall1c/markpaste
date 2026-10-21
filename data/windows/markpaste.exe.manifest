@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<!-- Windows 10/11 (NFR-6). Масштаб (per-monitor v2) включает сам Qt при запуске. -->
+<!-- Windows 10/11 (NFR-6). Qt enables per-monitor v2 scaling itself at startup. -->
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <assemblyIdentity type="win32" name="su._525.Markpaste" version="1.0.0.0"/>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
       <requestedPrivileges>
-        <!-- Без повышения прав: установка в профиль пользователя (ТЗ разд. 11) -->
+        <!-- No elevation: installs into the user profile (spec section 11) -->
         <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
       </requestedPrivileges>
     </security>

@@ -5,12 +5,12 @@
 
 namespace mp::lx {
 
-// Эмуляция Ctrl+V через портал RemoteDesktop (только клавиатура).
+// Ctrl+V emulation via the RemoteDesktop portal (keyboard only).
 //
-// Сессия открывается перед серией вставок и закрывается сразу после (ТЗ разд. 9):
-// пока она открыта, окружение может показывать индикатор удалённого управления.
-// Первый раз портал показывает диалог разрешения; с persist_mode=2 он отдаёт
-// restore_token, по которому следующие сессии открываются без диалога.
+// The session is opened before a series of pastes and closed right after (spec section 9):
+// while it is open, the desktop may show a remote control indicator.
+// The first time the portal shows a permission dialog; with persist_mode=2 it returns a
+// restore_token with which later sessions open without a dialog.
 class PortalRemoteDesktop : public IInputInjector
 {
     Q_OBJECT
@@ -30,13 +30,13 @@ public:
     void setRestoreToken(const QString &token) { m_restoreToken = token; }
     QString restoreToken() const { return m_restoreToken; }
 
-    // Запросить доступ к буферу (портал Clipboard) в этой же сессии. Нужно до begin().
+    // Request clipboard access (Clipboard portal) in the same session. Needed before begin().
     void setRequestClipboard(bool enabled) { m_requestClipboard = enabled; }
     bool clipboardEnabled() const { return m_clipboardEnabled; }
     QString sessionHandle() const { return m_session; }
 
-    // evdev-коды (linux/input-event-codes.h). Нажимаем по коду, а не по символу:
-    // при русской раскладке символа «v» нет (ТЗ разд. 10).
+    // evdev codes (linux/input-event-codes.h). Keys are pressed by code, not by character:
+    // with a Russian layout there is no "v" character (spec section 10).
     static constexpr int kKeyLeftCtrl = 29;
     static constexpr int kKeyV = 47;
 

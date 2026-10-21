@@ -30,7 +30,7 @@ QString PortalResponse::describe() const
 
 namespace {
 
-// Ждёт сигнал Response на пути Request и выполняет обещание.
+// Waits for the Response signal on the Request path and fulfills the promise.
 class RequestWaiter : public QObject
 {
     Q_OBJECT
@@ -61,7 +61,7 @@ public:
     {
         if (ms > 0)
             QTimer::singleShot(ms, this, [this] {
-                // Закрываем Request, чтобы диалог не остался висеть.
+                // Close the Request so that the dialog does not stay hanging.
                 QDBusMessage close = QDBusMessage::createMethodCall(
                     PortalBus::kService, m_path, QStringLiteral("org.freedesktop.portal.Request"),
                     QStringLiteral("Close"));
@@ -155,7 +155,7 @@ QString PortalBus::newToken(const QString &prefix)
 
 QString PortalBus::requestPath(const QString &token) const
 {
-    // :1.234 → 1_234 (спецификация org.freedesktop.portal.Request)
+    // :1.234 → 1_234 (org.freedesktop.portal.Request specification)
     QString sender = m_bus.baseService();
     sender.remove(0, 1);
     sender.replace(u'.', u'_');

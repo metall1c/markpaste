@@ -30,8 +30,8 @@ QMimeData *QtClipboard::makeMimeData(const ClipboardPayload &payload, ClipboardF
     for (const ClipboardEntry &e : payload.entries)
         if (keepEntry(e.mimeType))
             md->setData(e.mimeType, e.data);
-    // Картинка ещё и как QImage: так Qt отдаёт её и в других форматах (image/bmp…), а
-    // получатель в нашем же процессе видит hasImage(). Иначе — только сырые байты PNG.
+    // The image also as a QImage: this way Qt offers it in other formats too (image/bmp…), and
+    // a receiver in our own process sees hasImage(). Otherwise only raw PNG bytes.
     for (const ClipboardEntry &e : payload.entries)
         if (e.mimeType.startsWith(QStringLiteral("image/"))) {
             const QImage image = QImage::fromData(e.data);
@@ -63,7 +63,7 @@ QFuture<ClipboardPayload> QtClipboard::snapshot()
             return readyFuture(p);
         }
     }
-    // Картинка без PNG — например, только CF_DIB на Windows: Qt отдаёт её как QImage
+    // An image without PNG, e.g. only CF_DIB on Windows: Qt provides it as a QImage
     if (md->hasImage()) {
         const QImage image = qvariant_cast<QImage>(md->imageData());
         QByteArray png;

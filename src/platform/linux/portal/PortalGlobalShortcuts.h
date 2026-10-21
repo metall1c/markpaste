@@ -8,12 +8,12 @@
 
 namespace mp::lx {
 
-// Глобальные клавиши через xdg-desktop-portal GlobalShortcuts (KDE, GNOME 48+, Hyprland).
+// Global hotkeys via the xdg-desktop-portal GlobalShortcuts (KDE, GNOME 48+, Hyprland).
 //
-// Программа только ПРЕДЛАГАЕТ сочетание (preferred_trigger); окончательно его назначает
-// пользователь в системном диалоге или настройках (ТЗ разд. 9). Фактическое сочетание
-// приходит в trigger_description. Все привязки делаются одним BindShortcuts: повторный
-// вызов в той же сессии портал отклоняет.
+// The program only SUGGESTS a shortcut (preferred_trigger); the user assigns it for good
+// in a system dialog or settings (spec section 9). The actual shortcut
+// arrives in trigger_description. All bindings are made with one BindShortcuts: the portal
+// rejects a repeated call in the same session.
 class PortalGlobalShortcuts : public IHotkeys
 {
     Q_OBJECT
@@ -23,20 +23,20 @@ public:
 
     static bool isAvailable();
 
-    // Совместимость с интерфейсом: копит запросы и отправляет их пачкой через bindAll().
+    // Interface compatibility: collects requests and sends them in one batch via bindAll().
     QFuture<BindResult> bind(Action action, const QString &preferred) override;
     QString name() const override { return QStringLiteral("xdg-desktop-portal GlobalShortcuts"); }
 
     QFuture<QHash<Action, BindResult>> bindAll(const QHash<Action, QString> &preferred) override;
 
-    // Системные настройки клавиш программы (портал v2, ConfigureShortcuts)
+    // The system shortcut settings for the program (portal v2, ConfigureShortcuts)
     bool canOpenSystemSettings() const override;
     void openSystemSettings() override;
     bool systemAssignsTriggers() const override { return true; }
 
     static QString shortcutId(Action action);
     static bool actionFromId(const QString &id, Action *action);
-    // Primary+Shift+V → CTRL+SHIFT+v (формат спецификации XDG shortcuts)
+    // Primary+Shift+V → CTRL+SHIFT+v (XDG shortcuts specification format)
     static QString toPortalTrigger(const QString &portable);
 
 private slots:

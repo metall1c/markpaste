@@ -1,6 +1,6 @@
-// Windows-реализации платформы на настоящем платформенном модуле Qt (windows, не offscreen):
-// буфер обмена OLE, хук клавиатуры, захват GDI. Запускаются под Wine на Linux (docs/build.md)
-// и на Windows. Чего Wine не умеет (DXGI Desktop Duplication, UIPI), здесь не проверяется.
+// Windows platform implementations on the real Qt platform module (windows, not offscreen):
+// the OLE clipboard, the keyboard hook, GDI capture. Run under Wine on Linux (docs/build.md)
+// and on Windows. What Wine cannot do (DXGI Desktop Duplication, UIPI) is not checked here.
 
 #include "platform/windows/DxgiCapture.h"
 #include "platform/windows/KeyboardHook.h"
@@ -59,9 +59,9 @@ static bool hasRegisteredFormat(const wchar_t *name)
     return IsClipboardFormatAvailable(RegisterClipboardFormatW(name));
 }
 
-// Буфер после каждой смены читают и другие программы: VBoxTray в виртуалке, rdpclip, журнал Win+V.
-// Пока они читают, буфер занят, а данные им отдаёт наш поток (отложенная отрисовка OLE) — поэтому
-// ждём с обработкой событий, а не блокирующим result()
+// Other programs read the clipboard after every change too: VBoxTray in a VM, rdpclip, the Win+V history.
+// While they read, the clipboard is busy, and our thread serves them the data (OLE delayed rendering), so
+// we wait while processing events rather than with a blocking result()
 template <class T>
 static T await(const QFuture<T> &f)
 {
@@ -95,7 +95,7 @@ TEST(WinClipboard, WritesImageFilesTextAndHistoryExclusion)
     ASSERT_TRUE(await(cb.write(p, ClipboardFlag::ExcludeFromHistory)).ok);
     QCoreApplication::processEvents();
 
-    // Форматы — так, как их видят другие программы Windows
+    // Formats as other Windows programs see them
     ASSERT_TRUE(openClipboard());
     EXPECT_TRUE(IsClipboardFormatAvailable(CF_DIB) || IsClipboardFormatAvailable(CF_DIBV5));
     EXPECT_TRUE(hasRegisteredFormat(L"PNG"));
@@ -107,7 +107,7 @@ TEST(WinClipboard, WritesImageFilesTextAndHistoryExclusion)
     if (HANDLE h = GetClipboardData(RegisterClipboardFormatW(L"CanIncludeInClipboardHistory"))) {
         const auto *v = static_cast<const DWORD *>(GlobalLock(h));
         ASSERT_NE(v, nullptr);
-        EXPECT_EQ(*v, 0u);   // 0 — не в историю Win+V
+        EXPECT_EQ(*v, 0u);   // 0 means not into the Win+V history
         GlobalUnlock(h);
     } else {
         ADD_FAILURE() << "no CanIncludeInClipboardHistory data";
@@ -118,7 +118,7 @@ TEST(WinClipboard, WritesImageFilesTextAndHistoryExclusion)
     }
     CloseClipboard();
 
-    // Восстановление буфера после вставки — без пометок: это снова буфер пользователя
+    // Restoring the clipboard after a paste has no marks: it is the user's clipboard again
     ASSERT_TRUE(await(cb.write(ClipboardPayload::text(QStringLiteral("old")), ClipboardFlag::None)).ok);
     QCoreApplication::processEvents();
     ASSERT_TRUE(openClipboard());
@@ -126,8 +126,8 @@ TEST(WinClipboard, WritesImageFilesTextAndHistoryExclusion)
     CloseClipboard();
 }
 
-// «Другая программа», которая держит буфер открытым (так делают rdpclip и менеджеры буфера):
-// поток, открывший буфер, — OleSetClipboard из главного потока в это время не проходит
+// "Another program" that keeps the clipboard open (rdpclip and clipboard managers do this):
+// a thread that opened the clipboard; OleSetClipboard from the main thread fails meanwhile
 class ClipboardHolder
 {
 public:
@@ -138,7 +138,7 @@ public:
         std::future<void> released = m_release.get_future();
         m_thread = std::thread([&opened, released = std::move(released)]() mutable {
             bool ok = false;
-            for (int i = 0; i < 500 && !ok; ++i) {   // буфер мог на миг занять кто-то ещё
+            for (int i = 0; i < 500 && !ok; ++i) {   // someone else may have taken the clipboard for a moment
                 ok = OpenClipboard(nullptr);
                 if (!ok)
                     Sleep(10);
@@ -182,8 +182,8 @@ static QString clipboardText()
 
 TEST(WinClipboard, BusyClipboardIsReportedNotIgnored)
 {
-    // Раньше запись «удавалась» всегда: Qt только писал предупреждение, «Набор скопирован» было
-    // неправдой, а Ctrl+V вставлял прежнее содержимое буфера (docs/problems.md, 2026-10-20)
+    // The write used to "succeed" always: Qt only printed a warning, "Set copied" was
+    // a lie, and Ctrl+V pasted the previous clipboard content (docs/problems.md, 2026-10-20)
     WinClipboard cb;
     ASSERT_TRUE(await(cb.write(ClipboardPayload::text(QStringLiteral("before")), ClipboardFlag::None)).ok);
     QCoreApplication::processEvents();
@@ -212,7 +212,7 @@ TEST(WinClipboard, WriteWaitsUntilClipboardIsFree)
 
 TEST(WinClipboard, SnapshotWaitsForBusyClipboard)
 {
-    // Прочитать занятый буфер — получить пусто, и после вставки буфер пользователя не вернулся бы
+    // Reading a busy clipboard would give nothing, and the user's clipboard would not come back after a paste
     WinClipboard cb;
     cb.setBusyWait(40, 50);
     ASSERT_TRUE(await(cb.write(ClipboardPayload::text(QStringLiteral("mine")), ClipboardFlag::None)).ok);
@@ -243,7 +243,7 @@ TEST(WinClipboard, NoX11FormatNamesOnWindows)
 
 TEST(WinClipboard, SnapshotTurnsDibIntoPng)
 {
-    // Картинка от другой программы — только CF_DIB, без PNG
+    // An image from another program: only CF_DIB, no PNG
     QImage img(20, 10, QImage::Format_RGB32);
     img.fill(Qt::blue);
     const int stride = img.width() * 4;
@@ -253,7 +253,7 @@ TEST(WinClipboard, SnapshotTurnsDibIntoPng)
     *bih = BITMAPINFOHEADER{};
     bih->biSize = sizeof(BITMAPINFOHEADER);
     bih->biWidth = img.width();
-    bih->biHeight = img.height();   // снизу вверх
+    bih->biHeight = img.height();   // bottom-up
     bih->biPlanes = 1;
     bih->biBitCount = 32;
     bih->biCompression = BI_RGB;
@@ -296,19 +296,19 @@ TEST(WinHotkeys, RegistersAndReportsConflicts)
     ASSERT_TRUE(r.status.ok) << r.status.error.toStdString();
     EXPECT_EQ(r.trigger, QStringLiteral("Ctrl+Alt+Shift+F11"));
 
-    // Чужое окно с тем же сочетанием — «занято»
+    // Another window with the same shortcut: "taken"
     HWND other = CreateWindowExW(0, L"STATIC", L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, nullptr, nullptr);
     EXPECT_FALSE(RegisterHotKey(other, 1, MOD_CONTROL | MOD_ALT | MOD_SHIFT, VK_F11));
     DestroyWindow(other);
 
-    EXPECT_TRUE(a.bind(Action::PasteSet, QString()).result().status.ok);   // снять
+    EXPECT_TRUE(a.bind(Action::PasteSet, QString()).result().status.ok);   // unbind
     EXPECT_FALSE(a.bind(Action::Capture, QStringLiteral("Primary+Nonsense")).result().status.ok);
 }
 
 TEST(WinHotkeys, PrintScreenGoesThroughHook)
 {
-    // Хук ставится в своём потоке; эмулированные нажатия (LLKHF_INJECTED) он пропускает,
-    // поэтому здесь проверяем только, что он встаёт и снимается
+    // The hook is installed in its own thread; it skips emulated presses (LLKHF_INJECTED),
+    // so here we only check that it is installed and removed
     KeyboardHook hook;
     hook.setTriggers({{1, parseTrigger(QStringLiteral("Print"))}});
     EXPECT_TRUE(hook.isRunning());
@@ -331,7 +331,7 @@ TEST(WinInput, OwnWindowIsNotElevatedAndPasteChecksForeground)
 
 int main(int argc, char **argv)
 {
-    QApplication app(argc, argv);   // настоящий модуль windows: нужен OLE-буфер и окна
+    QApplication app(argc, argv);   // the real windows module: the OLE clipboard and windows are needed
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

@@ -13,13 +13,13 @@ namespace mp {
 
 class CommentPopup;
 
-// Холст редактора снимка: метки (рамка, стрелка, карандаш, точка), размытие, обрезка (ТЗ 5.2).
+// Shot editor canvas: marks (frame, arrow, freehand, point), blur, crop (spec 5.2).
 //
-// Координаты меток — физические пиксели исходника. Холст хранит одно преобразование
-// «исходник → окно» (toWidget) и рисует метки той же функцией, что и запекание
-// (paintMarks), поэтому на экране ровно то, что уйдёт в чат.
-// Живое перетаскивание рисуется локально, в модель уходит одна правка на отпускание мыши:
-// так в истории отмен нет сотни промежуточных шагов.
+// Mark coordinates are physical pixels of the source. The canvas keeps one transform
+// "source → window" (toWidget) and draws the marks with the same function as baking
+// (paintMarks), so the screen shows exactly what goes to the chat.
+// A live drag is drawn locally, and the model gets one edit when the mouse is released:
+// this way the undo history has no hundreds of intermediate steps.
 class ShotCanvas : public QWidget
 {
     Q_OBJECT
@@ -34,7 +34,7 @@ public:
     Tool tool() const { return m_tool; }
     void setStyle(const RenderStyle &style);
     const RenderStyle &style() const { return m_style; }
-    // Перо новых меток. Если выделена метка, перо применяется и к ней (одна правка в истории).
+    // Pen for new marks. If a mark is selected, the pen applies to it too (one edit in the history).
     void setPen(const MarkPen &pen);
     MarkPen pen() const { return m_pen; }
 
@@ -43,20 +43,20 @@ public:
     void cancelCrop();
     void deleteSelection();
     void commitComment();
-    // Выделить метку и открыть её комментарий (из списка комментариев)
+    // Select a mark and open its comment (from the comment list)
     void editMark(const QUuid &markId);
-    // Выделенная метка; пусто, если выделено размытие или ничего
+    // The selected mark; empty if a blur or nothing is selected
     QUuid selectedMark() const { return m_selected.isMark ? m_selected.id : QUuid(); }
 
     QSize sizeHint() const override;
 
 signals:
     void toolChanged(mp::ShotCanvas::Tool tool);
-    // Выделена метка: панель пера показывает её цвет и толщину
+    // A mark is selected: the pen panel shows its color and width
     void markSelected(const mp::MarkPen &pen, mp::MarkShape shape);
     void cropPendingChanged(bool pending);
     void finishRequested();
-    void selectedMarkChanged(const QUuid &markId);   // список комментариев подсвечивает её карточку
+    void selectedMarkChanged(const QUuid &markId);   // the comment list highlights its card
 
 protected:
     void paintEvent(QPaintEvent *) override;
@@ -74,7 +74,7 @@ private:
         bool isMark = false;
         QUuid id;
         int handle = HNone;
-        int point = -1;   // конец стрелки: 0 — хвост, 1 — острие
+        int point = -1;   // arrow end: 0 is the tail, 1 is the tip
         bool valid() const { return !id.isNull(); }
         bool resizes() const { return handle != HNone || point >= 0; }
     };
@@ -91,7 +91,7 @@ private:
     const Mark *markOf(const Hit &hit) const;
     bool hitsMark(const Mark &mark, const QPointF &widgetPos) const;
     QPoint clampedSource(const QPointF &widgetPos) const;
-    std::optional<MarkShape> creatingShape() const;   // форма, которую рисует текущий инструмент
+    std::optional<MarkShape> creatingShape() const;   // the shape the current tool draws
     void openComment(const QUuid &markId);
     void selectMark(const QUuid &markId);
     void setSelection(const Hit &hit);
@@ -103,21 +103,21 @@ private:
     RenderStyle m_style;
     MarkPen m_pen;
 
-    // Кэш исходника с размытием: пересчитывается только при смене кадра или размытий
+    // Cache of the source with blur: recomputed only when the frame or the blurs change
     QImage m_image;
     QByteArray m_imageSource;
     QList<Redaction> m_imageRedactions;
 
-    // Выделение и перетаскивание
+    // Selection and dragging
     Hit m_selected;
     Drag m_drag = Drag::None;
     Hit m_dragTarget;
     QPointF m_pressSource;
     QRect m_dragOrigin;
-    QRect m_live;      // текущий прямоугольник перетаскивания, в координатах исходника
-    QList<QPoint> m_dragOriginPoints;   // то же для стрелки и карандаша
+    QRect m_live;      // the current drag rectangle, in source coordinates
+    QList<QPoint> m_dragOriginPoints;   // the same for arrows and freehand lines
     QList<QPoint> m_livePoints;
-    QRect m_crop;      // ожидающая подтверждения обрезка
+    QRect m_crop;      // a crop waiting for confirmation
 
     CommentPopup *m_popup;
 };

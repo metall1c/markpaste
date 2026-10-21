@@ -12,8 +12,8 @@ QString TempFiles::directory()
 {
     static const QString dir = [] {
         const QString runtime = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
-        // RuntimeLocation на Linux — $XDG_RUNTIME_DIR; на других ОС может совпасть с домашним
-        // каталогом или временным — тогда отдельная папка на процесс.
+        // RuntimeLocation on Linux is $XDG_RUNTIME_DIR; on other OSes it may match the home
+        // or the temp directory, then a separate folder per process is used.
         if (!runtime.isEmpty() && runtime != QDir::homePath() && !qEnvironmentVariableIsEmpty("XDG_RUNTIME_DIR"))
             return runtime + QStringLiteral("/markpaste");
         return QStandardPaths::writableLocation(QStandardPaths::TempLocation)

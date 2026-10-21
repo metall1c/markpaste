@@ -1,4 +1,4 @@
-# Окно настроек — из программы: собираем его исходники сюда же
+# The settings window comes from the program: its sources are built in here too
 add_executable(markpaste-uipreview main.cpp
     ${PROJECT_SOURCE_DIR}/src/app/Settings.cpp
     ${PROJECT_SOURCE_DIR}/src/app/SettingsDialog.cpp
@@ -9,7 +9,7 @@ target_compile_definitions(markpaste-uipreview PRIVATE MARKPASTE_APP_ID="su._525
     MARKPASTE_VERSION="${PROJECT_VERSION}" MARKPASTE_HOMEPAGE_URL="${MARKPASTE_HOMEPAGE_URL}")
 find_package(Qt6 REQUIRED COMPONENTS Test)
 target_link_libraries(markpaste-uipreview PRIVATE markpaste_ui Qt6::Test)
-# Только .qm: цель lupdate у .ts должна быть одна (docs/problems.md)
+# Only .qm: there must be one lupdate target per .ts (docs/problems.md)
 qt_add_lrelease(markpaste-uipreview
     TS_FILES ${PROJECT_SOURCE_DIR}/i18n/markpaste_ru.ts
     QM_FILES_OUTPUT_VARIABLE uipreview_qm)

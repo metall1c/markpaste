@@ -1,4 +1,4 @@
-// Ресурсы исполняемого файла Windows: значок, сведения о версии, манифест.
+// Windows executable resources: icon, version info, manifest.
 #include <winver.h>
 
 IDI_ICON1 ICON "@MARKPASTE_ICO@"

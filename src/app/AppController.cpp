@@ -39,9 +39,9 @@ Q_LOGGING_CATEGORY(lcApp, "markpaste.app")
 
 namespace mp {
 
-// Флаги «уже показано». Раньше хранились в группе «general»: QSettings пишет её в INI как
-// [%General] и при следующем запуске читает как «General» — ключ с маленькой буквы не
-// находился, и мастер открывался каждый раз (docs/problems.md). Старые значения тоже учитываем.
+// "Already shown" flags. They used to live in the "general" group: QSettings writes it to INI as
+// [%General] and on the next start reads it back as "General", so the lowercase key was not
+// found and the wizard opened every time (docs/problems.md). Old values are honored too.
 static bool onceFlag(const QSettings &s, const QString &name)
 {
     return s.value(QStringLiteral("once/") + name).toBool() || s.value(QStringLiteral("General/") + name).toBool();
@@ -58,18 +58,18 @@ AppController::AppController(QObject *parent)
 AppController::~AppController()
 {
     if (m_saveTimer && m_saveTimer->isActive())
-        saveSession();   // последние правки — до выхода
+        saveSession();   // the latest edits, before quitting
     delete m_preview;
     delete m_editor;
     delete m_strip;
-    TempFiles::clear();   // временные PNG — при выходе (ТЗ разд. 10)
+    TempFiles::clear();   // temporary PNGs are removed on exit (spec section 10)
 }
 
 void AppController::start()
 {
     m_settings = Settings::load();
     m_platform = createPlatform(QStringLiteral(MARKPASTE_APP_ID));
-    disableWindowAnimations();   // спрятанное перед снимком окно не должно «таять» в кадре
+    disableWindowAnimations();   // a window hidden before a capture must not "fade out" in the frame
 
     m_paste = new PasteOrchestrator(m_platform.clipboard.get(), m_platform.injector.get(), this);
     connect(m_paste, &PasteOrchestrator::progress, this, [this](int done, int total) {
@@ -110,7 +110,7 @@ void AppController::start()
         m_strip->hide();
         if (!m_tray)
             return;
-        // Подсказать один раз, куда делась лента
+        // Tell once where the strip went
         QSettings s;
         if (!onceFlag(s, QStringLiteral("hideHintShown"))) {
             s.setValue(QStringLiteral("once/hideHintShown"), true);
@@ -132,16 +132,16 @@ void AppController::start()
     connect(m_editor, &ShotEditor::doneRequested, m_editor, &QWidget::hide);
     connect(m_model.undoStack(), &QUndoStack::indexChanged, this, [this] {
         if (m_model.set().isEmpty())
-            scheduleMemoryRelease();   // очистили набор — кадры больше не нужны
+            scheduleMemoryRelease();   // the set was cleared, the frames are no longer needed
     });
 
     connect(&m_model, &CaptureSetModel::changed, this, [this] {
-        m_setDelivered = false;   // набор поменяли после вставки — это уже новая работа, не очищать
+        m_setDelivered = false;   // the set changed after pasting: this is new work, do not clear it
         if (m_strip && m_editor)
             m_strip->setCurrentShot(m_editor->isVisible() ? m_editor->shotId() : QUuid());
-        // Лента видна, только пока в наборе есть снимки; пустой набор — программа в трее
-        // (отключается настройкой). Без трея (GNOME без расширения) ленту не прячем:
-        // иначе программу не найти (APP-1).
+        // The strip is visible only while the set has shots; an empty set means the program sits in the tray
+        // (a setting turns this off). Without a tray (GNOME without the extension) the strip is not hidden:
+        // otherwise the program cannot be found (APP-1).
         if (m_settings.keepSetOnRestart && m_saveTimer)
             m_saveTimer->start();
         if (m_strip && m_tray && m_settings.hideStripWhenEmpty && m_model.set().isEmpty() && !m_capturing)
@@ -151,7 +151,7 @@ void AppController::start()
     if (m_platform.hotkeys) {
         connect(m_platform.hotkeys.get(), &IHotkeys::activated, this, [this](Action a, const ActivationContext &) {
             qCInfo(lcApp) << "hotkey activated" << int(a);
-            // Пока открыт мастер, клавиша только проверяется, а не запускает действие
+            // While the wizard is open, a hotkey is only tested, it does not trigger the action
             if (m_wizard && m_wizard->isVisible()) {
                 m_wizard->hotkeyActivated(a);
                 return;
@@ -168,7 +168,7 @@ void AppController::start()
             m_boundTriggers.insert(a, trigger);
             if (m_wizard)
                 m_wizard->setTriggers(m_boundTriggers);
-            updatePasteCaption();   // сочетания на кнопке вставки и в подсказке пустой ленты
+            updatePasteCaption();   // shortcuts on the paste button and in the empty strip hint
         });
         connect(m_platform.hotkeys.get(), &IHotkeys::released, this, [this](Action a) {
             if (a == Action::PasteSet)
@@ -189,8 +189,8 @@ void AppController::start()
     connect(m_updates, &UpdateChecker::updateAvailable, this, [this](const QString &version, const QUrl &page) {
         const QUrl url = page.isValid() && !page.isEmpty() ? page : QUrl(QStringLiteral(MARKPASTE_RELEASES_URL));
         notify(tr("Markpaste %1 is available. Update it with your package manager.").arg(version));
-        // Клик по этому уведомлению — страница релиза. Только по нему: любое следующее
-        // уведомление сбрасывает адрес (notify), иначе страницу открыл бы клик по «Ошибка вставки».
+        // Clicking this notification opens the release page. Only this one: any later
+        // notification resets the address (notify), otherwise a click on "Paste failed" would open the page.
         if (m_tray && !(m_strip && m_strip->isVisible()))
             m_trayClickUrl = url;
     });
@@ -202,7 +202,7 @@ void AppController::start()
 
 void AppController::bindHotkeys()
 {
-    // Все сочетания — одним запросом: на Wayland портал показывает один диалог.
+    // All shortcuts in one request: on Wayland the portal shows a single dialog.
     const QHash<Action, QString> wanted{
         {Action::Capture, m_settings.captureHotkey},
         {Action::PasteSet, m_settings.pasteHotkey},
@@ -243,7 +243,7 @@ void AppController::handleCommand(const QString &command)
     else if (command == u"quit")
         QApplication::quit();
     else if (command.startsWith(u"debug-ghost ")) {
-        // Только через сокет: debug-ghost <x> <y> <w> <h> — контур переноса на 2 с
+        // Socket only: debug-ghost <x> <y> <w> <h> shows the move outline for 2 s
         const QStringList a = command.split(u' ');
         if (a.size() == 5) {
             auto *ghost = new MoveGhost(this);
@@ -254,23 +254,23 @@ void AppController::handleCommand(const QString &command)
             });
         }
     } else if (command.startsWith(u"debug-move-strip ")) {
-        // Только через сокет, для проверки переноса ленты: debug-move-strip <экран> <left|right> <отступ>
+        // Socket only, for testing strip moves: debug-move-strip <screen> <left|right> <offset>
         const QStringList a = command.split(u' ');
         for (QScreen *scr : QGuiApplication::screens())
             if (a.size() == 4 && scr->name() == a[1])
                 m_strip->moveTo(scr, PanelPlacement{a[2] == u"left" ? PanelEdge::Left : PanelEdge::Right, a[3].toInt(), 12});
     }
-    else   // show и повторный запуск из меню (APP-1)
+    else   // show, and a repeated launch from the menu (APP-1)
         showStrip();
 }
 
 void AppController::handleStartup(const QString &command)
 {
-    // Обычный запуск (в том числе автозапуск): пустой набор — только значок в трее,
-    // если лента прячется при пустом наборе
+    // Normal start (autostart included): with an empty set only the tray icon shows,
+    // if the strip hides when the set is empty
     QSettings s;
     if (command == u"show" && !onceFlag(s, QStringLiteral("setupShown"))) {
-        // Первый запуск — мастер проверки вместо уведомления (APP-4)
+        // First start: the check wizard instead of a notification (APP-4)
         s.setValue(QStringLiteral("once/setupShown"), true);
         s.setValue(QStringLiteral("once/welcomeShown"), true);
         showSetupWizard();
@@ -288,7 +288,7 @@ void AppController::handleStartup(const QString &command)
     handleCommand(command);
 }
 
-// --- Захват ---
+// --- Capture ---
 
 void AppController::hideOwnWindows()
 {
@@ -326,8 +326,8 @@ void AppController::startCapture(bool toStrip)
         notify(tr("Screen capture is not available on this system"));
         return;
     }
-    // Новый набор — только после вставки: снимки в ленту без редактора копятся подряд,
-    // и проверка «редактор закрыт» очищала бы набор на каждом (ADR 0022)
+    // A new set only after pasting: shots captured straight to the strip pile up one after another,
+    // and an "editor is closed" check would clear the set on each of them (ADR 0022)
     if (m_settings.clearOnNextCapture && m_setDelivered && !m_model.set().isEmpty() && m_editor && !m_editor->isVisible())
         m_model.clear();
     if (m_model.set().isFull()) {   // CAP-8
@@ -337,7 +337,7 @@ void AppController::startCapture(bool toStrip)
     }
     m_capturing = true;
 
-    // Свои окна не должны попасть в снимок. Компоновщику нужно время, чтобы их убрать.
+    // Our own windows must not get into the shot. The compositor needs time to remove them.
     const bool hadWindows = (m_editor && m_editor->isVisible()) || (m_strip && m_strip->isVisible());
     hideOwnWindows();
     auto timer = std::make_shared<QElapsedTimer>();
@@ -373,12 +373,12 @@ void AppController::startCapture(bool toStrip)
 
 void AppController::onCaptured(const QImage &image, qreal dpr, bool toStrip)
 {
-    // PNG в памяти — чтобы 26 кадров 4K укладывались в NFR-2. Кодируем в пуле потоков.
+    // PNG in memory, so that 26 4K frames fit into NFR-2. Encoding runs in the thread pool.
     QtConcurrent::run([image] {
         QByteArray png;
         QBuffer buf(&png);
         buf.open(QIODevice::WriteOnly);
-        image.save(&buf, "PNG", 50);   // 50 — баланс скорости и размера, сжатие без потерь
+        image.save(&buf, "PNG", 50);   // 50 balances speed and size; the compression is lossless
         return png;
     }).then(this, [this, size = image.size(), dpr, toStrip](const QByteArray &png) {
         Shot shot;
@@ -392,7 +392,7 @@ void AppController::onCaptured(const QImage &image, qreal dpr, bool toStrip)
         }
         showStrip();
         if (toStrip) {
-            // Снимок только в ленту; открытый до снимка редактор возвращается к своему снимку
+            // Shot goes to the strip only; an editor open before the capture returns to its shot
             if (m_editorWasVisible)
                 m_editor->show();
             return;
@@ -407,15 +407,15 @@ void AppController::openEditor(const QUuid &shotId, bool fresh)
     m_strip->setCurrentShot(shotId);
 }
 
-// --- Вставка ---
+// --- Paste ---
 
 void AppController::updatePasteCaption()
 {
     if (!m_strip)
         return;
     const bool sequential = m_paste->canSequential();
-    // На Wayland кнопка вставки работает в режиме 1, только если лента не забирает фокус
-    // (layer-shell); иначе она копирует набор (ТЗ разд. 10).
+    // On Wayland the paste button works in mode 1 only if the strip does not take focus
+    // (layer-shell); otherwise it copies the set (spec section 10).
     const bool buttonCanSequence = sequential && (!m_platform.nativeWayland || m_platform.supportsLayerShell);
     m_strip->setPasteMode(buttonCanSequence, shortcutLabel(m_boundTriggers.value(Action::PasteSet)));
     m_strip->setCaptureHotkey(shortcutLabel(m_boundTriggers.value(Action::Capture)));
@@ -429,9 +429,9 @@ void AppController::paste(bool fromHotkey)
     PasteOptions opt = m_settings.pasteOptions();
     opt.waitHotkeyRelease = fromHotkey;
     if (fromHotkey) {
-        // Фактические сочетания: KDE отдаёт все сразу — «Ctrl+Alt+V, Alt+V», и какое из них
-        // нажато, не говорит. Маска нужна, если хоть одно — с Alt без Ctrl; лишняя (при Ctrl+Alt+V)
-        // безвредна: нажатие Ctrl, когда Ctrl уже зажат
+        // Actual shortcuts: KDE reports all of them at once ("Ctrl+Alt+V, Alt+V") and does not say
+        // which one was pressed. The mask is needed if at least one has Alt without Ctrl; an extra one
+        // (with Ctrl+Alt+V) is harmless: pressing Ctrl while Ctrl is already held
         const QString triggers = m_boundTriggers.value(Action::PasteSet, m_settings.pasteHotkey);
         for (const QString &trigger : triggers.split(u',', Qt::SkipEmptyParts)) {
             const QStringList keys = trigger.split(u'+', Qt::SkipEmptyParts);
@@ -445,11 +445,11 @@ void AppController::paste(bool fromHotkey)
     }
     const bool buttonCanSequence = m_paste->canSequential() && (!m_platform.nativeWayland || m_platform.supportsLayerShell);
     if (opt.mode != PasteMode::FilesAndText && (!m_paste->canSequential() || (!fromHotkey && !buttonCanSequence)))
-        opt.mode = PasteMode::FilesAndText;   // запасной режим — полноценный (ТЗ разд. 9)
+        opt.mode = PasteMode::FilesAndText;   // the fallback mode is a full one (spec section 9)
 
-    // Активно другое окно программы (настройки, предпросмотр, мастер): Ctrl+V ушёл бы в него, а не
-    // в чат, а лента сказала бы «Вставлено». Редактор не в счёт — его прячем ниже; лента фокус не
-    // забирает (docs/problems.md, 2026-10-20)
+    // Another program window is active (settings, preview, wizard): Ctrl+V would go to it rather than
+    // to the chat, and the strip would say "Pasted". The editor does not count, it is hidden below; the strip
+    // does not take focus (docs/problems.md, 2026-10-20)
     if (opt.mode != PasteMode::FilesAndText) {
         QWidget *active = QApplication::activeWindow();
         if (active && active != m_editor && active != m_strip) {
@@ -459,8 +459,8 @@ void AppController::paste(bool fromHotkey)
     }
 
     if (m_editor && m_editor->isVisible()) {
-        m_editor->commitPendingEdits();   // последний комментарий — тоже в сообщение
-        m_editor->hide();   // иначе фокус может остаться в редакторе, а не в чате
+        m_editor->commitPendingEdits();   // the last comment goes into the message too
+        m_editor->hide();   // otherwise focus may stay in the editor instead of the chat
     }
     m_paste->start(m_model.set(), opt);
 }
@@ -492,14 +492,14 @@ QMimeData *AppController::dragData(const QList<QUuid> &shots)
             subset.shots << *s;
     if (subset.isEmpty())
         return nullptr;
-    // Буквы в имени файлов — как в полном наборе
+    // Letters in file names are the same as in the full set
     QStringList files;
     PasteOptions opt = m_settings.pasteOptions();
     QList<QUrl> urls;
     for (const QUuid &id : shots) {
         const int index = m_model.set().shotIndex(id);
         if (index < 0)
-            continue;   // снимок успели удалить
+            continue;   // the shot was deleted meanwhile
         const QImage img = renderShot(m_model.set().shots[index], index, opt.style);
         const EncodedImage enc = encodeForPaste(img, opt.encode);
         const QString path = TempFiles::write(QStringLiteral("shot-%1.%2").arg(shotLetter(index)).arg(enc.extension), enc.data);
@@ -509,8 +509,8 @@ QMimeData *AppController::dragData(const QList<QUuid> &shots)
     scheduleMemoryRelease();
     auto *md = new QMimeData;
     md->setUrls(urls);
-    // Режим 3: файлы перетаскиванием, текст — в буфер, вставить вторым действием.
-    // Без комментариев текста нет — буфер не трогаем и о тексте не пишем
+    // Mode 3: files by drag and drop, the text goes to the clipboard, pasted as a second action.
+    // Without comments there is no text: leave the clipboard alone and say nothing about text
     if (const QString text = buildMessage(m_model.set(), opt.messageTemplate); shots.size() > 1 && !text.isEmpty()) {
         m_platform.clipboard->write(ClipboardPayload::text(text), ClipboardFlag::ExcludeFromHistory);
         m_strip->showMessage(tr("Text copied — paste it after dropping the files"), 6000);
@@ -518,7 +518,7 @@ QMimeData *AppController::dragData(const QList<QUuid> &shots)
     return md;
 }
 
-// --- Окна, трей, уведомления ---
+// --- Windows, tray, notifications ---
 
 void AppController::showStrip()
 {
@@ -576,8 +576,8 @@ void AppController::showSetupWizard()
     m_wizard->activateWindow();
 }
 
-// Запекание в пуле потоков оставляет освобождённые кадры в аренах malloc: отдаём их системе
-// через пару секунд после тяжёлой операции, одним вызовом на серию (NFR-2, platform/Memory.h)
+// Baking in the thread pool leaves freed frames in malloc arenas: hand them back to the system
+// a couple of seconds after a heavy operation, one call per burst (NFR-2, platform/Memory.h)
 void AppController::scheduleMemoryRelease()
 {
     if (!m_memoryTimer) {
@@ -589,12 +589,12 @@ void AppController::scheduleMemoryRelease()
     m_memoryTimer->start();
 }
 
-// --- Набор на диске (NFR-5, APP-6) и предпросмотр (PST-6) ---
+// --- Set on disk (NFR-5, APP-6) and preview (PST-6) ---
 
 void AppController::restoreSession()
 {
     if (!m_settings.keepSetOnRestart) {
-        SetStorage::removeSession(sessionDirectory());   // опцию выключили — следов не оставляем
+        SetStorage::removeSession(sessionDirectory());   // the option was turned off: leave no traces
         return;
     }
     QString error;
@@ -607,7 +607,7 @@ void AppController::restoreSession()
     qCInfo(lcApp) << "restored set:" << set->shots.size() << "shots";
     if (!set->isEmpty())
         m_model.resetWithoutHistory(*set);
-    m_saveTimer->stop();   // только что прочитали — писать нечего
+    m_saveTimer->stop();   // just read it, nothing to write
 }
 
 void AppController::saveSession()
@@ -639,7 +639,7 @@ void AppController::showPreview()
 
 void AppController::showAbout()
 {
-    // Немодальное, одно на программу: повторный вызов поднимает уже открытое
+    // Modeless, one per program: a repeated call raises the one already open
     if (!m_about) {
         AboutInfo info;
         info.version = QStringLiteral(MARKPASTE_VERSION);
@@ -670,7 +670,7 @@ void AppController::saveSetToFolder()
     if (parent.isEmpty())
         return;
     s.setValue(QStringLiteral("export/lastDir"), parent);
-    // Своя папка на каждое сохранение: A.png и message.md прошлых наборов не перезаписываются
+    // A separate folder for every save: A.png and message.md of earlier sets are not overwritten
     const QString dir = QDir(parent).filePath(
         QStringLiteral("Markpaste %1").arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd HH-mm-ss"))));
     const CaptureSet set = m_model.set();
@@ -695,7 +695,7 @@ void AppController::saveSetToFolder()
 void AppController::setupTray()
 {
     if (!QSystemTrayIcon::isSystemTrayAvailable())
-        return;   // GNOME без расширения: всё доступно и без трея (APP-1)
+        return;   // GNOME without the extension: everything is reachable without a tray (APP-1)
     m_tray = new QSystemTrayIcon(appIcon(), this);
     m_tray->setToolTip(QStringLiteral("Markpaste"));
     auto *menu = new QMenu;
@@ -717,7 +717,7 @@ void AppController::setupTray()
     connect(m_tray, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason r) {
         if (r != QSystemTrayIcon::Trigger)
             return;
-        // Клик по значку — показать или спрятать ленту (и пустую). Снять экран — Print или меню.
+        // Clicking the icon shows or hides the strip (even an empty one). Capturing is Print or the menu.
         if (m_strip->isVisible())
             m_strip->hide();
         else
@@ -729,7 +729,7 @@ void AppController::setupTray()
 void AppController::notify(const QString &text)
 {
     qCInfo(lcApp) << "notify:" << text;
-    m_trayClickUrl.clear();   // клик по новому уведомлению ничего не открывает
+    m_trayClickUrl.clear();   // clicking a new notification opens nothing
     if (m_strip && m_strip->isVisible())
         m_strip->showMessage(text, 6000);
     else if (m_tray)

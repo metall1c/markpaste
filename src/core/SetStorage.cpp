@@ -97,7 +97,7 @@ QByteArray SetStorage::toJson(const CaptureSet &set)
                 o.insert(QStringLiteral("width"), m.pen.width);
             if (m.pen.line != LineStyle::Solid)
                 o.insert(QStringLiteral("line"), lineName(m.pen.line));
-            // Форма рамки — только у рамки и только не прямоугольная: старые наборы читаются как есть
+            // Frame shape only for frames and only when not rectangular: old sets are read as they are
             if (m.shape == MarkShape::Rect && m.pen.frame != FrameShape::Rect)
                 o.insert(QStringLiteral("frame"), m.pen.frame == FrameShape::Rounded ? QStringLiteral("rounded")
                                                                                      : QStringLiteral("ellipse"));
@@ -132,7 +132,7 @@ std::optional<CaptureSet> SetStorage::fromJson(const QByteArray &json, QString *
         return std::nullopt;
     }
     const QJsonObject root = doc.object();
-    // Новее, чем умеем, — не читаем: иначе потеряем то, чего не знаем, при следующем сохранении
+    // Newer than we understand: do not read it, otherwise the next save would lose what we do not know
     if (root.value(QStringLiteral("version")).toInt() != kFormatVersion) {
         setError(error, QStringLiteral("set.json: unsupported version %1").arg(root.value(QStringLiteral("version")).toInt()));
         return std::nullopt;
@@ -169,7 +169,7 @@ std::optional<CaptureSet> SetStorage::fromJson(const QByteArray &json, QString *
             for (int i = 0; i + 1 < pts.size(); i += 2)
                 m.points << QPoint(pts[i].toInt(), pts[i + 1].toInt());
             if (m.isLinear() && m.points.size() < (m.shape == MarkShape::Point ? 1 : 2))
-                continue;   // линия без точек не нарисуется — пропускаем, а не падаем
+                continue;   // a line without points cannot be drawn: skip it rather than crash
             m.pen.color = QColor(mo.value(QStringLiteral("color")).toString());
             m.pen.width = mo.value(QStringLiteral("width")).toDouble(0);
             const QString line = mo.value(QStringLiteral("line")).toString();
@@ -209,7 +209,7 @@ bool SetStorage::saveSession(const CaptureSet &set, const QString &dir, QString 
         if (!d.exists(name) && !writeFile(d.filePath(name), s.sourcePng, true, error))
             return false;
     }
-    // set.json — последним: при сбое посередине старый set.json ссылается на файлы, которые ещё есть
+    // set.json goes last: if something fails midway, the old set.json refers to files that still exist
     if (!writeFile(d.filePath(QStringLiteral("set.json")), toJson(set), true, error))
         return false;
     for (const QString &name : d.entryList({QStringLiteral("*.png")}, QDir::Files))
@@ -231,7 +231,7 @@ std::optional<CaptureSet> SetStorage::loadSession(const QString &dir, QString *e
     std::optional<CaptureSet> set = fromJson(f.readAll(), error);
     if (!set)
         return std::nullopt;
-    // Снимок без исходника или с битым PNG пропускаем: остальной набор полезнее, чем ничего
+    // A shot without a source or with a broken PNG is skipped: the rest of the set is more useful than nothing
     QList<Shot> shots;
     for (Shot &s : set->shots) {
         QFile png(d.filePath(s.id.toString(QUuid::WithoutBraces) + QStringLiteral(".png")));

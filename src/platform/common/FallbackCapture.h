@@ -6,8 +6,8 @@
 
 namespace mp {
 
-// Основной способ захвата с запасным: если основной отказал (например, KWin не считает
-// программу доверенной), переключаемся на запасной и больше основной не пробуем.
+// A primary capture method with a fallback: if the primary fails (for example, KWin does not consider
+// the program trusted), switch to the fallback and never try the primary again.
 class FallbackCapture : public ICapture
 {
     Q_OBJECT

@@ -38,7 +38,7 @@ bool CaptureSetModel::apply(const QString &text, const Mutation &mutate)
     CaptureSet next = m_set;
     if (!mutate(next) || next == m_set)
         return false;
-    // push() сразу вызывает redo(), то есть применяет «после».
+    // push() calls redo() right away, i.e. applies the "after" state.
     m_undo.push(new StateCommand(this, text, m_set, std::move(next)));
     return true;
 }
@@ -76,7 +76,7 @@ bool CaptureSetModel::fitMark(Mark &mark, const QRect &bounds, qreal dpr)
         break;
     }
     case MarkShape::Freehand: {
-        // Допуск упрощения — полпикселя экрана: глазу не видно, а точек в разы меньше
+        // Simplification tolerance is half a screen pixel: invisible to the eye, but several times fewer points
         const qreal eps = 0.5 * (dpr > 0 ? dpr : 1.0);
         mark.points = simplifyPolyline(clipPolyline(mark.points, bounds), eps);
         if (mark.points.size() < 2)
@@ -247,7 +247,7 @@ bool CaptureSetModel::removeMark(const QUuid &shotId, const QUuid &markId)
         const int m = s.shots[i].markIndex(markId);
         if (m < 0)
             return false;
-        s.shots[i].marks.removeAt(m);   // номера остальных пересчитаются сами (EDT-2)
+        s.shots[i].marks.removeAt(m);   // the other numbers are recomputed by themselves (EDT-2)
         return true;
     });
 }

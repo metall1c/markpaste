@@ -4,24 +4,24 @@
 
 namespace mp::win {
 
-// Буфер обмена Windows через QClipboard (OLE). Qt сам раскладывает запись по форматам
-// Windows: картинку — в CF_DIB и CF_DIBV5, список файлов — в CF_HDROP, текст — в
-// CF_UNICODETEXT. Пишет из фона: фокус окну для этого не нужен.
+// Windows clipboard via QClipboard (OLE). Qt itself spreads the entry over Windows
+// formats: the image into CF_DIB and CF_DIBV5, the file list into CF_HDROP, the text into
+// CF_UNICODETEXT. Writes from the background: the window does not need focus for that.
 //
-// Формат «PNG» (его первым читают Chrome, Telegram, Office: в нём есть прозрачность и нет
-// потерь) Qt сам не кладёт — добавляем байты PNG как есть. При чтении (снимок буфера перед
-// вставкой) PNG и CF_DIB берём сами, если Qt картинку не разобрал.
+// Qt does not put the "PNG" format itself (Chrome, Telegram and Office read it first: it has transparency and no
+// loss), so we add the PNG bytes as they are. When reading (the clipboard snapshot before a
+// paste) we take PNG and CF_DIB ourselves if Qt did not parse the image.
 //
-// «Не в историю» (NFR-4, ТЗ разд. 10) — три зарегистрированных формата, которые читают
-// журнал буфера Win+V, облачная синхронизация и программы-мониторы буфера:
+// "Not into history" (NFR-4, spec section 10) is three registered formats read by
+// the Win+V clipboard history, cloud sync and clipboard monitor programs:
 // ExcludeClipboardContentFromMonitorProcessing, CanIncludeInClipboardHistory = 0,
 // CanUploadToCloudClipboard = 0.
 //
-// Занятый буфер. Пока другая программа держит буфер открытым (rdpclip в сеансе RDP и менеджеры
-// буфера открывают его после каждой смены), OleSetClipboard не пишет, а Qt только оставляет
-// предупреждение в журнале. Без проверки «Скопировано» было бы неправдой, а Ctrl+V вставил бы
-// прежнее содержимое буфера (docs/problems.md, 2026-10-20). Поэтому после записи проверяем, что
-// буфер наш, и повторяем, пока он не освободится; перед снимком буфера ждём того же.
+// A busy clipboard. While another program keeps the clipboard open (rdpclip in an RDP session and clipboard
+// managers open it after every change), OleSetClipboard does not write, and Qt only leaves
+// a warning in the log. Without a check "Copied" would be a lie, and Ctrl+V would paste
+// the previous clipboard content (docs/problems.md, 2026-10-20). So after writing we check that
+// the clipboard is ours and retry until it is free; before the clipboard snapshot we wait the same way.
 class WinClipboard : public QtClipboard
 {
     Q_OBJECT
@@ -32,10 +32,10 @@ public:
     QFuture<Status> write(const ClipboardPayload &payload, ClipboardFlags flags) override;
     QFuture<ClipboardPayload> snapshot() override;
 
-    // Формат QMimeData для зарегистрированного формата буфера Windows с этим именем
+    // QMimeData format for a registered Windows clipboard format with this name
     static QString windowsFormat(const QString &name);
 
-    // Сколько ждать, пока другая программа отпустит буфер (по умолчанию ~2 с)
+    // How long to wait for another program to release the clipboard (about 2 s by default)
     void setBusyWait(int attempts, int intervalMs)
     {
         m_busyAttempts = attempts;
@@ -50,8 +50,8 @@ private:
     ClipboardPayload readNow();
     bool clipboardFree() const;
 
-    void *m_probeWindow = nullptr;   // HWND: открывать буфер для проверки от своего окна, а не от NULL
-    quint64 m_writeGeneration = 0;   // новая запись отменяет повторы прежней, ещё ждущей буфер
+    void *m_probeWindow = nullptr;   // HWND: open the clipboard for checks from our own window, not from NULL
+    quint64 m_writeGeneration = 0;   // a new write cancels retries of the previous one still waiting for the clipboard
     int m_busyAttempts = 20;
     int m_busyIntervalMs = 100;
 };

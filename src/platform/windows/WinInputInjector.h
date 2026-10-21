@@ -6,17 +6,17 @@
 
 namespace mp::win {
 
-// Эмуляция Ctrl+V через SendInput (ТЗ разд. 9, 10). Без диалога и без сессии.
+// Ctrl+V emulation via SendInput (spec sections 9, 10). No dialog and no session.
 //
-// V нажимается по виртуальному коду VK_V (ТЗ разд. 10): программы Windows сверяют сочетание
-// по VK, и при русской раскладке Ctrl+V тоже вставляет.
+// V is pressed by the virtual code VK_V (spec section 10): Windows programs match shortcuts
+// by VK, so Ctrl+V pastes with a Russian layout too.
 //
-// Окно, активное в начале вставки, запоминаем: если пользователь переключился на другое,
-// вставка останавливается, а не сыплет картинки куда попало (ТЗ разд. 10, шаг 6).
+// The window active at the start of the paste is remembered: if the user switched to another one,
+// the paste stops instead of throwing images anywhere (spec section 10, step 6).
 //
-// UIPI: SendInput молча не доходит до окон, запущенных от администратора, если сама
-// программа запущена без повышения, и ошибку не возвращает. Поэтому уровень целостности
-// окна проверяем заранее и сообщаем об этом сразу.
+// UIPI: SendInput silently does not reach windows started as administrator when the program
+// itself runs without elevation, and returns no error. So the window's integrity level
+// is checked in advance, and this is reported right away.
 class WinInputInjector : public IInputInjector
 {
     Q_OBJECT
@@ -32,9 +32,9 @@ public:
     bool canDetectForegroundChange() const override { return true; }
     QString name() const override { return QStringLiteral("SendInput"); }
 
-    // Окно запущено с более высоким уровнем целостности, чем программа (UIPI)
+    // The window runs with a higher integrity level than the program (UIPI)
     static bool isElevatedAbove(HWND window);
-    static QString processName(HWND window);   // для журнала и профилей задержек
+    static QString processName(HWND window);   // for the log and delay profiles
 
 private:
     HWND m_target = nullptr;

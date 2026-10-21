@@ -22,7 +22,7 @@ Q_DECLARE_LOGGING_CATEGORY(lcWayland)
 
 namespace mp::lx {
 
-// Всё, что касается протокола. Живёт и вызывается только в потоке WaylandConnection.
+// Everything about the protocol. Lives and is called only in the WaylandConnection thread.
 class DataControlDevice : public QObject
 {
 public:
@@ -32,11 +32,11 @@ public:
     void write(ClipboardPayload payload, ClipboardFlags flags, std::shared_ptr<QPromise<Status>> promise);
     void snapshot(std::shared_ptr<QPromise<ClipboardPayload>> promise);
 
-    // Читаются из главного потока
+    // Read from the main thread
     bool ownsSelection() const;
     QStringList selectionMimes() const;
 
-    // Обработчики событий протокола
+    // Protocol event handlers
     void onDataOffer(ext_data_control_offer_v1 *offer);
     void onOfferMime(ext_data_control_offer_v1 *offer, const char *mime);
     void onSelection(ext_data_control_offer_v1 *offer);
@@ -45,7 +45,7 @@ public:
     void onSend(ext_data_control_source_v1 *source, const char *mime, int fd);
     void onCancelled(ext_data_control_source_v1 *source);
 
-    // Подключение к композитору оборвалось: ответа на wl_display.sync не будет никогда
+    // The connection to the compositor broke: the wl_display.sync answer will never come
     void failPendingWrites();
 
 private:
@@ -56,14 +56,14 @@ private:
     ext_data_control_manager_v1 *m_manager = nullptr;
     ext_data_control_device_v1 *m_device = nullptr;
 
-    ext_data_control_source_v1 *m_source = nullptr;   // наш текущий источник
-    ClipboardPayload m_payload;                        // что он отдаёт
+    ext_data_control_source_v1 *m_source = nullptr;   // our current source
+    ClipboardPayload m_payload;                        // what it serves
 
-    QHash<ext_data_control_offer_v1 *, QStringList> m_offerMimes;   // ещё не ставшие selection
+    QHash<ext_data_control_offer_v1 *, QStringList> m_offerMimes;   // not yet the selection
     ext_data_control_offer_v1 *m_selection = nullptr;
 
-    // Записи, ждущие ответа композитора на wl_display.sync. Держатель живёт в данных
-    // wl_callback и удаляется в его обработчике; device = nullptr — обещание уже выполнено.
+    // Writes waiting for the compositor's answer to wl_display.sync. The holder lives in the
+    // wl_callback data and is deleted in its handler; device = nullptr means the promise is already fulfilled.
     struct PendingWrite {
         DataControlDevice *device;
         std::shared_ptr<QPromise<Status>> promise;
@@ -71,7 +71,7 @@ private:
     QList<PendingWrite *> m_pendingWrites;
     bool m_lost = false;
 
-    mutable QMutex m_mutex;          // защищает два поля ниже
+    mutable QMutex m_mutex;          // guards the two fields below
     QStringList m_selectionMimes;
     bool m_owns = false;
 };
@@ -104,13 +104,13 @@ const ext_data_control_source_v1_listener kSourceListener = {
     .cancelled = [](void *data, ext_data_control_source_v1 *source) { self(data)->onCancelled(source); },
 };
 
-// Что восстанавливаем после вставки: только текст и картинки (ТЗ разд. 10).
+// What is restored after a paste: only text and images (spec section 10).
 const QStringList kTextMimes = {QStringLiteral("text/plain;charset=utf-8"), QStringLiteral("text/plain"),
                                 QStringLiteral("UTF8_STRING")};
 const QStringList kImageMimes = {QStringLiteral("image/png"), QStringLiteral("image/jpeg"),
                                  QStringLiteral("image/bmp")};
-// Сколько ждать данные чужого буфера при сохранении. Картинку владелец часто кодирует по
-// запросу (браузер, редактор): 4K PNG — до секунды и больше. Не дождались — не восстанавливаем.
+// How long to wait for a foreign clipboard's data when saving it. The owner often encodes an image
+// on request (browser, editor): a 4K PNG takes up to a second or more. If it does not arrive, it is not restored.
 constexpr int kTextReadMs = 1000;
 constexpr int kImageReadMs = 3000;
 
@@ -125,7 +125,7 @@ DataControlDevice::DataControlDevice(WaylandConnection *conn)
     m_device = ext_data_control_manager_v1_get_data_device(m_manager, conn->seat());
     ext_data_control_device_v1_add_listener(m_device, &kDeviceListener, this);
     QObject::connect(conn, &WaylandConnection::disconnected, this, [this] { failPendingWrites(); });
-    // Первый roundtrip приносит текущее содержимое буфера.
+    // The first roundtrip brings the current clipboard content.
     conn->roundtrip();
 }
 
@@ -137,7 +137,7 @@ bool DataControlDevice::connectionLost() const
 void DataControlDevice::failPendingWrites()
 {
     m_lost = true;
-    // Держатели остаются у wl_callback: выполняем обещания и отвязываем держатели от устройства
+    // The holders stay with the wl_callback: fulfill the promises and detach the holders from the device
     for (PendingWrite *w : std::exchange(m_pendingWrites, {})) {
         w->device = nullptr;
         w->promise->addResult(Status::failure(QStringLiteral("connection to the compositor is lost")));
@@ -147,7 +147,7 @@ void DataControlDevice::failPendingWrites()
 
 DataControlDevice::~DataControlDevice()
 {
-    // Ответ на sync может прийти уже после нас: держатели не должны ссылаться на устройство
+    // The sync answer may come after we are gone: the holders must not refer to the device
     for (PendingWrite *w : std::exchange(m_pendingWrites, {})) {
         w->device = nullptr;
         w->promise->addResult(Status::failure(QStringLiteral("clipboard is shutting down")));
@@ -203,7 +203,7 @@ void DataControlDevice::onSelection(ext_data_control_offer_v1 *offer)
 
 void DataControlDevice::onPrimarySelection(ext_data_control_offer_v1 *offer)
 {
-    // Первичное выделение (средняя кнопка мыши) не трогаем.
+    // The primary selection (middle mouse button) is left alone.
     if (offer) {
         m_offerMimes.remove(offer);
         ext_data_control_offer_v1_destroy(offer);
@@ -224,8 +224,8 @@ void DataControlDevice::onSend(ext_data_control_source_v1 *source, const char *m
         ::close(fd);
         return;
     }
-    // Пишем в пуле потоков: получатель читает сколько хочет (картинка — мегабайты),
-    // а поток Wayland должен оставаться свободным для следующих запросов.
+    // Write in the thread pool: the receiver reads as much as it wants (an image is megabytes),
+    // and the Wayland thread must stay free for the next requests.
     const QByteArray data = entry->data;
     (void)QtConcurrent::run([fd, data] { writeAllAndClose(fd, data, 5000); });
 }
@@ -252,7 +252,7 @@ void DataControlDevice::write(ClipboardPayload payload, ClipboardFlags flags,
         return;
     }
     if (flags & ClipboardFlag::ExcludeFromHistory) {
-        // Klipper не сохраняет записи с этой подсказкой (ТЗ разд. 10).
+        // Klipper does not keep entries with this hint (spec section 10).
         payload.entries.append({QStringLiteral("x-kde-passwordManagerHint"), QByteArrayLiteral("secret")});
     }
 
@@ -262,7 +262,7 @@ void DataControlDevice::write(ClipboardPayload payload, ClipboardFlags flags,
         ext_data_control_source_v1_offer(source, e.mimeType.toUtf8().constData());
     ext_data_control_device_v1_set_selection(m_device, source);
 
-    // Прежнему источнику композитор пришлёт cancelled — там он и удалится.
+    // The compositor will send cancelled to the previous source, and it will be deleted there.
     m_source = source;
     m_payload = std::move(payload);
     {
@@ -270,8 +270,8 @@ void DataControlDevice::write(ClipboardPayload payload, ClipboardFlags flags,
         m_owns = true;
     }
 
-    // Готово, когда композитор обработал set_selection: ждём ответ на wl_display.sync.
-    // Подключение оборвётся раньше — обещание выполнит failPendingWrites.
+    // Done when the compositor has processed set_selection: wait for the wl_display.sync answer.
+    // If the connection breaks earlier, failPendingWrites fulfills the promise.
     auto *holder = new PendingWrite{this, std::move(promise)};
     m_pendingWrites.append(holder);
     static const wl_callback_listener kDone = {
@@ -307,7 +307,7 @@ void DataControlDevice::snapshot(std::shared_ptr<QPromise<ClipboardPayload>> pro
         promise->addResult(p);
         promise->finish();
     };
-    if (m_source)   // буфер наш — данные уже есть
+    if (m_source)   // the clipboard is ours: the data is already here
         return finishWith(m_payload);
     if (!m_selection)
         return finishWith({});
@@ -344,7 +344,7 @@ void DataControlDevice::snapshot(std::shared_ptr<QPromise<ClipboardPayload>> pro
     });
 }
 
-// --- DataControlClipboard (фасад) ---
+// --- DataControlClipboard (facade) ---
 
 DataControlClipboard *DataControlClipboard::create(QObject *parent)
 {
@@ -365,7 +365,7 @@ DataControlClipboard::DataControlClipboard(DataControlDevice *device, QObject *p
 
 DataControlClipboard::~DataControlClipboard()
 {
-    // Удаляем в его потоке, синхронно: после нас никто не должен трогать устройство.
+    // Delete in its thread, synchronously: nobody must touch the device after us.
     DataControlDevice *device = m_device;
     QMetaObject::invokeMethod(device, [device] { delete device; }, Qt::BlockingQueuedConnection);
 }

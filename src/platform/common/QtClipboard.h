@@ -6,9 +6,9 @@ class QMimeData;
 
 namespace mp {
 
-// Буфер через QClipboard. Переносимый запасной вариант: на Wayland без data-control
-// Qt меняет буфер, только когда у нашего окна есть фокус клавиатуры, поэтому
-// canWriteInBackground() = false, и последовательная вставка с ним не включается.
+// Clipboard via QClipboard. A portable fallback: on Wayland without data-control
+// Qt changes the clipboard only while our window has keyboard focus, so
+// canWriteInBackground() = false, and sequential paste is not enabled with it.
 class QtClipboard : public IClipboard
 {
     Q_OBJECT
@@ -21,11 +21,11 @@ public:
     QString name() const override { return QStringLiteral("QClipboard"); }
 
 protected:
-    // Данные для QClipboard::setMimeData: записи набора, картинка ещё и как QImage, форматы системы
+    // Data for QClipboard::setMimeData: the set's entries, the image also as a QImage, system formats
     QMimeData *makeMimeData(const ClipboardPayload &payload, ClipboardFlags flags) const;
-    // Класть ли в буфер запись этого MIME-типа (Windows не нужны имена X11: UTF8_STRING…)
+    // Whether to put an entry of this MIME type into the clipboard (Windows needs no X11 names: UTF8_STRING…)
     virtual bool keepEntry(const QString &mimeType) const;
-    // Форматы под конкретную систему поверх общих: пометки «не в историю», PNG для Windows…
+    // System-specific formats on top of the common ones: "not into history" marks, PNG for Windows…
     virtual void addPlatformFormats(QMimeData *md, const ClipboardPayload &payload, ClipboardFlags flags) const;
 
 private:

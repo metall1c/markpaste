@@ -12,15 +12,15 @@ namespace mp {
 
 class OverlayWidget;
 
-// Результат выделения: вырезанный кусок кадра в физических пикселях.
+// Selection result: the cut-out piece of the frame in physical pixels.
 struct CaptureSelection {
     QImage image;
     qreal devicePixelRatio = 1.0;
     QString screenName;
 };
 
-// Сеанс выбора области: по одному полноэкранному окну на монитор поверх
-// «замороженного» кадра (ТЗ разд. 4, шаг 2). Выделение — в пределах одного монитора.
+// Area selection session: one full-screen window per monitor over the
+// "frozen" frame (spec section 4, step 2). The selection stays within one monitor.
 class CaptureSession : public QObject
 {
     Q_OBJECT
@@ -78,11 +78,11 @@ private:
 
     CaptureSession *m_session;
     ScreenFrame m_frame;
-    QImage m_display;            // кадр с devicePixelRatio = масштаб: рисуется 1:1 по физическим пикселям
+    QImage m_display;            // frame with devicePixelRatio = scale: drawn 1:1 in physical pixels
     bool m_quick;
     Mode m_mode = Mode::Idle;
-    QPointF m_anchor;            // начало выделения или перетаскивания
-    QRectF m_sel;                // логические координаты окна
+    QPointF m_anchor;            // start of the selection or drag
+    QRectF m_sel;                // logical window coordinates
     QRectF m_selAtPress;
     int m_handle = None;
     QPointF m_cursor;

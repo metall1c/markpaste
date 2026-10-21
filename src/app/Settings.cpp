@@ -38,7 +38,7 @@ Settings Settings::load()
     s.badgeSize = std::clamp(q.value(QStringLiteral("appearance/badgeSize"), d.badgeSize).toInt(), 16, 48);
     s.uiLanguage = q.value(QStringLiteral("ui/language"), d.uiLanguage).toString();
     s.hideStripWhenEmpty = q.value(QStringLiteral("strip/hideWhenEmpty"), d.hideStripWhenEmpty).toBool();
-    s.markPen.color = QColor(q.value(QStringLiteral("editor/markColor")).toString());   // пусто — акцент
+    s.markPen.color = QColor(q.value(QStringLiteral("editor/markColor")).toString());   // empty means the accent
     s.markPen.width = std::clamp(q.value(QStringLiteral("editor/markWidth"), 0.0).toDouble(), 0.0, 20.0);
     const QString line = q.value(QStringLiteral("editor/markLine")).toString();
     s.markPen.line = line == u"dash" ? LineStyle::Dash : line == u"dot" ? LineStyle::Dot : LineStyle::Solid;

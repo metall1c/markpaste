@@ -11,7 +11,7 @@ using namespace mp;
 #ifndef Q_OS_WIN
 TEST(Autostart, WritesAndRemovesDesktopFile)
 {
-    // Тестовый режим: ~/.qttest/config вместо настоящего ~/.config
+    // Test mode: ~/.qttest/config instead of the real ~/.config
     QStandardPaths::setTestModeEnabled(true);
     const QString id = QStringLiteral("su._525.MarkpasteTest");
     const QString path = autostartFilePath(id);
@@ -25,13 +25,13 @@ TEST(Autostart, WritesAndRemovesDesktopFile)
     ASSERT_TRUE(f.open(QIODevice::ReadOnly));
     const QString text = QString::fromUtf8(f.readAll());
     f.close();
-    // Кавычка внутри пути: \" по спецификации Exec, затем \ удваивается как в любом значении
+    // A quote inside the path: \" per the Exec specification, then \ is doubled as in any value
     EXPECT_TRUE(text.contains(QStringLiteral("Exec=\"/opt/My Apps/mark\\\\\"paste\"\n"))) << text.toStdString();
     EXPECT_TRUE(text.contains(QStringLiteral("Icon=su._525.MarkpasteTest\n")));
 
     ASSERT_TRUE(setAutostartEnabled(id, false));
     EXPECT_FALSE(QFile::exists(path));
-    EXPECT_TRUE(setAutostartEnabled(id, false));   // повторное выключение — не ошибка
+    EXPECT_TRUE(setAutostartEnabled(id, false));   // turning it off again is not an error
     QStandardPaths::setTestModeEnabled(false);
 }
 #else
@@ -44,7 +44,7 @@ TEST(Autostart, WritesAndRemovesRunKey)
     EXPECT_TRUE(isAutostartEnabled(id));
     const QSettings run(QStringLiteral("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"),
                         QSettings::NativeFormat);
-    // Путь с пробелами — в кавычках и с обратными косыми
+    // A path with spaces: quoted and with backslashes
     EXPECT_EQ(run.value(id).toString(), QStringLiteral("\"C:\\Program Files\\Mark paste\\markpaste.exe\""));
     ASSERT_TRUE(setAutostartEnabled(id, false));
     EXPECT_FALSE(isAutostartEnabled(id));
@@ -83,13 +83,13 @@ TEST(FdIo, ReadsAllUntilEof)
     EXPECT_EQ(awaitBytes(lx::readAllAsync(fds[0], 1000, &ctx)), QByteArray("hello"));
 }
 
-// Владелец буфера не дописал данные к таймауту: обрывок картинки или текста
-// не должен вернуться в буфер после вставки
+// The clipboard owner did not finish writing by the timeout: a fragment of an image or text
+// must not come back to the clipboard after a paste
 TEST(FdIo, TimeoutGivesNothingInsteadOfPartialData)
 {
     int fds[2];
     ASSERT_EQ(::pipe2(fds, O_CLOEXEC), 0);
-    ASSERT_EQ(::write(fds[1], "\x89PNG part", 9), 9);   // писатель «завис», конец не закрыт
+    ASSERT_EQ(::write(fds[1], "\x89PNG part", 9), 9);   // the writer "hung", its end is not closed
     QObject ctx;
     EXPECT_TRUE(awaitBytes(lx::readAllAsync(fds[0], 100, &ctx)).isEmpty());
     ::close(fds[1]);
@@ -125,7 +125,7 @@ TEST(PortalGlobalShortcuts, EveryActionHasOwnId)
         ASSERT_TRUE(PortalGlobalShortcuts::actionFromId(id, &back));
         EXPECT_EQ(back, a);
     }
-    // Id уже привязанных сочетаний не меняются: по ним KDE хранит назначенные клавиши
+    // Ids of already bound shortcuts do not change: KDE keeps the assigned keys by them
     EXPECT_EQ(PortalGlobalShortcuts::shortcutId(Action::Capture), QStringLiteral("capture"));
     EXPECT_EQ(PortalGlobalShortcuts::shortcutId(Action::PasteSet), QStringLiteral("paste-set"));
 }

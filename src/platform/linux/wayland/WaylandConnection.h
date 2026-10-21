@@ -18,38 +18,38 @@ struct WaylandGlobal {
     uint32_t version = 0;
 };
 
-// Собственное подключение к композитору, отдельное от подключения Qt.
+// Our own connection to the compositor, separate from Qt's connection.
 //
-// Протоколы data-control (и в будущем virtual-keyboard) работают без поверхностей,
-// а через Qt к ним не добраться без приватного API QtWaylandClient. Отдельное
-// подключение — тот же подход, что у wl-clipboard.
+// The data-control protocols (and in the future virtual-keyboard) work without surfaces,
+// and through Qt they cannot be reached without QtWaylandClient's private API. A separate
+// connection is the same approach as wl-clipboard's.
 //
-// Подключение живёт в СВОЁМ потоке, а не в главном. Причина — взаимная блокировка:
-// когда наша же программа вставляет из буфера, которым владеет наш data-control-источник,
-// Qt читает данные блокирующе в главном потоке, а композитор просит их у нашего
-// подключения. Если его события тоже разбирает главный поток, ответить некому —
-// вставка зависает до таймаута Qt и приходит пустой. См. docs/decisions/0002-*.md.
+// The connection lives in ITS OWN thread, not in the main one. The reason is a deadlock:
+// when our own program pastes from a clipboard owned by our data-control source,
+// Qt reads the data blockingly in the main thread, and the compositor asks our
+// connection for it. If the main thread also dispatches its events, nobody can answer:
+// the paste hangs until Qt's timeout and comes out empty. See docs/decisions/0002-*.md.
 //
-// Все объекты, которые пользуются подключением (слушатели протоколов), живут в его
-// потоке; вызывать их методы — только через QMetaObject::invokeMethod.
+// All objects that use the connection (protocol listeners) live in its
+// thread; their methods are called only via QMetaObject::invokeMethod.
 class WaylandConnection : public QObject
 {
     Q_OBJECT
 public:
-    // nullptr, если сессия не Wayland или композитор недоступен.
-    // Потокобезопасно; первое обращение создаёт поток и подключается (блокирующе).
+    // nullptr if the session is not Wayland or the compositor is unavailable.
+    // Thread-safe; the first access creates the thread and connects (blocking).
     static WaylandConnection *instance();
 
     wl_display *display() const { return m_display; }
     wl_registry *registry() const { return m_registry; }
     wl_seat *seat() const { return m_seat; }
 
-    // Список глобальных объектов: потокобезопасно (снимок после первого roundtrip).
+    // The list of globals: thread-safe (a snapshot after the first roundtrip).
     bool hasGlobal(const char *interface) const;
     WaylandGlobal global(const char *interface) const;
     QStringList globalNames() const;
 
-    // Остальное — только из потока подключения.
+    // Everything else only from the connection thread.
     void *bind(const ::wl_interface *iface, uint32_t wantedVersion);
     void flush();
     bool roundtrip();
@@ -64,7 +64,7 @@ private:
     void onReadable();
 
 public:
-    // Обработчики wl_registry_listener (вызываются из libwayland)
+    // wl_registry_listener handlers (called from libwayland)
     static void handleGlobal(void *data, wl_registry *registry, uint32_t name, const char *interface,
                              uint32_t version);
     static void handleGlobalRemove(void *data, wl_registry *registry, uint32_t name);
@@ -74,7 +74,7 @@ private:
     wl_registry *m_registry = nullptr;
     wl_seat *m_seat = nullptr;
     QHash<QByteArray, WaylandGlobal> m_globals;
-    QHash<QByteArray, WaylandGlobal> m_initialGlobals;   // неизменяемый снимок для других потоков
+    QHash<QByteArray, WaylandGlobal> m_initialGlobals;   // immutable snapshot for other threads
     QSocketNotifier *m_notifier = nullptr;
     QThread *m_thread = nullptr;
 };

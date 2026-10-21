@@ -7,21 +7,21 @@ struct zwp_virtual_keyboard_v1;
 
 namespace mp::lx {
 
-// Эмуляция Ctrl+V через zwp_virtual_keyboard_v1 (ТЗ разд. 9): Sway, Hyprland и другие
-// композиторы на wlroots. Там нет портала RemoteDesktop, зато протокол доступен любому
-// клиенту без диалога. В KWin и Mutter протокола нет.
+// Ctrl+V emulation via zwp_virtual_keyboard_v1 (spec section 9): Sway, Hyprland and other
+// wlroots compositors. They have no RemoteDesktop portal, but the protocol is available to any
+// client without a dialog. KWin and Mutter do not have the protocol.
 //
-// Клавиатуре нужна своя раскладка (keymap). Берём US из libxkbcommon: клавиша V с кодом
-// KEY_V даёт «v» независимо от раскладки пользователя (ТЗ разд. 10). Композитор на время
-// наших нажатий отдаёт окну нашу раскладку; следующее нажатие настоящей клавиатуры
-// возвращает её раскладку (так же работает wtype).
+// The keyboard needs its own keymap. We take US from libxkbcommon: the V key with code
+// KEY_V gives "v" regardless of the user's layout (spec section 10). For the duration of
+// our presses the compositor gives the window our keymap; the next press on the real keyboard
+// brings its keymap back (wtype works the same way).
 //
-// Запросы протокола уходят из потока WaylandConnection (там живёт подключение).
+// Protocol requests go out from the WaylandConnection thread (the connection lives there).
 class VirtualKeyboardInjector : public IInputInjector
 {
     Q_OBJECT
 public:
-    // nullptr, если композитор не даёт zwp_virtual_keyboard_manager_v1.
+    // nullptr if the compositor does not provide zwp_virtual_keyboard_manager_v1.
     static VirtualKeyboardInjector *create(QObject *parent = nullptr);
     ~VirtualKeyboardInjector() override;
 
@@ -36,7 +36,7 @@ public:
 
 private:
     VirtualKeyboardInjector(QObject *parent);
-    Status setup();                  // в потоке Wayland
+    Status setup();                  // in the Wayland thread
     void key(int evdevCode, bool pressed);
     void modifiers(bool ctrl);
 

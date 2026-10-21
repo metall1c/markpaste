@@ -21,14 +21,14 @@ namespace mp::lx {
 namespace {
 const QString kIface = QStringLiteral("org.freedesktop.portal.Clipboard");
 
-// Что восстанавливаем после вставки: только текст и картинки (ТЗ разд. 10) — как DataControlClipboard
+// What is restored after a paste: only text and images (spec section 10), as in DataControlClipboard
 const QStringList kTextMimes = {QStringLiteral("text/plain;charset=utf-8"), QStringLiteral("text/plain"),
                                 QStringLiteral("UTF8_STRING")};
 const QStringList kImageMimes = {QStringLiteral("image/png"), QStringLiteral("image/jpeg"), QStringLiteral("image/bmp")};
-constexpr int kTextReadMs = 1000;    // как в DataControlClipboard: картинку владелец кодирует дольше
+constexpr int kTextReadMs = 1000;    // as in DataControlClipboard: the owner takes longer to encode an image
 constexpr int kImageReadMs = 3000;
 
-// fd из ответа D-Bus принадлежит QDBusUnixFileDescriptor и закрывается вместе с ним
+// The fd from the D-Bus reply belongs to QDBusUnixFileDescriptor and is closed with it
 int takeFd(const QDBusUnixFileDescriptor &d)
 {
     return d.isValid() ? ::fcntl(d.fileDescriptor(), F_DUPFD_CLOEXEC, 0) : -1;
@@ -49,7 +49,7 @@ PortalClipboard::PortalClipboard(PortalRemoteDesktop *session, QObject *parent)
                 SLOT(onSelectionTransfer(QDBusObjectPath, QString, uint)));
     bus.connect(PortalBus::kService, PortalBus::kPath, kIface, QStringLiteral("SelectionOwnerChanged"), this,
                 SLOT(onSelectionOwnerChanged(QDBusObjectPath, QVariantMap)));
-    // Сессия закрылась — наш selection и сведения о чужом больше не действуют
+    // The session closed: our selection and what we knew about the foreign one are no longer valid
     connect(session, &PortalRemoteDesktop::sessionClosed, this, [this] {
         m_owner = false;
         m_selectionMimes.clear();
@@ -72,7 +72,7 @@ QFuture<Status> PortalClipboard::write(const ClipboardPayload &payload, Clipboar
         return readyFuture(Status::failure(QStringLiteral("Clipboard portal: access was not granted")));
 
     m_payload = payload;
-    if (flags & ClipboardFlag::ExcludeFromHistory)   // Klipper не сохраняет такие записи (ТЗ разд. 10)
+    if (flags & ClipboardFlag::ExcludeFromHistory)   // Klipper does not keep such entries (spec section 10)
         m_payload.entries.append({QStringLiteral("x-kde-passwordManagerHint"), QByteArrayLiteral("secret")});
     m_owner = true;
     return PortalBus::instance().call(
@@ -111,7 +111,7 @@ void PortalClipboard::onSelectionTransfer(const QDBusObjectPath &session, const 
             done(false);
             return;
         }
-        // Получатель читает в своём темпе: пишем в пуле потоков, а не в главном
+        // The receiver reads at its own pace: write in the thread pool, not in the main thread
         QtConcurrent::run([fd, data] { return writeAllAndClose(fd, data, 3000); }).then(this, [done, mimeType](bool ok) {
             if (!ok)
                 qCWarning(lcPortal) << "clipboard transfer of" << mimeType << "was not completed";
@@ -162,8 +162,8 @@ QFuture<ClipboardPayload> PortalClipboard::snapshot()
     if (sessionHandle().isEmpty() || !m_session->clipboardEnabled())
         return readyFuture(ClipboardPayload());
 
-    // Типы чужого selection приходят сигналом SelectionOwnerChanged; если его ещё не было,
-    // пробуем обычный текст — самый частый случай
+    // The types of a foreign selection arrive with the SelectionOwnerChanged signal; if it has not come yet,
+    // try plain text, the most common case
     QString textMime, imageMime;
     for (const QString &mime : kTextMimes)
         if (m_selectionMimes.isEmpty() ? mime == kTextMimes.first() : m_selectionMimes.contains(mime)) {

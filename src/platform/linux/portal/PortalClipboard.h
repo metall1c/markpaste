@@ -11,16 +11,16 @@ namespace mp::lx {
 
 class PortalRemoteDesktop;
 
-// Буфер обмена через портал Clipboard (ТЗ разд. 9, 10). Запасной путь для окружений без
-// ext-data-control-v1 — прежде всего GNOME (Mutter).
+// Clipboard via the Clipboard portal (spec sections 9, 10). A fallback for environments without
+// ext-data-control-v1, above all GNOME (Mutter).
 //
-// Портал работает только внутри сессии RemoteDesktop, в которой до Start вызван
-// RequestClipboard и которая ответила clipboard_enabled. Поэтому:
-// - писать и читать можно только между IInputInjector::begin() и end();
-// - needsInputSession() = true: оркестратор вставки открывает сессию раньше, чем
-//   сохраняет буфер, и возвращает буфер до закрытия сессии.
-// Запись: SetSelection(типы) → портал присылает SelectionTransfer(тип, serial) на каждый
-// запрос получателя → SelectionWrite(serial) даёт fd → пишем данные → SelectionWriteDone.
+// The portal works only inside a RemoteDesktop session in which RequestClipboard was called
+// before Start and which answered clipboard_enabled. Therefore:
+// - reading and writing are possible only between IInputInjector::begin() and end();
+// - needsInputSession() = true: the paste orchestrator opens the session before
+//   saving the clipboard and restores the clipboard before closing the session.
+// Writing: SetSelection(types) → the portal sends SelectionTransfer(type, serial) for every
+// receiver request → SelectionWrite(serial) gives an fd → we write the data → SelectionWriteDone.
 class PortalClipboard : public IClipboard
 {
     Q_OBJECT
@@ -45,9 +45,9 @@ private:
     QString sessionHandle() const;
 
     QPointer<PortalRemoteDesktop> m_session;
-    ClipboardPayload m_payload;      // что отдаём, пока selection наш
+    ClipboardPayload m_payload;      // what we serve while the selection is ours
     bool m_owner = false;
-    QStringList m_selectionMimes;    // типы текущего чужого selection (SelectionOwnerChanged)
+    QStringList m_selectionMimes;    // types of the current foreign selection (SelectionOwnerChanged)
 };
 
 } // namespace mp::lx

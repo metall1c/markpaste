@@ -7,21 +7,21 @@
 
 namespace mp {
 
-// Геометрия линейных меток (стрелка, карандаш). Координаты — физические пиксели исходника.
+// Geometry of line marks (arrow, freehand). Coordinates are physical pixels of the source.
 
-// Охватывающий прямоугольник точек, включая крайние (как rectFromPoints).
+// Bounding rectangle of the points, extreme ones included (like rectFromPoints).
 QRect boundsOf(const QList<QPoint> &points);
 
-// Отрезок, обрезанный по прямоугольнику (Лянг — Барски). false — отрезок целиком снаружи.
+// Segment clipped to a rectangle (Liang–Barsky). false: the segment is entirely outside.
 bool clipSegment(QPointF &a, QPointF &b, const QRectF &rect);
 
-// Ломаная, обрезанная по прямоугольнику. Если она выходит наружу и возвращается,
-// получается несколько кусков; метка — одна линия со значком у начала,
-// поэтому оставляем самый длинный кусок. Пусто — ломаная целиком снаружи.
+// Polyline clipped to a rectangle. If it goes out and comes back, there are
+// several pieces; a mark is one line with a badge at its start,
+// so the longest piece is kept. Empty: the polyline is entirely outside.
 QList<QPoint> clipPolyline(const QList<QPoint> &points, const QRect &rect);
 
-// Упрощение Рамера — Дугласа — Пекера: убирает точки, отклоняющиеся от хорды меньше epsilon.
-// Первая и последняя точки сохраняются.
+// Ramer–Douglas–Peucker simplification: drops points that deviate from the chord by less than epsilon.
+// The first and last points are kept.
 QList<QPoint> simplifyPolyline(const QList<QPoint> &points, qreal epsilon);
 
 qreal distanceToSegment(const QPointF &p, const QPointF &a, const QPointF &b);

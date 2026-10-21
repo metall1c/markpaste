@@ -13,7 +13,7 @@ Q_LOGGING_CATEGORY(lcX11, "markpaste.x11")
 namespace mp::lx {
 
 namespace {
-// Фиксируемые модификаторы, с которыми тоже нужно захватить: CapsLock (Lock) и NumLock (обычно Mod2)
+// Lock modifiers that must be grabbed too: CapsLock (Lock) and NumLock (usually Mod2)
 constexpr uint16_t kIgnored[] = {0, XCB_MOD_MASK_LOCK, XCB_MOD_MASK_2, XCB_MOD_MASK_LOCK | XCB_MOD_MASK_2};
 constexpr uint16_t kRelevant = XCB_MOD_MASK_SHIFT | XCB_MOD_MASK_CONTROL | XCB_MOD_MASK_1 | XCB_MOD_MASK_4;
 } // namespace
@@ -65,9 +65,9 @@ BindResult X11Hotkeys::grab(Action action, const QString &preferred)
 
     xcb_connection_t *c = x11Connection();
     QList<xcb_void_cookie_t> cookies;
-    // owner_events = 0: пока сочетание зажато, его события идут корневому окну, даже если фокус уже
-    // у нашего окна (оверлей открывается за миллисекунды). С 1 отпускание уходило оверлею, сочетание
-    // оставалось «нажатым», и следующее нажатие глоталось как автоповтор (docs/problems.md, 2026-10-20)
+    // owner_events = 0: while the shortcut is held, its events go to the root window even if focus is already
+    // in our window (the overlay opens within milliseconds). With 1 the release went to the overlay, the shortcut
+    // stayed "pressed", and the next press was swallowed as autorepeat (docs/problems.md, 2026-10-20)
     for (uint8_t kc : b.keycodes)
         for (uint16_t extra : kIgnored)
             cookies << xcb_grab_key_checked(c, 0, x11RootWindow(), b.trigger.modifiers | extra, kc,
@@ -75,14 +75,14 @@ BindResult X11Hotkeys::grab(Action action, const QString &preferred)
     bool taken = false;
     for (const xcb_void_cookie_t &cookie : cookies)
         if (std::unique_ptr<xcb_generic_error_t, decltype(&free)> err(xcb_request_check(c, cookie), free); err)
-            taken = true;   // BadAccess: сочетание захватила другая программа
+            taken = true;   // BadAccess: another program grabbed the shortcut
     if (taken) {
         ungrab(b);
         return {Status::failure(QStringLiteral("%1 is already used by another program").arg(preferred)), QString()};
     }
     m_bindings.insert(action, b);
     qCInfo(lcX11) << "grabbed" << preferred << "keycodes" << b.keycodes;
-    // Для людей: «Ctrl+Alt+V», а не переносимое «Primary+Alt+V»
+    // For people: "Ctrl+Alt+V", not the portable "Primary+Alt+V"
     QString shown = preferred;
     shown.replace(QStringLiteral("Primary"), QStringLiteral("Ctrl"), Qt::CaseInsensitive);
     return {Status::success(), shown};
@@ -110,15 +110,15 @@ bool X11Hotkeys::nativeEventFilter(const QByteArray &eventType, void *message, q
     if (type != XCB_KEY_PRESS && type != XCB_KEY_RELEASE)
         return false;
     auto *key = reinterpret_cast<xcb_key_press_event_t *>(ev);
-    // Клавиши наших окон — не наше дело. Кроме отпускания зажатого сочетания: если активный захват
-    // прервали (ungrab в Qt), оно придёт окну с фокусом. Тогда только сбрасываем «нажато», а само
-    // событие окну оставляем
+    // Keys of our own windows are none of our business. Except the release of a held shortcut: if the active grab
+    // was interrupted (ungrab in Qt), it comes to the focused window. Then we only reset "pressed" and leave
+    // the event itself to the window
     const bool toRoot = key->event == x11RootWindow();
     if (!toRoot && type != XCB_KEY_RELEASE)
         return false;
     const uint16_t mods = key->state & kRelevant;
-    // На одной клавише может быть несколько сочетаний (Print и Ctrl+Print): несовпавшее
-    // по модификаторам пропускаем и смотрим следующее
+    // One key may carry several shortcuts (Print and Ctrl+Print): skip the one whose modifiers
+    // do not match and look at the next
     for (auto it = m_bindings.begin(); it != m_bindings.end(); ++it) {
         Binding &b = it.value();
         if (!b.keycodes.contains(key->detail))
@@ -127,15 +127,15 @@ bool X11Hotkeys::nativeEventFilter(const QByteArray &eventType, void *message, q
             if (mods != b.trigger.modifiers)
                 continue;
             if (b.down)
-                return true;   // автоповтор — съедаем молча
+                return true;   // autorepeat: swallow silently
             b.down = true;
             emit activated(it.key(), ActivationContext{});
         } else {
-            // Отпускание — того сочетания, что нажато, с какими бы модификаторами оно ни пришло
+            // A release belongs to the shortcut that is pressed, whatever modifiers it came with
             if (!b.down)
                 continue;
             if (isKeyDown(key->detail))
-                return toRoot;   // автоповтор: клавиша всё ещё нажата
+                return toRoot;   // autorepeat: the key is still down
             b.down = false;
             emit released(it.key());
         }

@@ -7,9 +7,9 @@
 
 #include <chrono>
 
-// Четыре платформенных интерфейса (ТЗ, разд. 8). Ядро и UI работают только через них.
-// Все вызовы асинхронные: на Wayland за вызовом может стоять диалог портала.
-// Ядро выбирает поведение по capabilities()/can*(), а не по названию ОС.
+// Four platform interfaces (spec, section 8). The core and the UI work only through them.
+// All calls are asynchronous: on Wayland a portal dialog may stand behind a call.
+// The core picks its behavior by capabilities()/can*(), not by the OS name.
 
 namespace mp {
 
@@ -20,7 +20,7 @@ public:
     using QObject::QObject;
     virtual QFuture<CaptureResult> captureAllScreens() = 0;
     virtual CaptureCaps capabilities() const = 0;
-    virtual QString name() const = 0;   // для логов и мастера первого запуска
+    virtual QString name() const = 0;   // for logs and the first-start wizard
 };
 
 class IHotkeys : public QObject
@@ -28,24 +28,24 @@ class IHotkeys : public QObject
     Q_OBJECT
 public:
     using QObject::QObject;
-    // preferred — в переносимом виде (Primary+Shift+V, ТЗ разд. 9).
-    // Фактическое сочетание может отличаться: на Wayland его подтверждает пользователь.
+    // preferred is in portable form (Primary+Shift+V, spec section 9).
+    // The actual shortcut may differ: on Wayland the user confirms it.
     virtual QFuture<BindResult> bind(Action action, const QString &preferred) = 0;
-    // Все действия разом. На Wayland — один запрос и один диалог портала;
-    // повторная привязка в той же сессии портала не разрешена.
+    // All actions at once. On Wayland, one request and one portal dialog;
+    // binding again in the same portal session is not allowed.
     virtual QFuture<QHash<Action, BindResult>> bindAll(const QHash<Action, QString> &preferred) = 0;
-    // Сочетания назначает система (Wayland): открыть её настройки клавиш программы.
+    // Shortcuts are assigned by the system (Wayland): open its shortcut settings for the program.
     virtual bool canOpenSystemSettings() const { return false; }
     virtual void openSystemSettings() {}
-    // true — сочетание из настроек программы только предлагается при первой привязке, а дальше
-    // его хранит и меняет система (портал GlobalShortcuts). Поле в настройках тогда только для чтения.
+    // true: the shortcut from the program settings is only suggested at the first binding, and after that
+    // the system keeps and changes it (GlobalShortcuts portal). The settings field is then read-only.
     virtual bool systemAssignsTriggers() const { return false; }
     virtual QString name() const = 0;
 
 signals:
     void activated(mp::Action action, const mp::ActivationContext &ctx);
     void released(mp::Action action);
-    // Пользователь поменял сочетание в настройках системы
+    // The user changed the shortcut in the system settings
     void triggerChanged(mp::Action action, const QString &trigger);
 };
 
@@ -55,11 +55,11 @@ class IClipboard : public QObject
 public:
     using QObject::QObject;
     virtual bool canWriteInBackground() const = 0;
-    // Писать и читать можно только при открытой сессии ввода (IInputInjector::begin…end):
-    // портал Clipboard работает внутри сессии RemoteDesktop.
+    // Reading and writing are possible only while an input session is open (IInputInjector::begin…end):
+    // the Clipboard portal works inside a RemoteDesktop session.
     virtual bool needsInputSession() const { return false; }
     virtual QFuture<Status> write(const ClipboardPayload &payload, ClipboardFlags flags) = 0;
-    virtual QFuture<ClipboardPayload> snapshot() = 0;   // только текст и картинки (ТЗ разд. 10)
+    virtual QFuture<ClipboardPayload> snapshot() = 0;   // text and images only (spec section 10)
     virtual QString name() const = 0;
 };
 
@@ -69,16 +69,16 @@ class IInputInjector : public QObject
 public:
     using QObject::QObject;
     virtual bool isAvailable() const = 0;
-    // Подготовка перед серией вставок. На Wayland — открыть сессию RemoteDesktop
-    // (первый раз — диалог разрешения, потом — по токену восстановления).
+    // Preparation before a series of pastes. On Wayland, open a RemoteDesktop session
+    // (the first time a permission dialog, later by the restore token).
     virtual QFuture<Status> begin() = 0;
     virtual void end() = 0;
     virtual QFuture<Status> waitModifiersReleased(std::chrono::milliseconds timeout) = 0;
-    virtual QFuture<Status> sendPaste() = 0;   // по коду клавиши V, не по символу
-    // Нажать и отпустить клавишу-«маску», пока пользователь ещё держит Alt горячей клавиши.
-    // V из Alt+V забирает система, и активное окно видит одиночное нажатие Alt: Electron
-    // (Mattermost, Slack), Firefox, программы Windows открывают по нему меню, и наш Ctrl+V
-    // уходит в меню (docs/problems.md, 2026-10-20). Нажатие между Alt↓ и Alt↑ это отменяет.
+    virtual QFuture<Status> sendPaste() = 0;   // by the V key code, not by the character
+    // Press and release a "mask" key while the user still holds the Alt of the hotkey.
+    // The system takes the V of Alt+V, and the active window sees a lone Alt press: Electron
+    // (Mattermost, Slack), Firefox and Windows programs open their menu on it, and our Ctrl+V
+    // goes to the menu (docs/problems.md, 2026-10-20). A press between Alt↓ and Alt↑ prevents that.
     virtual QFuture<Status> sendModifierMask() { return readyFuture(Status::success()); }
     virtual bool canDetectForegroundChange() const = 0;
     virtual QString name() const = 0;

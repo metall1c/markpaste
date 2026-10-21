@@ -24,8 +24,8 @@ namespace mp {
 bool layerShellAvailable()
 {
 #ifdef MARKPASTE_HAVE_LAYERSHELLQT
-    // LayerShellQt работает только поверх нативного Wayland-клиента Qt.
-    // Наличие zwlr_layer_shell_v1 у композитора проверяет PlatformFactory.
+    // LayerShellQt works only on top of Qt's native Wayland client.
+    // PlatformFactory checks that the compositor has zwlr_layer_shell_v1.
     return QGuiApplication::platformName().startsWith(QStringLiteral("wayland"));
 #else
     return false;
@@ -35,8 +35,8 @@ bool layerShellAvailable()
 #ifdef MARKPASTE_HAVE_LAYERSHELLQT
 static LayerShellQt::Window *layerWindow(QWidget *widget)
 {
-    // Роль поверхности назначается при создании платформенного окна,
-    // поэтому QWindow нужен до show(), но после этого вызова — никаких create() заново.
+    // The surface role is assigned when the platform window is created,
+    // so the QWindow is needed before show(), but after this call no create() again.
     widget->setAttribute(Qt::WA_NativeWindow);
     widget->createWinId();
     return LayerShellQt::Window::get(widget->windowHandle());
@@ -54,7 +54,7 @@ bool applyOverlayRole(QWidget *widget, QScreen *screen)
     lw->setLayer(LayerShellQt::Window::LayerOverlay);
     lw->setAnchors(LayerShellQt::Window::Anchors(LayerShellQt::Window::AnchorTop | LayerShellQt::Window::AnchorBottom
                                                  | LayerShellQt::Window::AnchorLeft | LayerShellQt::Window::AnchorRight));
-    lw->setExclusiveZone(-1);   // не сдвигаться из-за панелей
+    lw->setExclusiveZone(-1);   // do not move because of panels
     lw->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityExclusive);
     lw->setScope(QStringLiteral("markpaste-overlay"));
     lw->setScreen(screen);
@@ -72,7 +72,7 @@ bool applyGhostRole(QWidget *widget, QScreen *screen)
 #ifdef MARKPASTE_HAVE_LAYERSHELLQT
     if (!layerShellAvailable())
         return false;
-    // Ввод проходит насквозь: на Wayland Qt ставит поверхности пустую область ввода
+    // Input passes through: on Wayland Qt gives the surface an empty input region
     widget->setWindowFlag(Qt::WindowTransparentForInput);
     widget->setAttribute(Qt::WA_TranslucentBackground);
     auto *lw = layerWindow(widget);
@@ -100,7 +100,7 @@ static void setPlacement(LayerShellQt::Window *lw, const PanelPlacement &pl)
     using W = LayerShellQt::Window;
     const W::Anchor side = pl.edge == PanelEdge::Left ? W::AnchorLeft : W::AnchorRight;
     if (pl.offset < 0) {
-        lw->setAnchors(W::Anchors(side));   // одна сторона — по центру вдоль неё
+        lw->setAnchors(W::Anchors(side));   // one side: centered along it
         lw->setMargins(pl.edge == PanelEdge::Left ? QMargins(pl.margin, 0, 0, 0) : QMargins(0, 0, pl.margin, 0));
     } else {
         lw->setAnchors(W::Anchors(side | W::AnchorTop));
@@ -115,9 +115,9 @@ bool applyPanelRole(QWidget *widget, QScreen *screen, const PanelPlacement &plac
 #ifdef Q_OS_WIN
     Q_UNUSED(screen);
     Q_UNUSED(placement);
-    // Панель без рамки, поверх окон и без активации: клик по ленте не забирает фокус у чата,
-    // и «Вставить» работает в режиме 1 (ТЗ разд. 10). Положение задаёт StripWindow.
-    // Скруглённые углы ленты: окно прозрачное, фон с рамкой рисует StripWindow
+    // A frameless panel, above windows and without activation: clicking the strip does not take focus from the chat,
+    // and "Paste" works in mode 1 (spec section 10). StripWindow sets the position.
+    // Rounded strip corners: the window is transparent, StripWindow paints the background with its frame
     widget->setAttribute(Qt::WA_TranslucentBackground);
     widget->setAttribute(Qt::WA_StyledBackground);
     widget->setWindowFlags(widget->windowFlags() | Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint
@@ -129,8 +129,8 @@ bool applyPanelRole(QWidget *widget, QScreen *screen, const PanelPlacement &plac
 #elif defined(MARKPASTE_HAVE_LAYERSHELLQT)
     if (!layerShellAvailable())
         return false;
-    // Скруглённые углы ленты: поверхность с альфа-каналом, фон с рамкой рисует StripWindow.
-    // До создания окна: формат поверхности выбирается при её создании.
+    // Rounded strip corners: a surface with an alpha channel, StripWindow paints the background with its frame.
+    // Before the window is created: the surface format is chosen when it is created.
     widget->setAttribute(Qt::WA_TranslucentBackground);
     auto *lw = layerWindow(widget);
     if (!lw)
@@ -161,7 +161,7 @@ bool movePanel(QWidget *widget, QScreen *screen, const PanelPlacement &placement
         return false;
     const bool screenChanged = lw->screen() != screen;
     if (screenChanged) {
-        // Выход (output) поверхности задаётся при её создании: пересоздаём
+        // The surface output is set when it is created: recreate it
         const bool visible = widget->isVisible();
         widget->hide();
         lw->setScreen(screen);
@@ -170,9 +170,9 @@ bool movePanel(QWidget *widget, QScreen *screen, const PanelPlacement &placement
             widget->show();
     } else {
         setPlacement(lw, placement);
-        // Якоря и отступы layer-shell уходят композитору только с commit поверхности,
-        // а commit Qt делает при отрисовке. Без перерисовки лента стояла на месте,
-        // пока её что-нибудь не обновит (подсказка, наведение) — 3–5 с (docs/problems.md).
+        // layer-shell anchors and margins reach the compositor only with a surface commit,
+        // and Qt commits when it paints. Without a repaint the strip stayed in place
+        // until something updated it (a tooltip, hover), 3–5 s (docs/problems.md).
         widget->update();
         widget->windowHandle()->requestUpdate();
     }
@@ -187,8 +187,8 @@ bool movePanel(QWidget *widget, QScreen *screen, const PanelPlacement &placement
 
 #ifdef Q_OS_WIN
 namespace {
-// Конец перетаскивания окна — WM_EXITSIZEMOVE: его присылает модальный цикл Windows,
-// в котором идёт перемещение после startSystemMove()
+// The end of a window drag is WM_EXITSIZEMOVE: it is sent by the Windows modal loop
+// in which the move after startSystemMove() runs
 class MoveEndFilter : public QObject, public QAbstractNativeEventFilter
 {
 public:
@@ -209,7 +209,7 @@ public:
         const auto *msg = static_cast<const MSG *>(message);
         if (msg->message == WM_EXITSIZEMOVE && m_widget && m_widget->internalWinId()
             && msg->hwnd == reinterpret_cast<HWND>(m_widget->internalWinId()))
-            QTimer::singleShot(0, this, m_fn);   // после выхода из цикла перемещения
+            QTimer::singleShot(0, this, m_fn);   // after leaving the move loop
         return false;
     }
 
@@ -222,8 +222,8 @@ private:
 
 #ifdef Q_OS_WIN
 namespace {
-// DWMWA_TRANSITIONS_FORCEDISABLED — каждому окну верхнего уровня при показе: атрибут живёт,
-// пока живёт HWND, а Qt пересоздаёт его при смене флагов окна
+// DWMWA_TRANSITIONS_FORCEDISABLED for every top-level window when shown: the attribute lives
+// as long as the HWND, and Qt recreates it when window flags change
 class NoAnimationFilter : public QObject
 {
 public:
@@ -270,7 +270,7 @@ void forceActivate(QWidget *widget)
     HWND foreground = GetForegroundWindow();
     const DWORD ours = GetCurrentThreadId();
     const DWORD theirs = foreground ? GetWindowThreadProcessId(foreground, nullptr) : 0;
-    // Присоединённый к потоку активного окна поток может сделать активным своё окно
+    // A thread attached to the active window's thread may make its own window active
     const bool attached = theirs && theirs != ours && AttachThreadInput(ours, theirs, TRUE);
     SetForegroundWindow(hwnd);
     BringWindowToTop(hwnd);

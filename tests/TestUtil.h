@@ -8,8 +8,8 @@
 
 namespace mp::test {
 
-// Шумная картинка: у соседних пикселей почти всегда разные цвета,
-// поэтому по ней видно, остались ли в размытой области исходные пиксели.
+// A noisy image: neighboring pixels almost always have different colors,
+// so it shows whether source pixels remained in a blurred area.
 inline QImage noiseImage(int w, int h, quint32 seed = 42)
 {
     QImage img(w, h, QImage::Format_ARGB32);

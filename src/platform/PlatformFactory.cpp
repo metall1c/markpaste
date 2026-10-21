@@ -42,7 +42,7 @@ static void createLinuxWayland(Platform &p, const QString &appId)
     const QString desktop = qEnvironmentVariable("XDG_CURRENT_DESKTOP");
     p.environment = QStringLiteral("Wayland · %1").arg(desktop.isEmpty() ? QStringLiteral("unknown") : desktop);
 
-    // Регистрация у порталов — первым же вызовом (ТЗ разд. 9).
+    // Registering with the portals happens on the very first call (spec section 9).
     PortalBus &bus = PortalBus::instance();
     const Status reg = bus.registerApp(appId);
     if (!reg.ok)
@@ -51,7 +51,7 @@ static void createLinuxWayland(Platform &p, const QString &appId)
     WaylandConnection *wl = WaylandConnection::instance();
     p.supportsLayerShell = wl && wl->hasGlobal("zwlr_layer_shell_v1");
 
-    // Захват: KWin ScreenShot2 (быстро, без диалога) → портал Screenshot.
+    // Capture: KWin ScreenShot2 (fast, no dialog) → Screenshot portal.
     std::unique_ptr<ICapture> portalShot;
     if (PortalScreenshot::isAvailable())
         portalShot = std::make_unique<PortalScreenshot>();
@@ -62,13 +62,13 @@ static void createLinuxWayland(Platform &p, const QString &appId)
     else
         p.notes << QStringLiteral("No screenshot portal: install xdg-desktop-portal and a backend for your desktop.");
 
-    // Глобальные клавиши
+    // Global hotkeys
     if (PortalGlobalShortcuts::isAvailable())
         p.hotkeys = std::make_unique<PortalGlobalShortcuts>();
     else
         p.notes << QStringLiteral("No GlobalShortcuts portal: bind keys to `markpaste --capture` (and `--capture-to-strip`) in your desktop settings.");
 
-    // Эмуляция Ctrl+V. Токен восстановления хранится в настройках, чтобы диалог был один раз.
+    // Ctrl+V emulation. The restore token is kept in settings so that the dialog appears once.
     auto rd = std::make_unique<PortalRemoteDesktop>();
     if (rd->isAvailable()) {
         QSettings settings;
@@ -79,9 +79,9 @@ static void createLinuxWayland(Platform &p, const QString &appId)
         });
     }
 
-    // Буфер из фона: ext-data-control-v1 (KDE, Sway, Hyprland) → портал Clipboard внутри
-    // сессии RemoteDesktop (GNOME) → только с фокусом (QClipboard).
-    // MARKPASTE_CLIPBOARD=portal — принудительно портал, для проверки на KDE.
+    // Background clipboard: ext-data-control-v1 (KDE, Sway, Hyprland) → Clipboard portal inside
+    // a RemoteDesktop session (GNOME) → focus only (QClipboard).
+    // MARKPASTE_CLIPBOARD=portal forces the portal, for testing on KDE.
     const bool forcePortal = qEnvironmentVariable("MARKPASTE_CLIPBOARD") == u"portal";
     DataControlClipboard *dc = forcePortal ? nullptr : DataControlClipboard::create();
     if (dc) {
@@ -97,9 +97,9 @@ static void createLinuxWayland(Platform &p, const QString &appId)
                                   "sequential paste is unavailable, use \"Copy set\" or drag-and-drop.");
     }
 
-    // Ctrl+V: virtual-keyboard-v1 (wlroots: Sway, Hyprland — без диалога) → портал RemoteDesktop
-    // (KDE, GNOME). Буфер через портал живёт только в сессии RemoteDesktop, тогда — только портал.
-    // MARKPASTE_INPUT=portal — принудительно портал.
+    // Ctrl+V: virtual-keyboard-v1 (wlroots: Sway, Hyprland, no dialog) → RemoteDesktop portal
+    // (KDE, GNOME). A portal clipboard lives only in a RemoteDesktop session, so then only the portal.
+    // MARKPASTE_INPUT=portal forces the portal.
     const bool clipboardNeedsPortal = p.clipboard->needsInputSession();
     VirtualKeyboardInjector *vk = (clipboardNeedsPortal || qEnvironmentVariable("MARKPASTE_INPUT") == u"portal")
         ? nullptr
@@ -126,10 +126,10 @@ Platform createPlatform(const QString &appId)
     if (p.nativeWayland) {
         createLinuxWayland(p, appId);
     } else {
-        // X11 — по остаточному принципу (решение 0001). Пока — переносимые реализации Qt.
+        // X11 is lowest priority (decision 0001). For now, the portable Qt implementations.
         p.environment = QStringLiteral("X11");
         p.capture = std::make_unique<QtScreenCapture>();
-        p.clipboard = std::make_unique<QtClipboard>(true);   // в X11 владелец буфера может быть в фоне
+        p.clipboard = std::make_unique<QtClipboard>(true);   // on X11 the clipboard owner may be in the background
 #ifdef MARKPASTE_HAVE_X11
         if (!p.runningUnderXWayland) {
             p.hotkeys.reset(lx::X11Hotkeys::create());
@@ -146,14 +146,14 @@ Platform createPlatform(const QString &appId)
     }
 #elif defined(Q_OS_WIN)
     Q_UNUSED(appId);
-    // Всё нужное Windows даёт напрямую, без разрешений (ТЗ разд. 9)
+    // Windows gives everything needed directly, without permissions (spec section 9)
     p.environment = QStringLiteral("Windows %1").arg(QSysInfo::productVersion());
-    // MARKPASTE_CAPTURE=gdi — без DXGI: для драйверов, где она сбоит (и Wine без экрана)
+    // MARKPASTE_CAPTURE=gdi: no DXGI, for drivers where it misbehaves (and Wine without a screen)
     const bool dxgi = qEnvironmentVariable("MARKPASTE_CAPTURE") != u"gdi";
-    // Без FallbackCapture: GDI для монитора, который не отдала DXGI, DxgiCapture берёт сам, при каждом
-    // снимке. FallbackCapture после одного неудачного снимка (ни DXGI, ни GDI не отдали ни одного
-    // монитора) навсегда переходил бы на QScreen::grabWindow — тот же GDI, но уже без DXGI и HDR
-    // до перезапуска программы.
+    // No FallbackCapture: DxgiCapture itself takes GDI for a monitor DXGI did not provide, on every
+    // shot. After one failed shot (neither DXGI nor GDI gave a single monitor) FallbackCapture
+    // would switch to QScreen::grabWindow for good, which is the same GDI but without DXGI and HDR
+    // until the program restarts.
     p.capture = std::make_unique<win::DxgiCapture>(dxgi);
     p.hotkeys = std::make_unique<win::WinHotkeys>();
     p.clipboard = std::make_unique<win::WinClipboard>();

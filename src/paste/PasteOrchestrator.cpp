@@ -13,7 +13,7 @@ namespace mp {
 
 namespace {
 
-// Запекание всех снимков параллельно: 26 кадров 4K последовательно кодируются секундами.
+// Bake all shots in parallel: 26 4K frames take seconds to encode one by one.
 QList<EncodedImage> bakeAll(const CaptureSet &set, const PasteOptions &options)
 {
     QList<int> indices;
@@ -87,15 +87,15 @@ ClipboardPayload PasteOrchestrator::filesAndTextPayload(const CaptureSet &set, c
 
     ClipboardPayload p;
     if (!uris.isEmpty()) {
-        // RFC 2483: строки через CRLF
+        // RFC 2483: lines separated by CRLF
         p.entries.append({QStringLiteral("text/uri-list"), (uris.join(QStringLiteral("\r\n")) + QStringLiteral("\r\n")).toUtf8()});
         p.entries.append({QStringLiteral("x-special/gnome-copied-files"),
                           (QStringLiteral("copy\n") + uris.join(u'\n')).toUtf8()});
     }
     if (const QString text = buildMessage(set, options.messageTemplate); !text.isEmpty())
-        p.addText(text);   // без комментариев — только файлы и картинка
+        p.addText(text);   // without comments, only files and an image
     if (!baked.isEmpty())
-        p.addImage(baked.first().data, baked.first().mimeType);   // для программ, которым нужна одна картинка
+        p.addImage(baked.first().data, baked.first().mimeType);   // for programs that need a single image
     return p;
 }
 
@@ -150,8 +150,8 @@ void PasteOrchestrator::start(const CaptureSet &set, const PasteOptions &options
         return;
     }
 
-    // Alt+V ещё зажато: сессию — сразу, не дожидаясь запекания, и, пока Alt не отпущен,
-    // «маска», чтобы окно чата не приняло отпускание Alt за одиночное нажатие и не ушло в меню
+    // Alt+V is still held: open the session right away without waiting for baking, and while Alt is held,
+    // send a "mask" so that the chat window does not take the Alt release for a single press and open its menu
     if (options.maskAltTap && !m_released && m_injector) {
         openSession([this] {
             if (!m_released) {
@@ -181,7 +181,7 @@ void PasteOrchestrator::openSession(std::function<void()> next)
     m_injector->begin().then(this, [this, gen](const Status &s) {
         if (gen != m_generation || !m_running) {
             if (s.ok && !m_running && m_injector)
-                m_injector->end();   // вставку отменили, пока сессия открывалась: не оставляем её
+                m_injector->end();   // the paste was cancelled while the session was opening: do not leave it open
             return;
         }
         m_sessionOpening = false;
@@ -198,8 +198,8 @@ void PasteOrchestrator::runSequence(QList<Item> items)
     m_items = std::move(items);
     emit progress(0, int(m_items.size()));
 
-    // Ждём отпускания сочетания: иначе зажатые Shift/Alt превратят наш Ctrl+V в другое
-    // сочетание (ТЗ разд. 10). Не дождались — идём по таймауту.
+    // Wait for the shortcut to be released: otherwise held Shift/Alt would turn our Ctrl+V into another
+    // shortcut (spec section 10). If it is not released in time, go on after a timeout.
     auto proceed = [this] {
         auto go = [this] { after(m_options.timing.afterReleaseMs, [this] { step(); }); };
         if (m_released)
@@ -225,7 +225,7 @@ void PasteOrchestrator::runSequence(QList<Item> items)
         });
     };
 
-    // Буфер через портал доступен только внутри сессии ввода: сначала сессия, потом буфер
+    // The clipboard via the portal is available only inside an input session: session first, clipboard second
     if (m_clipboard->needsInputSession())
         openSession([=] { saveClipboard(proceed); });
     else
@@ -245,9 +245,9 @@ void PasteOrchestrator::step()
         return finish(Status::failure(tr("Cancelled")));
 
     if (m_index >= m_items.size()) {
-        // События клавиш доходят до композитора асинхронно: сессию закрываем не сразу,
-        // иначе можно потерять «V отпущена» (docs/problems.md).
-        // Буфер через портал (needsInputSession) возвращаем до закрытия сессии, остальные — после.
+        // Key events reach the compositor asynchronously: the session is not closed right away,
+        // otherwise "V released" may be lost (docs/problems.md).
+        // A portal clipboard (needsInputSession) is restored before closing the session, the others after.
         const bool restoreInSession = m_clipboard->needsInputSession();
         after(m_options.timing.afterTextMs, [this, restoreInSession] {
             if (m_sessionOpen && !restoreInSession) {
@@ -261,7 +261,7 @@ void PasteOrchestrator::step()
                 m_clipboard->write(m_saved, ClipboardFlag::None).then(this, [this, gen](const Status &) {
                     if (gen == m_generation) {
                         m_saved = {};
-                        finish(Status::success());   // закроет сессию, если она ещё открыта
+                        finish(Status::success());   // closes the session if it is still open
                     }
                 });
             });
@@ -301,8 +301,8 @@ void PasteOrchestrator::cancel()
     if (!m_running)
         return;
     m_cancelled = true;
-    // Посреди серии клавиш не обрываем: иначе Ctrl может остаться зажатым. Шаг после
-    // неё увидит m_cancelled. Отложенные колбэки текущего запуска отсекает m_generation.
+    // Do not break off in the middle of a key sequence: Ctrl could stay held. The step after
+    // it will see m_cancelled. Delayed callbacks of the current run are cut off by m_generation.
     if (!m_keysInFlight)
         finish(Status::failure(tr("Cancelled")));
 }
@@ -311,8 +311,8 @@ void PasteOrchestrator::finish(const Status &status)
 {
     if (!m_running)
         return;
-    // При ошибке или отмене всё равно возвращаем буфер, если успели его сохранить.
-    // Запись уходит раньше закрытия сессии: для портала Clipboard после неё писать уже нельзя.
+    // On error or cancel, still restore the clipboard if it was saved.
+    // The write goes before the session closes: for the Clipboard portal writing is no longer possible after that.
     if (!status.ok && !m_saved.isEmpty() && m_clipboard)
         m_clipboard->write(m_saved, ClipboardFlag::None);
     if (m_sessionOpen && m_injector) {
@@ -320,7 +320,7 @@ void PasteOrchestrator::finish(const Status &status)
         m_sessionOpen = false;
     }
     m_saved = {};
-    m_items.clear();   // готовые картинки больше не нужны: не держим их до следующей вставки
+    m_items.clear();   // the baked images are no longer needed: do not keep them until the next paste
     m_running = false;
     m_onReleased = nullptr;
     ++m_generation;

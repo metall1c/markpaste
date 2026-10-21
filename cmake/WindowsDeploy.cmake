@@ -1,9 +1,9 @@
-# Портативная сборка Windows (ТЗ разд. 11): markpaste.exe, DLL Qt и MinGW, плагины Qt и
-# переводы — в одном каталоге. windeployqt в пакетах Fedora нет, поэтому зависимости
-# собираем сами по таблице импорта (CollectDlls.cmake).
+# Portable Windows build (spec section 11): markpaste.exe, Qt and MinGW DLLs, Qt plugins and
+# translations in one directory. Fedora packages have no windeployqt, so dependencies are
+# collected by hand from the import table (CollectDlls.cmake).
 #
-# Подключается из корневого CMakeLists.txt при WIN32. MARKPASTE_QT_PREFIX — корень Qt для
-# Windows (…/sys-root/mingw), DLL берутся из его bin.
+# Included from the root CMakeLists.txt when WIN32. MARKPASTE_QT_PREFIX is the Qt root for
+# Windows (…/sys-root/mingw); DLLs are taken from its bin.
 
 set(MARKPASTE_QT_PLUGINS
     platforms/qwindows.dll
@@ -12,7 +12,7 @@ set(MARKPASTE_QT_PLUGINS
     imageformats/qico.dll
     imageformats/qsvg.dll
     iconengines/qsvgicon.dll
-    tls/qschannelbackend.dll   # HTTPS для проверки обновлений — системный Schannel, без OpenSSL
+    tls/qschannelbackend.dll   # HTTPS for the update check: system Schannel, no OpenSSL
 )
 
 foreach(plugin IN LISTS MARKPASTE_QT_PLUGINS)
@@ -27,11 +27,11 @@ install(FILES
     ${MARKPASTE_QT_PREFIX}/share/qt6/translations/qtbase_en.qm
     DESTINATION translations)
 
-# Qt ищет плагины и переводы относительно qt.conf рядом с .exe
+# Qt looks for plugins and translations relative to qt.conf next to the .exe
 file(WRITE ${CMAKE_BINARY_DIR}/qt.conf "[Paths]\nPrefix=.\nPlugins=plugins\nTranslations=translations\n")
 install(FILES ${CMAKE_BINARY_DIR}/qt.conf DESTINATION .)
 
-# DLL: всё, что тянут .exe и плагины, кроме системных библиотек Windows
+# DLLs: everything the .exe and plugins pull in, except Windows system libraries
 list(TRANSFORM MARKPASTE_QT_PLUGINS PREPEND ${MARKPASTE_QT_PREFIX}/lib/qt6/plugins/ OUTPUT_VARIABLE plugin_paths)
 install(CODE "
     set(BINARIES \"$<TARGET_FILE:markpaste>;${plugin_paths}\")

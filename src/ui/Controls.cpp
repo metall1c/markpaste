@@ -288,7 +288,7 @@ void ActionButton::paintEvent(QPaintEvent *)
     const QSizeF keySize = m_keys.isEmpty() ? QSizeF() : keyCapSize(km, m_keys);
     const bool hasGlyph = m_glyph || m_swatch.isValid();
     qreal contentW = textW + (hasGlyph ? 18 + 8 : 0) + (m_keys.isEmpty() ? 0 : 10 + keySize.width());
-    // Не влезает — сначала прячем сочетание, текст важнее
+    // If it does not fit, hide the shortcut first: the text matters more
     const bool showKeys = !m_keys.isEmpty() && contentW + 2 * 10 <= width();
     if (!showKeys && !m_keys.isEmpty())
         contentW -= 10 + keySize.width();
@@ -396,7 +396,7 @@ StatusLine::StatusLine(QWidget *parent)
     m_label->setTextInteractionFlags(Qt::TextSelectableByMouse);
     auto *layout = new QHBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
-    layout->addSpacing(18 + 6);   // значок рисуется в paintEvent
+    layout->addSpacing(18 + 6);   // the icon is drawn in paintEvent
     layout->addWidget(m_label, 1);
     setVisible(false);
 }
@@ -450,7 +450,7 @@ void StatusLine::paintEvent(QPaintEvent *)
     case State::Pending:
     case State::None: break;
     }
-    // Значок — по первой строке текста
+    // The icon aligns with the first line of text
     const qreal line = QFontMetricsF(m_label->font()).height();
     QPainter p(this);
     p.drawPixmap(QPointF(0, m_label->y() + (line - 18) / 2), iconPixmap(icon, color, 18, devicePixelRatioF()));

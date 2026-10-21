@@ -1,5 +1,5 @@
-# Платформенный слой. Только здесь допустим код под конкретную ОС (NFR-11).
-# Интерфейсы и типы — их видит ядро.
+# Platform layer. OS-specific code is allowed only here (NFR-11).
+# Interfaces and types are visible to the core.
 add_library(markpaste_platform_api STATIC
     PlatformTypes.h PlatformTypes.cpp
     Interfaces.h
@@ -7,7 +7,7 @@ add_library(markpaste_platform_api STATIC
 target_include_directories(markpaste_platform_api PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_link_libraries(markpaste_platform_api PUBLIC Qt6::Core Qt6::Gui)
 
-# Реализации. Ядро их не видит, их собирает PlatformFactory.
+# Implementations. The core does not see them, PlatformFactory assembles them.
 add_library(markpaste_platform STATIC
     PlatformFactory.h PlatformFactory.cpp
     common/QtClipboard.h common/QtClipboard.cpp
@@ -26,7 +26,7 @@ if(LayerShellQt_FOUND)
 endif()
 
 if(MARKPASTE_LINUX)
-    # Клиентский код протоколов Wayland для нашего отдельного подключения.
+    # Client code of the Wayland protocols for our own connection.
     function(markpaste_wayland_protocol target xml)
         get_filename_component(base ${xml} NAME_WE)
         set(header ${CMAKE_CURRENT_BINARY_DIR}/${base}-client-protocol.h)
@@ -42,7 +42,7 @@ if(MARKPASTE_LINUX)
 
     markpaste_wayland_protocol(markpaste_platform
         ${WAYLAND_PROTOCOLS_DIR}/staging/ext-data-control/ext-data-control-v1.xml)
-    # Нет в wayland-protocols: копия из wlroots (MIT), см. файл
+    # Not in wayland-protocols: a copy from wlroots (MIT), see the file
     markpaste_wayland_protocol(markpaste_platform
         ${CMAKE_CURRENT_SOURCE_DIR}/linux/wayland/protocols/virtual-keyboard-unstable-v1.xml)
 
@@ -71,7 +71,7 @@ if(MARKPASTE_LINUX)
         target_link_libraries(markpaste_platform PRIVATE PkgConfig::XCB)
         target_compile_definitions(markpaste_platform PUBLIC MARKPASTE_HAVE_X11)
     else()
-        message(STATUS "xcb, xcb-xtest или xcb-keysyms не найдены: на X11 не будет глобальных клавиш и Ctrl+V")
+        message(STATUS "xcb, xcb-xtest or xcb-keysyms not found: no global hotkeys and Ctrl+V on X11")
     endif()
 endif()
 
@@ -86,6 +86,6 @@ if(WIN32)
     )
     target_link_libraries(markpaste_platform PUBLIC Qt6::Concurrent)
     target_link_libraries(markpaste_platform PRIVATE d3d11 dxgi dwmapi gdi32 user32 advapi32)
-    # Без макросов min/max и лишних заголовков из windows.h
+    # No min/max macros and no extra headers from windows.h
     target_compile_definitions(markpaste_platform PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
 endif()

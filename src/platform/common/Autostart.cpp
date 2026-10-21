@@ -12,8 +12,8 @@ namespace mp {
 
 #ifdef Q_OS_WIN
 
-// Ключ Run пользователя: без прав администратора, как и установка в профиль (ТЗ разд. 11).
-// Имя значения — app id, значение — путь к программе в кавычках (в пути бывают пробелы).
+// The user's Run key: no administrator rights, like the per-user install (spec section 11).
+// The value name is the app id, the value is the quoted program path (paths may contain spaces).
 static const QString kRunKey = QStringLiteral("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run");
 
 bool isAutostartSupported()
@@ -28,13 +28,13 @@ QString autostartFilePath(const QString &appId)
 
 bool isAutostartEnabled(const QString &appId)
 {
-    // Выключение в «Диспетчере задач → Автозагрузка» значение не удаляет, а помечает в StartupApproved.
-    // Это решение пользователя в системе: галочка в программе его показывает как «выключено».
+    // Turning it off in "Task Manager → Startup" does not delete the value but marks it in StartupApproved.
+    // That is the user's decision in the system: the checkbox in the program shows it as "off".
     const QSettings approved(QStringLiteral("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\"
                                             "Explorer\\StartupApproved\\Run"),
                              QSettings::NativeFormat);
     const QByteArray state = approved.value(appId).toByteArray();
-    if (!state.isEmpty() && (state.at(0) & 1))   // 0x03 — выключено, 0x02 — включено
+    if (!state.isEmpty() && (state.at(0) & 1))   // 0x03 means off, 0x02 means on
         return false;
     return !QSettings(kRunKey, QSettings::NativeFormat).value(appId).toString().isEmpty();
 }
@@ -47,7 +47,7 @@ bool setAutostartEnabled(const QString &appId, bool enabled, const QString &exec
     } else {
         const QString exe = executable.isEmpty() ? QCoreApplication::applicationFilePath() : executable;
         run.setValue(appId, u'"' + QDir::toNativeSeparators(exe) + u'"');
-        // Включение из программы снимает и отметку «выключено» из Диспетчера задач
+        // Turning it on from the program also removes the "off" mark set by Task Manager
         QSettings(QStringLiteral("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\"
                                  "Explorer\\StartupApproved\\Run"),
                   QSettings::NativeFormat)
@@ -66,7 +66,7 @@ bool isAutostartSupported()
 
 QString autostartFilePath(const QString &appId)
 {
-    // GenericConfigLocation = $XDG_CONFIG_HOME (обычно ~/.config)
+    // GenericConfigLocation = $XDG_CONFIG_HOME (usually ~/.config)
     return QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/autostart/")
          + appId + QStringLiteral(".desktop");
 }
@@ -76,7 +76,7 @@ bool isAutostartEnabled(const QString &appId)
     const QString path = autostartFilePath(appId);
     if (!QFile::exists(path))
         return false;
-    // Окружения выключают автозапуск, не удаляя файл: Hidden=true или X-GNOME-Autostart-enabled=false
+    // Desktops turn autostart off without deleting the file: Hidden=true or X-GNOME-Autostart-enabled=false
     QFile f(path);
     if (!f.open(QIODevice::ReadOnly))
         return false;
@@ -84,8 +84,8 @@ bool isAutostartEnabled(const QString &appId)
     return !text.contains(QStringLiteral("\nHidden=true")) && !text.contains(QStringLiteral("\nX-GNOME-Autostart-enabled=false"));
 }
 
-// Экранирование аргумента Exec по спецификации Desktop Entry: путь в кавычках,
-// внутри кавычек экранируются " ` $ и \.
+// Escaping the Exec argument per the Desktop Entry specification: the path in quotes,
+// inside the quotes " ` $ and \ are escaped.
 static QString quoteExec(const QString &path)
 {
     QString out;
@@ -94,7 +94,7 @@ static QString quoteExec(const QString &path)
             out += u'\\';
         out += c;
     }
-    // Двойная обратная косая: в значениях .desktop-файла «\\» — это одна «\»
+    // Double backslash: in .desktop file values "\\" is a single "\"
     out.replace(QStringLiteral("\\"), QStringLiteral("\\\\"));
     return u'"' + out + u'"';
 }
@@ -122,7 +122,7 @@ bool setAutostartEnabled(const QString &appId, bool enabled, const QString &exec
         "Terminal=false\n"
         "StartupNotify=false\n"
         "X-GNOME-Autostart-enabled=true\n"
-        // Трей KDE и порталы должны быть готовы к моменту запуска
+        // The KDE tray and the portals must be ready by the time we start
         "X-KDE-autostart-phase=2\n")
         .arg(quoteExec(exe), appId);
     f.write(text.toUtf8());

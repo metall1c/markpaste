@@ -12,6 +12,6 @@ Categories=Qt;Utility;
 Keywords=screenshot;annotate;chat;paste;снимок;скриншот;
 StartupNotify=false
 SingleMainWindow=true
-# Быстрый захват через KWin ScreenShot2 без диалога (ТЗ разд. 9). KWin проверяет,
-# что путь в Exec совпадает с исполняемым файлом процесса.
+# Fast capture through KWin ScreenShot2 without a dialog (spec section 9). KWin checks
+# that the Exec path matches the process executable.
 X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2

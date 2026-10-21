@@ -15,26 +15,26 @@ namespace mp {
 
 class StatusLine;
 
-// Мастер первого запуска (APP-4): одно окно на все проверки и разрешения (ТЗ разд. 9).
+// First-start wizard (APP-4): one window for all checks and permissions (spec section 9).
 //
-// Проверки настоящие, а не по названию окружения:
-// - захват — снимок всех мониторов через ICapture (на Wayland здесь же появляется диалог
-//   разрешения, и токен сохраняется до первого настоящего снимка);
-// - клавиши — пользователь нажимает сочетание, контроллер передаёт срабатывание сюда
-//   (hotkeyActivated), а не запускает захват;
-// - вставка — полный путь режима 1: буфер → эмуляция Ctrl+V → текст должен появиться
-//   в поле самого мастера. Буфер потом восстанавливается.
+// The checks are real, not based on the environment name:
+// - capture: a shot of all monitors via ICapture (on Wayland the permission dialog
+//   appears here, and the token is kept until the first real shot);
+// - hotkeys: the user presses the shortcut, the controller passes the activation here
+//   (hotkeyActivated) instead of starting a capture;
+// - paste: the full mode 1 path: clipboard → Ctrl+V emulation → the text must appear
+//   in the wizard's own field. The clipboard is restored afterwards.
 class SetupWizard : public QDialog
 {
     Q_OBJECT
 public:
     SetupWizard(Platform *platform, const QString &appId, QWidget *parent = nullptr);
 
-    // Фактические сочетания от системы (на Wayland их подтверждает пользователь)
+    // Actual shortcuts from the system (on Wayland the user confirms them)
     void setTriggers(const QHash<Action, QString> &triggers);
     void hotkeyActivated(Action action);
 
-    // Сколько ждать появления текста в поле после Ctrl+V. Тесты ставят 0.
+    // How long to wait for the text to appear in the field after Ctrl+V. Tests set 0.
     void setPasteWaitMs(int ms) { m_pasteWaitMs = ms; }
 
     enum class Result { Pending, Ok, Warning, Failed };

@@ -21,7 +21,7 @@ TEST(UpdateChecker, ComparesTagWithCurrentVersion)
     EXPECT_EQ(UpdateChecker::newerVersion(R"({"tag_name": "0.10.1"})", QStringLiteral("0.9.3")), QStringLiteral("0.10.1"));
     EXPECT_TRUE(UpdateChecker::newerVersion(R"({"tag_name": "v0.1.0"})", QStringLiteral("0.1.0")).isEmpty());
     EXPECT_TRUE(UpdateChecker::newerVersion(R"({"tag_name": "v0.0.9"})", QStringLiteral("0.1.0")).isEmpty());
-    // Будущий релиз в GitLab, мусор и пустой ответ — не новая версия
+    // An upcoming GitLab release, garbage and an empty answer are not a new version
     EXPECT_TRUE(UpdateChecker::newerVersion(R"({"tag_name": "v9.0", "upcoming_release": true})", QStringLiteral("0.1.0")).isEmpty());
     EXPECT_TRUE(UpdateChecker::newerVersion(R"({"tag_name": "nightly"})", QStringLiteral("0.1.0")).isEmpty());
     EXPECT_TRUE(UpdateChecker::newerVersion("<html>404</html>", QStringLiteral("0.1.0")).isEmpty());
@@ -35,7 +35,7 @@ TEST(UpdateChecker, ReadsGitHubReleaseResponse)
     EXPECT_EQ(UpdateChecker::releasePage(github), QUrl(QStringLiteral("https://github.com/o/markpaste/releases/tag/v0.3.0")));
     EXPECT_TRUE(UpdateChecker::newerVersion(R"({"tag_name": "v0.3.0", "prerelease": true})", QStringLiteral("0.2.0")).isEmpty());
     EXPECT_TRUE(UpdateChecker::newerVersion(R"({"tag_name": "v0.3.0", "draft": true})", QStringLiteral("0.2.0")).isEmpty());
-    // GitLab по-прежнему понятен; не-https адрес не открываем
+    // GitLab is still understood; a non-https URL is not opened
     EXPECT_EQ(UpdateChecker::releasePage(R"({"_links": {"self": "https://gitlab.example/r"}})"), QUrl(QStringLiteral("https://gitlab.example/r")));
     EXPECT_TRUE(UpdateChecker::releasePage(R"({"html_url": "file:///etc/passwd"})").isEmpty());
 }
@@ -51,7 +51,7 @@ TEST(LogFile, RotationKeepsLimitedNumberOfFiles)
     };
     write("small");
     LogFile::rotate(path, 100, 2);
-    EXPECT_TRUE(QFile::exists(path));   // меньше порога — на месте
+    EXPECT_TRUE(QFile::exists(path));   // below the threshold: stays in place
 
     for (const char *gen : {"first", "second", "third"}) {
         write(QByteArray(gen).repeated(50));
@@ -85,7 +85,7 @@ TEST(PreviewDialog, ShowsImagesAndTextInPasteOrder)
     EXPECT_EQ(dlg.imageCount(), 2);
     EXPECT_EQ(dlg.messageText(), QStringLiteral("Shot A\nA1 note 0\n\nShot B\nB1 note 1"));
 
-    // Склейка — одна картинка; «файлы + текст» показываются как те же картинки и текст
+    // Stitching gives one image; "files + text" is shown as the same images and text
     opt.mode = PasteMode::Combined;
     dlg.showSet(set, opt);
     ASSERT_TRUE(QTest::qWaitFor([&] { return dlg.isReady(); }, 5000));
@@ -106,7 +106,7 @@ TEST(AboutDialog, DetailsCarryVersionAndSystem)
     EXPECT_TRUE(d.contains(QStringLiteral("Environment: Test env")));
     EXPECT_TRUE(d.contains(QStringLiteral("Capture: Cap")));
     EXPECT_TRUE(d.contains(QStringLiteral("Qt ")));
-    // В окне — автор и ссылка на исходный код
+    // The window shows the author and a link to the source code
     bool author = false, homepage = false;
     for (QLabel *l : dlg.findChildren<QLabel *>()) {
         author |= l->text() == QStringLiteral("Andrey Che");

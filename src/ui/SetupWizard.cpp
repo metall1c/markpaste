@@ -30,7 +30,7 @@ QLabel *wrapLabel(const QString &text = {})
     return l;
 }
 
-// Номер шага в кружке
+// Step number in a circle
 class StepBadge : public QWidget
 {
 public:
@@ -56,7 +56,7 @@ private:
     QString m_number;
 };
 
-// Шаг мастера — карточка с номером и заголовком
+// A wizard step: a card with a number and a title
 Card *section(int number, const QString &title, QVBoxLayout *&layout)
 {
     auto *card = new Card;
@@ -108,12 +108,12 @@ SetupWizard::SetupWizard(Platform *platform, const QString &appId, QWidget *pare
     title->setFont(titleFont);
     layout->addWidget(title);
     QString introText = tr("Let's check that capture, hotkeys and paste work on this system.");
-    if (platform->nativeWayland)   // на Windows и X11 разрешений никто не спрашивает
+    if (platform->nativeWayland)   // on Windows and X11 nobody asks for permissions
         introText += u' ' + tr("On Wayland the desktop may ask for permission — allow it once, and it will not ask again.");
     layout->addWidget(mutedLabel(introText.toHtmlEscaped()));
     layout->addSpacing(2);
 
-    // --- Окружение ---
+    // --- Environment ---
     QVBoxLayout *l = nullptr;
     layout->addWidget(section(1, tr("System"), l));
     l->addWidget(wrapLabel(QStringLiteral("<b>%1</b>").arg(platform->environment.toHtmlEscaped())));
@@ -129,7 +129,7 @@ SetupWizard::SetupWizard(Platform *platform, const QString &appId, QWidget *pare
         l->addWidget(n);
     }
 
-    // --- Захват ---
+    // --- Capture ---
     layout->addWidget(section(2, tr("Screen capture"), l));
     l->addWidget(mutedLabel(platform->capture ? tr("Method: %1").arg(platform->capture->name().toHtmlEscaped())
                                               : tr("No capture method available.")));
@@ -138,13 +138,13 @@ SetupWizard::SetupWizard(Platform *platform, const QString &appId, QWidget *pare
     m_captureButton = wizardButton(tr("Test capture"));
     m_captureButton->setEnabled(platform->capture != nullptr);
     m_captureStatus = new StatusLine;
-    // Пока проверки не было, строка результата скрыта — кнопка не растягивается на её место
+    // Until the check has run, the result line is hidden, so the button does not stretch into its place
     captureRow->addWidget(m_captureButton, 0, Qt::AlignLeft | Qt::AlignTop);
     captureRow->addWidget(m_captureStatus, 1, Qt::AlignVCenter);
     l->addLayout(captureRow);
     connect(m_captureButton, &QPushButton::clicked, this, &SetupWizard::checkCapture);
 
-    // --- Клавиши ---
+    // --- Hotkeys ---
     layout->addWidget(section(3, tr("Hotkeys"), l));
     m_hotkeyStatus = new StatusLine;
     l->addWidget(m_hotkeyStatus);
@@ -157,7 +157,7 @@ SetupWizard::SetupWizard(Platform *platform, const QString &appId, QWidget *pare
         l->addLayout(row);
     }
 
-    // --- Вставка ---
+    // --- Paste ---
     layout->addWidget(section(4, tr("Paste into chats"), l));
     QString how = tr("Clipboard: %1").arg(platform->clipboard ? platform->clipboard->name().toHtmlEscaped() : QStringLiteral("—"));
     how += QStringLiteral("<br>") + tr("Ctrl+V emulation: %1")
@@ -176,7 +176,7 @@ SetupWizard::SetupWizard(Platform *platform, const QString &appId, QWidget *pare
     l->addLayout(pasteRow);
     connect(m_pasteButton, &QPushButton::clicked, this, &SetupWizard::checkPaste);
 
-    // --- Автозапуск ---
+    // --- Autostart ---
     if (isAutostartSupported()) {
         m_autostart = new QCheckBox(tr("Start Markpaste when I log in"));
         m_autostart->setChecked(isAutostartEnabled(m_appId));
@@ -189,7 +189,7 @@ SetupWizard::SetupWizard(Platform *platform, const QString &appId, QWidget *pare
         layout->addWidget(m_autostart);
     }
 
-    // «Настройки…» слева, главная «Готово» справа
+    // "Settings…" on the left, the primary "Done" on the right
     auto *settings = wizardButton(tr("Settings…"));
     connect(settings, &QPushButton::clicked, this, &SetupWizard::openSettingsRequested);
     auto *done = new ActionButton(tr("Done"), ActionButton::Kind::Primary);
@@ -283,7 +283,7 @@ void SetupWizard::updateHotkeys()
                      "“markpaste --paste” and “markpaste --capture-to-strip” to keys in the system keyboard settings."));
         return;
     }
-    // Снимок в ленту — дополнительная клавиша: видна, если назначена, но на итог проверки не влияет
+    // Capture to strip is an extra hotkey: shown if assigned, but it does not affect the check result
     struct Line {
         Action action;
         QString name;
@@ -329,9 +329,9 @@ void SetupWizard::checkPaste()
     setStatus(m_pasteStatus, Result::Pending, tr("Pasting… do not switch windows"));
     const QString expected = tr("Markpaste test %1").arg(QTime::currentTime().toString(QStringLiteral("HH:mm:ss")));
 
-    // Цепочка как в режиме 1 (PasteOrchestrator): сохранить буфер → сессия ввода → записать →
-    // Ctrl+V → подождать → закрыть сессию → вернуть буфер. Для буфера через портал
-    // (needsInputSession) сессия открывается первой, а буфер возвращается до её закрытия.
+    // The same chain as in mode 1 (PasteOrchestrator): save the clipboard → input session → write →
+    // Ctrl+V → wait → close the session → restore the clipboard. For a portal clipboard
+    // (needsInputSession) the session opens first, and the clipboard is restored before it closes.
     const bool inSession = clipboard->needsInputSession();
     auto saved = std::make_shared<ClipboardPayload>();
     auto restoreAndEnd = [=] {
@@ -342,7 +342,7 @@ void SetupWizard::checkPaste()
             clipboard->write(*saved, ClipboardFlag::None);
     };
     auto paste = [=, this] {
-        // После диалога портала фокус мог уйти: возвращаем его полю
+        // Focus may have left after the portal dialog: give it back to the field
         raise();
         activateWindow();
         m_pasteField->setFocus();
@@ -355,8 +355,8 @@ void SetupWizard::checkPaste()
                 }
                 QTimer::singleShot(80, this, [=, this] {
                     injector->sendPaste().then(this, [=, this](const Status &sent) {
-                        // Закрывать сессию сразу нельзя: событие клавиши доходит до
-                        // композитора асинхронно (docs/problems.md)
+                        // The session cannot be closed right away: the key event reaches
+                        // the compositor asynchronously (docs/problems.md)
                         QTimer::singleShot(m_pasteWaitMs, this, [=, this] {
                             restoreAndEnd();
                             finishPaste(sent, expected);

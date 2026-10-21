@@ -4,9 +4,9 @@
 
 namespace mp {
 
-// Захват через QScreen::grabWindow(0). Работает на X11 и Windows (через GDI, без HDR),
-// на Wayland не работает. Временная реализация, пока нет WinCapture и X11Capture
-// с MIT-SHM (ТЗ разд. 9). Только главный поток.
+// Capture via QScreen::grabWindow(0). Works on X11 and Windows (through GDI, no HDR),
+// does not work on Wayland. A temporary implementation until there are WinCapture and X11Capture
+// with MIT-SHM (spec section 9). Main thread only.
 class QtScreenCapture : public ICapture
 {
     Q_OBJECT

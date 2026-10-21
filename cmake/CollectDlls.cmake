@@ -1,10 +1,10 @@
-# Скрипт установки: копирует в каталог программы DLL, которые нужны указанным .exe и .dll.
-# file(GET_RUNTIME_DEPENDENCIES) при кросс-сборке приводит имена DLL к нижнему регистру и
-# не находит Qt6Core.dll на регистрозависимой ФС Linux — поэтому обходим импорт сами.
+# Install script: copies into the program directory the DLLs that the given .exe and .dll need.
+# file(GET_RUNTIME_DEPENDENCIES) lowercases DLL names when cross-compiling and does not find
+# Qt6Core.dll on a case-sensitive Linux file system, so we walk the imports ourselves.
 #
-# Переменные: BINARIES — с чего начать, DLL_DIR — где лежат DLL, OBJDUMP, STRIP, DESTINATION.
-# Копии DLL очищаются от отладочных данных: в пакетах MinGW они есть, а пользователю не нужны
-# (libstdc++-6.dll — 29 МБ с ними и 2 МБ без).
+# Variables: BINARIES (where to start), DLL_DIR (where the DLLs are), OBJDUMP, STRIP, DESTINATION.
+# The DLL copies are stripped of debug data: MinGW packages ship it, users do not need it
+# (libstdc++-6.dll is 29 MB with it and 2 MB without).
 
 file(GLOB available RELATIVE ${DLL_DIR} ${DLL_DIR}/*.dll)
 foreach(name IN LISTS available)
@@ -25,7 +25,7 @@ while(queue)
         string(REPLACE "DLL Name: " "" name "${line}")
         string(STRIP "${name}" name)
         string(TOLOWER "${name}" key)
-        # Системные DLL Windows (kernel32, user32, d3d11…) в каталоге MinGW не лежат — их не трогаем
+        # Windows system DLLs (kernel32, user32, d3d11…) are not in the MinGW directory; leave them alone
         if(NOT DEFINED dll_${key} OR key IN_LIST copied)
             continue()
         endif()

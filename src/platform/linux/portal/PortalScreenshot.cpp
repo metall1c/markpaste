@@ -44,12 +44,12 @@ QFuture<CaptureResult> PortalScreenshot::captureAllScreens()
             if (!r.ok())
                 return readyFuture(CaptureResult{Status::failure(QStringLiteral("Screenshot: ") + r.describe()), {}});
             const QString path = QUrl(r.results.value(QStringLiteral("uri")).toString()).toLocalFile();
-            // Декодирование PNG всего стола — сотни мс, в пул потоков (ТЗ разд. 8).
+            // Decoding a PNG of the whole desktop takes hundreds of ms, so it goes to the thread pool (spec section 8).
             return QtConcurrent::run([path, screens, desktop] {
                 CaptureResult result;
                 QImageReader reader(path);
                 QImage full = reader.read();
-                QFile::remove(path);   // снимок не должен оставаться на диске (NFR-4)
+                QFile::remove(path);   // the shot must not stay on disk (NFR-4)
                 if (full.isNull()) {
                     result.status = Status::failure(QStringLiteral("cannot read portal screenshot: %1").arg(reader.errorString()));
                     return result;

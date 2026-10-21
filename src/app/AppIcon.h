@@ -4,7 +4,7 @@
 
 namespace mp {
 
-// Значок программы. Пока рисуется кодом; файл для .desktop и трея — data/icons/.
+// Program icon. Drawn in code for now; the file for .desktop and the tray is in data/icons/.
 QIcon appIcon();
 
 } // namespace mp

@@ -1,4 +1,4 @@
-# Запустить программу в интерактивном сеансе пользователя (планировщик задач) и дождаться конца
+# Run a program in the user's interactive session (Task Scheduler) and wait for it to finish
 param([string]$Exe, [string]$Arguments = "", [int]$Wait = 0)
 $a = if ($Arguments) { New-ScheduledTaskAction -Execute $Exe -Argument $Arguments } else { New-ScheduledTaskAction -Execute $Exe }
 $p = New-ScheduledTaskPrincipal -UserId "admin" -LogonType Interactive -RunLevel Limited

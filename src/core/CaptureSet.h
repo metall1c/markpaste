@@ -14,27 +14,27 @@ namespace mp {
 inline constexpr int kMaxShots = 26;            // A–Z
 inline constexpr int kMaxCommentLength = 500;   // EDT-5
 
-// Все прямоугольники — в физических пикселях исходного снимка (NFR-7, CAP-6),
-// а не относительно обрезки: обрезка хранится отдельно и отменяется без копии кадра.
+// All rectangles are in physical pixels of the source shot (NFR-7, CAP-6),
+// not relative to the crop: the crop is kept separately and can be undone without a frame copy.
 
-// Форма метки (EDT-9). Все формы нумеруются вместе: A1 может быть стрелкой, A2 — рамкой.
-// Точка-маркер — значок номера прямо на месте, без рамки и линии.
+// Mark shape (EDT-9). All shapes are numbered together: A1 may be an arrow, A2 a frame.
+// A point marker is the number badge right on the spot, without a frame or a line.
 enum class MarkShape { Rect, Arrow, Freehand, Point };
 
 enum class LineStyle { Solid, Dash, Dot };
 
-// Форма рамки (инструмент «Метка»): прямоугольник, скруглённый прямоугольник, овал.
-// Геометрия у всех одна — охватывающий прямоугольник rect; меняется только то, что нарисовано.
+// Frame shape (the "Mark" tool): rectangle, rounded rectangle, ellipse.
+// The geometry is the same for all, the bounding rect; only what is drawn changes.
 enum class FrameShape { Rect, Rounded, Ellipse };
 
-// Цвет, толщина, тип линии и форма рамки метки. Пустые значения — из общего стиля (RenderStyle):
-// так метки без выбранного цвета перекрашиваются вместе с акцентом в настройках.
-// Форма рамки — здесь же, а не отдельным полем метки: она выбирается для новых меток и
-// меняется у выделенной так же, как цвет (docs/decisions/0020-frame-shape.md). У стрелки,
-// карандаша и точки не используется.
+// Mark color, width, line style and frame shape. Empty values come from the common style (RenderStyle):
+// this way marks without a chosen color are recolored together with the accent in settings.
+// The frame shape lives here too, not in a separate mark field: it is chosen for new marks and
+// changed on the selected one just like the color (docs/decisions/0020-frame-shape.md). Not used
+// by arrows, freehand lines and points.
 struct MarkPen {
-    QColor color;                  // недействительный — акцентный цвет из настроек
-    qreal width = 0;               // логические px; 0 — толщина формы по умолчанию
+    QColor color;                  // invalid means the accent color from settings
+    qreal width = 0;               // logical px; 0 means the shape's default width
     LineStyle line = LineStyle::Solid;
     FrameShape frame = FrameShape::Rect;
 
@@ -43,17 +43,17 @@ struct MarkPen {
 
 struct Mark {
     QUuid id;
-    QRect rect;                    // рамка; у стрелки и карандаша — охватывающий прямоугольник points
+    QRect rect;                    // frame; for arrows and freehand lines, the bounding rect of points
     QString comment;
     MarkShape shape = MarkShape::Rect;
-    QList<QPoint> points;          // стрелка: {хвост, острие}; карандаш: ломаная после упрощения; точка: {центр}
+    QList<QPoint> points;          // arrow: {tail, tip}; freehand: polyline after simplification; point: {center}
     MarkPen pen;
 
-    // Геометрия задана точками, а не рамкой (стрелка, карандаш, точка)
+    // The geometry is given by points, not by a frame (arrow, freehand, point)
     bool isLinear() const { return shape != MarkShape::Rect; }
-    // Куда ставится значок номера: у рамки — левый верхний угол, у овала — точка на нём
-    // под 45° слева сверху (угол охватывающего прямоугольника висел бы в пустоте),
-    // у стрелки — хвост, у карандаша — первая точка, у точки — она сама
+    // Where the number badge goes: for a frame, the top-left corner; for an ellipse, the point on it
+    // at 45° top-left (the corner of the bounding rect would hang in empty space);
+    // for an arrow, the tail; for freehand, the first point; for a point, the point itself
     QPoint badgeAnchor() const;
 
     bool operator==(const Mark &) const = default;
@@ -68,16 +68,16 @@ struct Redaction {
 
 struct Shot {
     QUuid id;
-    QByteArray sourcePng;          // исходник без меток, сжатый (NFR-2)
-    QSize sourceSize;              // физические пиксели
-    qreal devicePixelRatio = 1.0;  // масштаб монитора, с которого снят кадр
-    QRect crop;                    // пустой — без обрезки
-    QList<Mark> marks;             // номер метки = позиция + 1
+    QByteArray sourcePng;          // source without marks, compressed (NFR-2)
+    QSize sourceSize;              // physical pixels
+    qreal devicePixelRatio = 1.0;  // scale of the monitor the frame was taken from
+    QRect crop;                    // empty means no crop
+    QList<Mark> marks;             // mark number = position + 1
     QList<Redaction> redactions;
 
     QRect sourceRect() const { return QRect(QPoint(0, 0), sourceSize); }
     QRect visibleRect() const { return crop.isNull() ? sourceRect() : crop; }
-    int commentCount() const;      // метки с непустым комментарием
+    int commentCount() const;      // marks with a non-empty comment
     int markIndex(const QUuid &markId) const;
     int redactionIndex(const QUuid &redactionId) const;
 
@@ -85,7 +85,7 @@ struct Shot {
 };
 
 struct CaptureSet {
-    QList<Shot> shots;             // буква снимка = позиция в списке
+    QList<Shot> shots;             // shot letter = position in the list
 
     int shotIndex(const QUuid &shotId) const;
     int totalMarks() const;
@@ -96,13 +96,13 @@ struct CaptureSet {
     bool operator==(const CaptureSet &) const = default;
 };
 
-// Буква снимка по позиции: 0 → 'A'. Номера не хранятся, а вычисляются,
-// поэтому перестановка, удаление и отмена не оставят рассинхронизированных номеров.
+// Shot letter by position: 0 → 'A'. Numbers are not stored but computed,
+// so reordering, deleting and undo cannot leave numbers out of sync.
 QChar shotLetter(int shotIndex);
 QString markLabel(int shotIndex, int markIndex);   // (0, 0) → "A1"
 
-// Прямоугольник по двум углам, включая оба. QRect(p1, p2).normalized() для этого не годится:
-// в Qt 6 перевёрнутый прямоугольник нормализуется со сдвигом на пиксель.
+// Rectangle from two corners, both included. QRect(p1, p2).normalized() does not fit:
+// in Qt 6 an inverted rectangle is normalized with a one-pixel shift.
 QRect rectFromPoints(const QPoint &a, const QPoint &b);
 
 } // namespace mp

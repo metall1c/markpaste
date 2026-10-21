@@ -22,7 +22,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 int idFor(Action a)
 {
-    return 1 + int(a);   // id RegisterHotKey — от 0 до 0xBFFF, у каждого действия свой
+    return 1 + int(a);   // RegisterHotKey ids are 0 to 0xBFFF, each action has its own
 }
 
 } // namespace
@@ -35,8 +35,8 @@ WinHotkeys::WinHotkeys(QObject *parent)
     wc.lpfnWndProc = windowProc;
     wc.hInstance = GetModuleHandleW(nullptr);
     wc.lpszClassName = kWindowClass;
-    RegisterClassExW(&wc);   // повторная регистрация — не ошибка для нас
-    // Окно только для сообщений (HWND_MESSAGE): его не видно, и WM_HOTKEY разбирает цикл Qt
+    RegisterClassExW(&wc);   // repeated registration is not an error for us
+    // A message-only window (HWND_MESSAGE): it is invisible, and Qt's loop dispatches WM_HOTKEY
     m_window = CreateWindowExW(0, kWindowClass, L"Markpaste hotkeys", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr,
                                wc.hInstance, nullptr);
     if (m_window)

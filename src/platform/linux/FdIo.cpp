@@ -16,7 +16,7 @@ namespace mp::lx {
 
 bool writeAllAndClose(int fd, const QByteArray &data, int timeoutMs)
 {
-    // Неблокирующий режим + poll: так общий таймаут соблюдается даже если получатель завис.
+    // Non-blocking mode + poll: this way the overall timeout holds even if the receiver hangs.
     ::fcntl(fd, F_SETFL, ::fcntl(fd, F_GETFL) | O_NONBLOCK);
     QElapsedTimer timer;
     timer.start();
@@ -42,7 +42,7 @@ bool writeAllAndClose(int fd, const QByteArray &data, int timeoutMs)
             ::poll(&pfd, 1, int(remaining));
             continue;
         }
-        ok = false;   // EPIPE: получатель закрыл свой конец
+        ok = false;   // EPIPE: the receiver closed its end
         break;
     }
     ::close(fd);
@@ -65,8 +65,8 @@ QFuture<QByteArray> readAllAsync(int fd, int timeoutMs, QObject *context, qint64
     st->fd = fd;
     st->promise.start();
 
-    // complete = false — таймаут или превышен maxBytes: обрывок не отдаём. Иначе после вставки
-    // в буфер вернулась бы обрезанная картинка или текст (docs/problems.md).
+    // complete = false: a timeout or maxBytes exceeded; do not hand out a fragment. Otherwise after a paste
+    // a truncated image or text would be restored to the clipboard (docs/problems.md).
     auto finish = [st](bool complete) {
         if (st->done)
             return;
@@ -97,8 +97,8 @@ QFuture<QByteArray> readAllAsync(int fd, int timeoutMs, QObject *context, qint64
             if (n < 0 && errno == EINTR)
                 continue;
             if (n < 0 && errno == EAGAIN)
-                return;   // ждём следующую порцию
-            return finish(n == 0);   // EOF — всё прочитано; ошибка чтения — обрывок
+                return;   // wait for the next chunk
+            return finish(n == 0);   // EOF means everything was read; a read error means a fragment
         }
     });
     if (timeoutMs > 0)

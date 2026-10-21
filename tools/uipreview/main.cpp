@@ -1,12 +1,12 @@
-// Рисует окна программы на тестовом наборе без дисплея (QT_QPA_PLATFORM=offscreen)
-// и сохраняет PNG. Нужна, чтобы проверять вёрстку, не снимая настоящий экран.
-//   markpaste-uipreview [--dark] [каталог]
-//   markpaste-uipreview --live [секунды [файл.png]] — показать ленту (layer-shell) и окно
-//     снимка в настоящей сессии; с файлом — через 2,5 с снять экран через spectacle (KDE)
-//     Снимок — всего экрана, с чужими окнами
-//   markpaste-uipreview --live-dialogs [секунды [префикс]] — окна настроек, мастера и предпросмотра
-//     по очереди; с префиксом — каждое снимается отдельно (spectacle -a, только активное окно):
-//     префикс-1.png, префикс-2.png, префикс-3.png
+// Renders the program windows on a test set without a display (QT_QPA_PLATFORM=offscreen)
+// and saves PNGs. Used to check the layout without capturing the real screen.
+//   markpaste-uipreview [--dark] [directory]
+//   markpaste-uipreview --live [seconds [file.png]]: show the strip (layer-shell) and the shot
+//     window in a real session; with a file, capture the screen via spectacle (KDE) after 2.5 s.
+//     The capture is of the whole screen, with other windows
+//   markpaste-uipreview --live-dialogs [seconds [prefix]]: the settings, wizard and preview windows
+//     one after another; with a prefix, each is captured separately (spectacle -a, active window only):
+//     prefix-1.png, prefix-2.png, prefix-3.png
 
 #include "app/AppIcon.h"
 #include "app/SettingsDialog.h"
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     if (!live)
         qputenv("QT_QPA_PLATFORM", "offscreen");
     QApplication app(argc, argv);
-    // offscreen не грузит тему KDE: просим Breeze явно, чтобы видеть те же иконки
+    // offscreen does not load the KDE theme: ask for Breeze explicitly to see the same icons
     QIcon::setThemeName(QStringLiteral("breeze"));
     QTranslator tr;
     if (tr.load(QStringLiteral(":/i18n/markpaste_ru.qm")))
@@ -78,9 +78,9 @@ int main(int argc, char **argv)
         if (arg == u"--live" || arg == u"--live-dialogs") {
             continue;
         } else if (live) {
-            break;   // секунды показа
+            break;   // seconds to show
         } else if (arg == u"--dark") {
-            // Цвета Breeze Dark (Plasma 6): offscreen не берёт системную тему
+            // Breeze Dark colors (Plasma 6): offscreen does not take the system theme
             QPalette pal;
             pal.setColor(QPalette::Window, QColor(0x20, 0x23, 0x26));
             pal.setColor(QPalette::WindowText, QColor(0xfc, 0xfc, 0xfc));
@@ -141,13 +141,13 @@ int main(int argc, char **argv)
         livePlatform.notes << QStringLiteral("Пример примечания платформы");
         if (liveDialogs) {
             settings = std::make_unique<SettingsDialog>(Settings{}, livePlatform);
-            settings->findChildren<PillButton *>().value(3)->click();   // «Вид»: флажок, список, цвет
+            settings->findChildren<PillButton *>().value(3)->click();   // "Appearance": checkbox, list, color
             wizard = std::make_unique<SetupWizard>(&livePlatform, QStringLiteral("su._525.MarkpastePreview"));
             preview = std::make_unique<PreviewDialog>();
             PasteOptions opt;
             opt.messageTemplate = MessageTemplate::defaultFor(QLocale(QLocale::Russian));
             preview->showSet(model.set(), opt);
-            // По очереди: показанное окно активно, и spectacle -a снимает только его
+            // One after another: the shown window is active, and spectacle -a captures only it
             const QString prefix = argc > 3 ? QString::fromLocal8Bit(argv[3]) : QString();
             const QList<QWidget *> windows{settings.get(), wizard.get(), preview.get()};
             for (int i = 0; i < windows.size(); ++i) {
@@ -187,14 +187,14 @@ int main(int argc, char **argv)
         return app.exec();
     }
 
-    // Подписи комментариев на картинке (EDT-10)
+    // Comment captions on the image (EDT-10)
     {
         RenderStyle captions;
         captions.captions = true;
         renderShot(model.set().shots[0], 0, captions).save(out + QStringLiteral("/captions.png"));
     }
 
-    // Лента — прозрачное окно со скруглёнными углами, как на layer-shell и Windows
+    // The strip is a transparent window with rounded corners, as on layer-shell and Windows
     StripWindow strip(&model);
     strip.setAttribute(Qt::WA_TranslucentBackground);
     strip.setCurrentShot(ida);
@@ -220,7 +220,7 @@ int main(int argc, char **argv)
     app.processEvents();
     editor.grab().save(out + QStringLiteral("/editor.png"));
 
-    // Снимок B: метка без комментария, её поле открыто, карточка выделена
+    // Shot B: a mark without a comment, its field open, the card selected
     editor.showShot(idb, true);
     editor.resize(1000, 600);
     app.processEvents();
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
     editor.resize(1000, 680);
     app.processEvents();
 
-    // Выпадающие панели пера: цвет и толщина
+    // Pen drop-down panels: color and width
     int n = 0;
     for (QMenu *menu : editor.findChildren<QMenu *>()) {
         menu->popup(QPoint(0, 0));
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
         menu->close();
     }
 
-    // Мастер первого запуска с платформой без реализаций: все предупреждения видны
+    // The first-start wizard with a platform without implementations: all warnings are visible
     Platform platform;
     platform.environment = QStringLiteral("Wayland · KDE Plasma 6.7 (предпросмотр)");
     platform.notes << QStringLiteral("Пример примечания платформы");
@@ -249,7 +249,7 @@ int main(int argc, char **argv)
     app.processEvents();
     wizard.grab().save(out + QStringLiteral("/setup-wizard.png"));
 
-    // О программе
+    // About
     {
         AboutInfo info{QStringLiteral(MARKPASTE_VERSION), QStringLiteral(MARKPASTE_HOMEPAGE_URL),
                        platform.environment, QStringLiteral("KWin ScreenShot2"), QStringLiteral("XDG GlobalShortcuts"),
@@ -260,7 +260,7 @@ int main(int argc, char **argv)
         about.grab().save(out + QStringLiteral("/about.png"));
     }
 
-    // Предпросмотр сообщения (PST-6)
+    // Message preview (PST-6)
     PreviewDialog preview;
     PasteOptions opt;
     opt.messageTemplate = MessageTemplate::defaultFor(QLocale(QLocale::Russian));
@@ -271,12 +271,12 @@ int main(int argc, char **argv)
     app.processEvents();
     preview.grab().save(out + QStringLiteral("/preview.png"));
 
-    // Окно настроек: каждая вкладка отдельно
+    // Settings window: each tab separately
     {
         SettingsDialog dlg(Settings{}, platform);
         dlg.show();
         app.processEvents();
-        // Вкладки — кнопки-«пилюли» над страницами
+        // Tabs are "pill" buttons above the pages
         const QList<PillButton *> tabs = dlg.findChildren<PillButton *>();
         for (int i = 0; i < tabs.size(); ++i) {
             tabs[i]->click();
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
         }
     }
 
-    // Меню ленты: предпросмотр, сохранение в папку, настройки
+    // Strip menu: preview, save to folder, settings
     for (QToolButton *b : strip.findChildren<QToolButton *>())
         if (b->menu()) {
             b->menu()->popup(QPoint(0, 0));

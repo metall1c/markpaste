@@ -10,19 +10,19 @@ class QVBoxLayout;
 
 namespace mp {
 
-// Предпросмотр того, что уйдёт в чат (PST-6): ровно те картинки и текст и в том порядке,
-// что даст вставка, — через тот же PasteOrchestrator::bakeSequence (JPEG вместо PNG для
-// больших снимков, склейка в режиме 4, текст до или после картинок).
-// Режим «файлы + текст» показывается как последовательность: картинки те же.
+// Preview of what goes to the chat (PST-6): exactly the images and text, in the same order,
+// that the paste produces, via the same PasteOrchestrator::bakeSequence (JPEG instead of PNG for
+// large shots, stitching in mode 4, text before or after the images).
+// The "files + text" mode is shown as a sequence: the images are the same.
 class PreviewDialog : public QDialog
 {
     Q_OBJECT
 public:
     explicit PreviewDialog(QWidget *parent = nullptr);
 
-    // Запекание идёт в пуле потоков; до готовности — «Готовлю…»
+    // Baking runs in the thread pool; until it is ready, "Preparing…"
     void showSet(const CaptureSet &set, const PasteOptions &options);
-    // Для тестов: дождаться запекания
+    // For tests: wait for baking
     bool isReady() const { return m_ready; }
     QString messageText() const { return m_text; }
     int imageCount() const { return m_imageCount; }

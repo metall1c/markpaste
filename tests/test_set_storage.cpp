@@ -22,8 +22,8 @@ static CaptureSet sampleSet()
     arrow.rect = QRect(30, 30, 51, 31);
     arrow.pen = MarkPen{QColor(0x1e, 0x88, 0xe5), 5, LineStyle::Dash};
     a.marks << arrow;
-    // Скруглённая рамка и овал (ADR 0020) сохраняются вместе с остальным пером;
-    // без комментариев — номера A1 и A2 в тексте сообщения прежние
+    // A rounded frame and an ellipse (ADR 0020) are saved together with the rest of the pen;
+    // without comments, the A1 and A2 numbers in the message text stay the same
     a.marks << Mark{QUuid::createUuid(), QRect(40, 40, 30, 20), QString(), MarkShape::Rect, {},
                     MarkPen{QColor(), 0, LineStyle::Solid, FrameShape::Rounded}};
     a.marks << Mark{QUuid::createUuid(), QRect(70, 40, 30, 20), QString(), MarkShape::Rect, {},
@@ -54,7 +54,7 @@ TEST(SetStorage, JsonRoundTripKeepsEverythingButPixels)
 
 TEST(SetStorage, PlainRectangleWritesNoFrameField)
 {
-    // Старые наборы и прямоугольные рамки — без поля "frame": формат прежний
+    // Old sets and rectangular frames have no "frame" field: the format is unchanged
     CaptureSet set;
     Shot s = makeShot(50, 40);
     s.marks << Mark{QUuid::createUuid(), QRect(1, 1, 10, 10), QString()};
@@ -71,8 +71,8 @@ TEST(SetStorage, SessionRoundTripAndPrivatePermissions)
     ASSERT_TRUE(SetStorage::saveSession(set, dir, &error)) << error.toStdString();
 
 #ifndef Q_OS_WIN
-    // На Windows права задаёт ACL каталога профиля (%LOCALAPPDATA% — только владелец), а
-    // QFile::permissions о нём не знает (NFR-5)
+    // On Windows permissions come from the profile directory ACL (%LOCALAPPDATA% is owner-only), and
+    // QFile::permissions does not know about it (NFR-5)
     EXPECT_EQ(QFile::permissions(dir) & (QFileDevice::ReadGroup | QFileDevice::ReadOther | QFileDevice::ExeOther), 0);
     EXPECT_EQ(QFile::permissions(dir + QStringLiteral("/set.json"))
                   & (QFileDevice::ReadGroup | QFileDevice::ReadOther), 0);
@@ -134,7 +134,7 @@ TEST(SetStorage, ExportWritesBakedPngsAndMarkdown)
     const QStringList files = SetStorage::exportSet(set, RenderStyle(), tpl, tmp.path(), &error);
     ASSERT_EQ(files.size(), 3) << error.toStdString();
 
-    // Картинка — запечённая: размер обрезки, а не исходника
+    // The image is baked: the size of the crop, not of the source
     const QImage a(tmp.filePath(QStringLiteral("A.png")));
     EXPECT_EQ(a.size(), set.shots[0].crop.size());
     EXPECT_EQ(a, renderShot(set.shots[0], 0, RenderStyle()).convertToFormat(a.format()));

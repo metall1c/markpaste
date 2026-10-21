@@ -13,7 +13,7 @@ using namespace mp::test;
 
 namespace {
 
-// Ctrl+V «доходит» до поля в фокусе: вставляет текст буфера, как сделал бы чат
+// Ctrl+V "reaches" the focused field: it pastes the clipboard text, as a chat would
 class TypingInjector : public FakeInjector
 {
 public:
@@ -80,11 +80,11 @@ TEST(SetupWizard, PasteRoundTripRestoresClipboard)
     WizardFixture f;
     f.clipboard->current = ClipboardPayload::text(QStringLiteral("user data"));
     f.wizard->checkPaste();
-    QTest::qWait(300);   // 80 мс до Ctrl+V и цепочка future
+    QTest::qWait(300);   // 80 ms before Ctrl+V and the future chain
     EXPECT_EQ(f.wizard->pasteResult(), SetupWizard::Result::Ok);
     EXPECT_EQ(f.injector->begins, 1);
     EXPECT_EQ(f.injector->ends, 1);
-    // Буфер пользователя возвращён
+    // The user's clipboard is restored
     EXPECT_EQ(f.clipboard->current.find(QStringLiteral("text/plain;charset=utf-8"))->data, QByteArray("user data"));
 }
 
@@ -95,7 +95,7 @@ TEST(SetupWizard, PasteThatDoesNotArriveFails)
     f.wizard->checkPaste();
     QTest::qWait(300);
     EXPECT_EQ(f.wizard->pasteResult(), SetupWizard::Result::Failed);
-    EXPECT_EQ(f.injector->ends, 1);   // сессия закрыта и при неудаче
+    EXPECT_EQ(f.injector->ends, 1);   // the session is closed on failure too
 }
 
 TEST(SetupWizard, DeniedSessionFails)
@@ -118,7 +118,7 @@ TEST(SetupWizard, NoBackgroundClipboardWarnsWithoutTest)
 TEST(SetupWizard, NoHotkeysBackendFails)
 {
     WizardFixture f;
-    // Без IHotkeys — сразу ошибка с подсказкой про CLI
+    // Without IHotkeys, an error right away with a hint about the CLI
     EXPECT_EQ(f.wizard->hotkeyResult(), SetupWizard::Result::Failed);
 }
 
@@ -128,7 +128,7 @@ TEST(SetupWizard, HotkeysTurnOkWhenPressed)
     f.platform.hotkeys = std::make_unique<FakeHotkeys>();
     SetupWizard w(&f.platform, QStringLiteral("su._525.MarkpasteTest"));
     w.setTriggers({{Action::Capture, QStringLiteral("Print")}, {Action::PasteSet, QString()}});
-    EXPECT_EQ(w.hotkeyResult(), SetupWizard::Result::Warning);   // вставке клавиша не назначена
+    EXPECT_EQ(w.hotkeyResult(), SetupWizard::Result::Warning);   // no key is assigned to paste
     w.setTriggers({{Action::Capture, QStringLiteral("Print")}, {Action::PasteSet, QStringLiteral("Ctrl+Alt+V")}});
     EXPECT_EQ(w.hotkeyResult(), SetupWizard::Result::Pending);
     w.hotkeyActivated(Action::Capture);
@@ -142,14 +142,14 @@ TEST(SetupWizard, ShotToStripKeyIsOptional)
     WizardFixture f;
     f.platform.hotkeys = std::make_unique<FakeHotkeys>();
     SetupWizard w(&f.platform, QStringLiteral("su._525.MarkpasteTest"));
-    // Снимок без редактора назначен, но не нажат — проверка всё равно проходит по двум главным клавишам
+    // Capture without editor is assigned but not pressed: the check still passes on the two main keys
     w.setTriggers({{Action::Capture, QStringLiteral("Print")},
                    {Action::PasteSet, QStringLiteral("Ctrl+Alt+V")},
                    {Action::CaptureToStrip, QStringLiteral("Ctrl+Print")}});
     w.hotkeyActivated(Action::Capture);
     w.hotkeyActivated(Action::PasteSet);
     EXPECT_EQ(w.hotkeyResult(), SetupWizard::Result::Ok);
-    // Не назначен — не предупреждение
+    // Not assigned is not a warning
     w.setTriggers({{Action::Capture, QStringLiteral("Print")}, {Action::PasteSet, QStringLiteral("Ctrl+Alt+V")}});
     EXPECT_EQ(w.hotkeyResult(), SetupWizard::Result::Ok);
 }

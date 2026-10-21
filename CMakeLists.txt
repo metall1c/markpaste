@@ -2,27 +2,27 @@ cmake_minimum_required(VERSION 3.28)
 
 project(Markpaste VERSION 0.2.0 LANGUAGES C CXX)
 
-# Название и идентификатор — в одном месте: имя проекта рабочее (ТЗ, разд. 14).
-# Идентификатор после релиза не меняется: от него зависят разрешения порталов.
+# Name and ID live in one place: the project name is a working one (spec, section 14).
+# The ID never changes after a release: portal permissions depend on it.
 set(MARKPASTE_APP_NAME "Markpaste")
 set(MARKPASTE_APP_ID "su._525.Markpaste")
-# Дом проекта — GitHub (docs/decisions/0024-github-releases.md): страница, релизы и проверка
-# новой версии (APP-7) берутся из одного «владелец/имя».
+# The project's home is GitHub (docs/decisions/0024-github-home-and-releases.md): the page,
+# releases and the new-version check (APP-7) come from one "owner/name".
 set(MARKPASTE_GITHUB_REPO "metall1c/markpaste" CACHE STRING "GitHub repository owner/name")
-# API последнего релиза GitHub. Пустая строка — проверки нет (например, для сборок
-# дистрибутивов, которые обновляются своим путём).
+# GitHub API for the latest release. An empty string disables the check (e.g. for distro
+# builds that are updated their own way).
 set(MARKPASTE_UPDATE_URL "https://api.github.com/repos/${MARKPASTE_GITHUB_REPO}/releases/latest"
     CACHE STRING "URL of the latest release JSON (GitHub API); empty disables update checks")
 set(MARKPASTE_RELEASES_URL "https://github.com/${MARKPASTE_GITHUB_REPO}/releases"
     CACHE STRING "Releases page shown in the update notification")
-# Страница проекта — в окне «О программе», в пакетах и в AppStream
+# Project page: in the About window, in packages and in AppStream
 set(MARKPASTE_HOMEPAGE_URL "https://github.com/${MARKPASTE_GITHUB_REPO}"
     CACHE STRING "Project page shown in the About window")
 set(MARKPASTE_EXECUTABLE "markpaste")
 
 include(GNUInstallDirs)
 set(CMAKE_INSTALL_DOCDIR ${CMAKE_INSTALL_DATADIR}/doc/${MARKPASTE_EXECUTABLE})
-# Windows: портативная раскладка — всё в одном каталоге рядом с .exe
+# Windows: portable layout, everything in one directory next to the .exe
 if(WIN32)
     set(MARKPASTE_INSTALL_BINDIR .)
     set(CMAKE_INSTALL_DOCDIR .)
@@ -30,7 +30,7 @@ else()
     set(MARKPASTE_INSTALL_BINDIR ${CMAKE_INSTALL_BINDIR})
 endif()
 
-# Позиционно-независимый исполняемый файл (PIE): требование пакетов Fedora и Debian
+# Position-independent executable (PIE): required by Fedora and Debian packaging
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(CheckPIESupported)
 check_pie_supported()
@@ -45,11 +45,11 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "" FORCE)
 endif()
 
-option(MARKPASTE_BUILD_TESTS "Собирать тесты" ON)
-option(MARKPASTE_BUILD_TOOLS "Собирать отладочные утилиты (прототип вставки)" ON)
+option(MARKPASTE_BUILD_TESTS "Build tests" ON)
+option(MARKPASTE_BUILD_TOOLS "Build debugging utilities (paste prototype)" ON)
 
-# Минимум — Qt 6.4 (системный Qt в Ubuntu 24.04 и Debian 12, ТЗ разд. 7).
-# Svg — значки интерфейса (docs/decisions/0019-ui-style.md)
+# Minimum is Qt 6.4 (system Qt in Ubuntu 24.04 and Debian 12, spec section 7).
+# Svg: UI icons (docs/decisions/0019-ui-style.md)
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets Svg Concurrent Network LinguistTools)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -57,19 +57,19 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(Qt6 6.4 REQUIRED COMPONENTS DBus)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(WAYLAND_CLIENT REQUIRED IMPORTED_TARGET wayland-client)
-    pkg_check_modules(XKBCOMMON REQUIRED IMPORTED_TARGET xkbcommon)   # раскладка виртуальной клавиатуры
-    # X11: глобальные клавиши (XGrabKey) и Ctrl+V (XTEST). Без них X11 — только захват и буфер.
+    pkg_check_modules(XKBCOMMON REQUIRED IMPORTED_TARGET xkbcommon)   # virtual keyboard keymap
+    # X11: global hotkeys (XGrabKey) and Ctrl+V (XTEST). Without them X11 has only capture and clipboard.
     pkg_check_modules(XCB QUIET IMPORTED_TARGET xcb xcb-xtest xcb-keysyms)
     pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
     pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
     find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
 
-    # LayerShellQt необязателен: без него оверлей и лента — обычные окна (ТЗ, разд. 7).
+    # LayerShellQt is optional: without it the overlay and the strip are ordinary windows (spec, section 7).
     find_package(LayerShellQt QUIET)
     if(LayerShellQt_FOUND)
-        message(STATUS "LayerShellQt найден: оверлей и лента через layer-shell")
+        message(STATUS "LayerShellQt found: overlay and strip use layer-shell")
     else()
-        message(STATUS "LayerShellQt не найден: оверлей и лента — обычные окна")
+        message(STATUS "LayerShellQt not found: overlay and strip are ordinary windows")
     endif()
 endif()
 
@@ -95,11 +95,11 @@ if(MARKPASTE_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
-# .desktop-файл. Его имя = app id: по нему порталы узнают программу (ТЗ разд. 9, 11),
-# а KWin — доверенную программу для ScreenShot2.
+# .desktop file. Its name = app id: portals identify the program by it (spec sections 9, 11),
+# and KWin recognizes a trusted program for ScreenShot2.
 if(MARKPASTE_LINUX)
-    # Путь в Exec — абсолютный: KWin сверяет его с исполняемым файлом процесса.
-    # Поэтому пакет собирается с -DCMAKE_INSTALL_PREFIX=/usr (docs/build.md).
+    # The Exec path is absolute: KWin compares it with the process executable.
+    # That is why packages are built with -DCMAKE_INSTALL_PREFIX=/usr (docs/build.md).
     set(MARKPASTE_DESKTOP_EXEC "${CMAKE_INSTALL_FULL_BINDIR}/${MARKPASTE_EXECUTABLE}")
     configure_file(data/app.desktop.in ${CMAKE_BINARY_DIR}/data/${MARKPASTE_APP_ID}.desktop @ONLY)
     configure_file(data/app.metainfo.xml.in ${CMAKE_BINARY_DIR}/data/${MARKPASTE_APP_ID}.metainfo.xml @ONLY)
@@ -111,15 +111,15 @@ if(MARKPASTE_LINUX)
             DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
             RENAME ${MARKPASTE_APP_ID}.svg)
 
-    # Для разработки: тот же файл, но Exec указывает на бинарник в каталоге сборки.
-    # Без него host Registry отвечает «App info not found» (docs/problems.md).
+    # For development: the same file, but Exec points to the binary in the build directory.
+    # Without it the host Registry answers "App info not found" (docs/problems.md).
     set(MARKPASTE_DESKTOP_EXEC "${CMAKE_BINARY_DIR}/src/app/${MARKPASTE_EXECUTABLE}")
     configure_file(data/app.desktop.in ${CMAKE_BINARY_DIR}/dev/${MARKPASTE_APP_ID}.desktop @ONLY)
     add_custom_target(dev-install-desktop
         COMMAND ${CMAKE_COMMAND} -E make_directory $ENV{HOME}/.local/share/applications
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/dev/${MARKPASTE_APP_ID}.desktop
                 $ENV{HOME}/.local/share/applications/${MARKPASTE_APP_ID}.desktop
-        # Значок по имени app id — как его ставит пакет, только в каталог пользователя
+        # Icon named after the app id, as the package installs it, only into the user directory
         COMMAND ${CMAKE_COMMAND} -E make_directory $ENV{HOME}/.local/share/icons/hicolor/scalable/apps
         COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/data/icons/app.svg
                 $ENV{HOME}/.local/share/icons/hicolor/scalable/apps/${MARKPASTE_APP_ID}.svg
@@ -132,15 +132,15 @@ endif()
 install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 if(WIN32)
-    # Корень Qt для Windows: каталог над lib/cmake/Qt6
+    # Qt root for Windows: the directory above lib/cmake/Qt6
     get_filename_component(MARKPASTE_QT_PREFIX "${Qt6_DIR}/../../.." ABSOLUTE)
     include(cmake/WindowsDeploy.cmake)
-    include(cmake/WindowsInstaller.cmake)   # цель installer → Setup.exe (ADR 0023)
+    include(cmake/WindowsInstaller.cmake)   # installer target → Setup.exe (ADR 0023)
 endif()
 
-# --- Пакеты (ТЗ разд. 11): cmake --build <каталог> --target package ---
-# Зависимости от библиотек (Qt 6, libwayland-client, LayerShellQt) пакетные системы
-# находят сами по связанным .so; вручную — только то, что нужно во время работы.
+# --- Packages (spec section 11): cmake --build <dir> --target package ---
+# Library dependencies (Qt 6, libwayland-client, LayerShellQt) are found by the package
+# tools from the linked .so files; only runtime needs are listed by hand.
 set(CPACK_PACKAGE_NAME ${MARKPASTE_EXECUTABLE})
 set(CPACK_PACKAGE_VENDOR "Markpaste")
 set(CPACK_PACKAGE_CONTACT "Andrey Che <metallicvrn@gmail.com>")
@@ -153,12 +153,12 @@ set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE)
 set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 set(CPACK_STRIP_FILES ON)
 if(WIN32)
-    # Портативный ZIP. Установщик — цель installer (NSIS, ADR 0023); автообновление (Velopack) — позже
+    # Portable ZIP. The installer is the installer target (NSIS, ADR 0023); auto-update (Velopack) later
     set(CPACK_GENERATOR "ZIP")
     set(CPACK_SYSTEM_NAME "win64")
     set(CPACK_PACKAGE_FILE_NAME "Markpaste-${PROJECT_VERSION}-win64-portable")
     set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY ON)
-    set(CPACK_PACKAGING_INSTALL_PREFIX "")   # всё прямо в Markpaste-…-portable/, без usr/local
+    set(CPACK_PACKAGING_INSTALL_PREFIX "")   # everything right in Markpaste-…-portable/, no usr/local
     set(CPACK_PACKAGE_DIRECTORY ${CMAKE_BINARY_DIR}/package)
 else()
     set(CPACK_GENERATOR "TGZ")
@@ -174,9 +174,9 @@ if(MARKPASTE_RPMBUILD AND NOT WIN32)
     set(CPACK_RPM_PACKAGE_RELEASE 1)
     set(CPACK_RPM_PACKAGE_RELEASE_DIST ON)
     set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
-    # Порталы — захват, клавиши, Ctrl+V; без них программа работает в урезанном режиме
+    # Portals: capture, hotkeys, Ctrl+V; without them the program runs in a reduced mode
     set(CPACK_RPM_PACKAGE_REQUIRES "xdg-desktop-portal")
-    # Общие каталоги принадлежат другим пакетам (filesystem, hicolor-icon-theme)
+    # Shared directories belong to other packages (filesystem, hicolor-icon-theme)
     set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION
         ${CMAKE_INSTALL_FULL_DATADIR}/applications
         ${CMAKE_INSTALL_FULL_DATADIR}/metainfo

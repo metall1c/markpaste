@@ -67,7 +67,7 @@ void finishOne(const std::shared_ptr<Pending> &p)
 
 QFuture<CaptureResult> KWinScreenshot::captureAllScreens()
 {
-    // QScreen читаем в главном потоке (ТЗ разд. 8).
+    // QScreen is read in the main thread (spec section 8).
     const QList<QScreen *> screens = QGuiApplication::screens();
     auto pending = std::make_shared<Pending>();
     pending->promise.start();
@@ -98,12 +98,12 @@ QFuture<CaptureResult> KWinScreenshot::captureAllScreens()
             {QStringLiteral("include-cursor"), false},
         };
         msg << screen->name() << options << QVariant::fromValue(QDBusUnixFileDescriptor(fds[1]));
-        ::close(fds[1]);   // QDBusUnixFileDescriptor держит свою копию
+        ::close(fds[1]);   // QDBusUnixFileDescriptor keeps its own copy
 
-        // Чтение начинаем сразу: KWin пишет в pipe, и большой кадр не влезет в буфер pipe.
+        // Start reading right away: KWin writes into the pipe, and a large frame does not fit into the pipe buffer.
         auto data = std::make_shared<QByteArray>();
         auto meta = std::make_shared<QVariantMap>();
-        auto parts = std::make_shared<int>(2);   // ответ D-Bus + данные
+        auto parts = std::make_shared<int>(2);   // D-Bus reply + data
         auto assemble = [pending, data, meta, parts, i] {
             if (--*parts > 0)
                 return;
@@ -119,7 +119,7 @@ QFuture<CaptureResult> KWinScreenshot::captureAllScreens()
             if (w <= 0 || h <= 0 || data->size() < qint64(stride) * h) {
                 pending->error = QStringLiteral("KWin returned an incomplete frame for %1").arg(f.screenName);
             } else {
-                // copy(): QImage поверх чужого буфера не владеет им
+                // copy(): a QImage over someone else's buffer does not own it
                 f.image = QImage(reinterpret_cast<const uchar *>(data->constData()), w, h, stride, format).copy();
                 const qreal scale = meta->value(QStringLiteral("scale")).toDouble();
                 if (scale > 0)
@@ -139,8 +139,8 @@ QFuture<CaptureResult> KWinScreenshot::captureAllScreens()
             w->deleteLater();
             if (reply.isError()) {
                 pending->error = QStringLiteral("KWin ScreenShot2: %1").arg(reply.error().message());
-                // KWin пускает к ScreenShot2 по пути исполняемого файла из .desktop. Если файл
-                // заменили на ходу, /proc/self/exe указывает на «… (deleted)» и проверка не проходит.
+                // KWin lets a program into ScreenShot2 by the executable path from the .desktop file. If the file
+                // was replaced on the fly, /proc/self/exe points to "… (deleted)" and the check fails.
                 if (QFileInfo(QStringLiteral("/proc/self/exe")).symLinkTarget().endsWith(QStringLiteral(" (deleted)")))
                     pending->programReplaced = true;
                 qCWarning(lcKWin) << pending->error << (pending->programReplaced ? "(program file was replaced)" : "");

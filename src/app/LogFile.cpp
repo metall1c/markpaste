@@ -49,7 +49,7 @@ void handler(QtMsgType type, const QMessageLogContext &ctx, const QString &msg)
             return;
     }
     g_file->write(line);
-    g_file->flush();   // журнал нужен как раз когда программа упала
+    g_file->flush();   // the log is needed exactly when the program crashed
 }
 
 } // namespace
@@ -81,7 +81,7 @@ void LogFile::install()
         return;
     QFile::setPermissions(dir, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
     rotate(currentPath(), kMaxBytes, kKeep);
-    auto *file = new QFile(currentPath());   // живёт до конца процесса: сообщения бывают и в деструкторах
+    auto *file = new QFile(currentPath());   // lives until the process ends: messages also come from destructors
     if (!file->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
         delete file;
         return;

@@ -6,23 +6,23 @@
 
 namespace mp::win {
 
-// Снимок всех мониторов на Windows (ТЗ разд. 9): DXGI Desktop Duplication, а для монитора,
-// который она не отдала, — GDI BitBlt. Без вспышки и без рамки, курсор в снимок не попадает.
+// Capturing all monitors on Windows (spec section 9): DXGI Desktop Duplication, and for a monitor
+// it did not provide, GDI BitBlt. No flash and no frame; the cursor does not get into the shot.
 //
-// Почему DXGI, а не Windows.Graphics.Capture: WGC на Windows 10 рисует жёлтую рамку вокруг
-// захвата, а убрать её можно только в Windows 11; для WinRT нужен C++/WinRT, которого нет в
-// MinGW. DXGI работает на обеих системах (docs/decisions/0016-*.md).
+// Why DXGI and not Windows.Graphics.Capture: on Windows 10 WGC draws a yellow border around
+// the capture, and it can be removed only on Windows 11; WinRT needs C++/WinRT, which MinGW
+// does not have. DXGI works on both systems (docs/decisions/0016-*.md).
 //
-// HDR: просим у DuplicateOutput1 только 8-битный BGRA — тогда система сама переводит HDR-
-// рабочий стол в SDR. GDI на HDR-мониторе даёт выцветшую картинку, поэтому он — только запасной.
+// HDR: we ask DuplicateOutput1 for 8-bit BGRA only, and the system itself converts the HDR
+// desktop to SDR. GDI on an HDR monitor gives a washed-out image, so it is only a fallback.
 //
-// Снимок идёт в пуле потоков: создание устройства D3D11 и копирование 4K-кадров не держат
-// интерфейс. Данные о мониторах (QScreen) берутся заранее в главном потоке.
+// The capture runs in the thread pool: creating the D3D11 device and copying 4K frames do not block
+// the UI. Monitor data (QScreen) is taken beforehand in the main thread.
 class DxgiCapture : public ICapture
 {
     Q_OBJECT
 public:
-    // useDxgi = false — только GDI (MARKPASTE_CAPTURE=gdi: драйвер или Wine с DXGI не справляются)
+    // useDxgi = false means GDI only (MARKPASTE_CAPTURE=gdi: the driver or Wine cannot cope with DXGI)
     explicit DxgiCapture(bool useDxgi = true, QObject *parent = nullptr)
         : ICapture(parent), m_useDxgi(useDxgi)
     {
@@ -38,7 +38,7 @@ public:
         qreal scale = 1.0;
     };
     static CaptureResult grab(const QList<ScreenInfo> &screens, bool useDxgi = true);
-    // GDI BitBlt прямоугольника рабочего стола в физических пикселях
+    // GDI BitBlt of a desktop rectangle in physical pixels
     static QImage gdiGrab(const QRect &physical);
 
 private:

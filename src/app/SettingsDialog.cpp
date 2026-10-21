@@ -28,7 +28,7 @@ void setButtonColor(ActionButton *b, const QColor &c)
     b->setSwatch(c);
 }
 
-// Кнопка внутри окна настроек: второстепенная, с фокусом с клавиатуры
+// A button inside the settings window: secondary, keyboard-focusable
 ActionButton *dialogButton(const QString &text)
 {
     auto *b = new ActionButton(text);
@@ -36,7 +36,7 @@ ActionButton *dialogButton(const QString &text)
     return b;
 }
 
-// Страница: поля формы и отступ сверху от вкладок
+// Page: form fields and a top margin below the tabs
 QFormLayout *formPage(QWidget *page)
 {
     auto *form = new QFormLayout(page);
@@ -62,7 +62,7 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     setWindowTitle(tr("Markpaste settings"));
     useAccentSelection(this);
 
-    // Вкладки — «пилюли» над страницами (docs/decisions/0019-ui-style.md)
+    // Tabs are "pills" above the pages (docs/decisions/0019-ui-style.md)
     auto *pages = new QStackedWidget;
     auto *tabRow = new QHBoxLayout;
     tabRow->setSpacing(6);
@@ -76,14 +76,14 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
         QObject::connect(tab, &QPushButton::clicked, pages, [pages, index] { pages->setCurrentIndex(index); });
     };
 
-    // --- Клавиши и захват ---
+    // --- Hotkeys and capture ---
     auto *keys = new QWidget;
     auto *kf = formPage(keys);
     m_captureKey = new QLineEdit(settings.captureHotkey);
     m_pasteKey = new QLineEdit(settings.pasteHotkey);
     m_toStripKey = new QLineEdit(settings.captureToStripHotkey);
-    // Сочетания хранит система (портал GlobalShortcuts): своё значение она учитывает только при
-    // первой привязке, поэтому показываем фактическое и меняем его через систему.
+    // Shortcuts are kept by the system (GlobalShortcuts portal): it honors our value only on the
+    // first binding, so we show the actual one and change it through the system.
     m_systemKeys = platform.hotkeys && platform.hotkeys->systemAssignsTriggers();
     if (m_systemKeys) {
         for (auto [edit, action] : {std::pair{m_captureKey, Action::Capture}, std::pair{m_pasteKey, Action::PasteSet},
@@ -121,7 +121,7 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     kf->addRow(m_clearOnNext);
     addPage(keys, tr("Capture"));
 
-    // --- Вставка ---
+    // --- Paste ---
     auto *paste = new QWidget;
     auto *pf = formPage(paste);
     m_mode = new QComboBox;
@@ -144,7 +144,7 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     pf->addRow(m_clearAfter);
     addPage(paste, tr("Paste"));
 
-    // --- Сообщение ---
+    // --- Message ---
     auto *msg = new QWidget;
     auto *mf = formPage(msg);
     m_language = new QComboBox;
@@ -173,7 +173,7 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     mf->addRow(m_captions);
     addPage(msg, tr("Message"));
 
-    // --- Вид ---
+    // --- Appearance ---
     auto *look = new QWidget;
     auto *lf = formPage(look);
     m_accent = dialogButton(QString());
@@ -188,7 +188,7 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     auto *accentRow = new QHBoxLayout;
     accentRow->addWidget(m_accent);
     accentRow->addStretch();
-    // QFormLayout ставит подпись к верху поля: у высокой кнопки цвета — центруем сами
+    // QFormLayout aligns the label to the top of the field: center it ourselves for the tall color button
     auto *accentLabel = new QLabel(tr("Mark color:"));
     accentLabel->setMinimumHeight(36);
     accentLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
@@ -214,7 +214,7 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     lf->addRow(m_hideEmpty);
     addPage(look, tr("Appearance"));
 
-    // --- Изображения (PST-7) ---
+    // --- Images (PST-7) ---
     auto *images = new QWidget;
     auto *imf = formPage(images);
     m_maxSide = new QSpinBox;
@@ -241,7 +241,7 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
                              "\"Save to folder\" always writes full-size PNG.")));
     addPage(images, tr("Images"));
 
-    // --- Система: что доступно здесь ---
+    // --- System: what is available here ---
     auto *sys = new QWidget;
     auto *sl = new QVBoxLayout(sys);
     sl->setContentsMargins(2, 14, 2, 2);
@@ -291,7 +291,7 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     sl->addStretch();
     addPage(sys, tr("System"));
 
-    // «Отмена» и главная «Сохранить»; Enter — сохранить, Esc — отмена
+    // "Cancel" and the primary "Save"; Enter saves, Esc cancels
     auto *cancel = dialogButton(tr("Cancel"));
     auto *save = new ActionButton(tr("Save"), ActionButton::Kind::Primary);
     save->setFocusPolicy(Qt::StrongFocus);

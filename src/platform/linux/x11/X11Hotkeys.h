@@ -7,20 +7,20 @@
 
 namespace mp::lx {
 
-// Глобальные клавиши на X11 через XGrabKey на корневом окне (ТЗ разд. 9).
+// Global hotkeys on X11 via XGrabKey on the root window (spec section 9).
 //
-// Сочетание захватывается и с NumLock/CapsLock: X11 считает их модификаторами, и без
-// этих вариантов клавиша не срабатывала бы при включённом NumLock. Если сочетание уже
-// захватил кто-то другой, сервер отвечает BadAccess — сообщаем, что клавиша занята.
+// The shortcut is also grabbed with NumLock/CapsLock: X11 treats them as modifiers, and without
+// these variants the key would not fire with NumLock on. If someone else has already
+// grabbed the shortcut, the server answers BadAccess, and we report the key as taken.
 //
-// События клавиш приходят в подключение Qt; забираем их фильтром нативных событий.
-// Автоповтор X11 присылает пары «отпущена/нажата»: отпускание, при котором клавиша
-// по QueryKeymap ещё нажата, — автоповтор, его пропускаем.
+// Key events arrive in Qt's connection; we take them with a native event filter.
+// X11 autorepeat sends "released/pressed" pairs: a release during which the key
+// is still down according to QueryKeymap is autorepeat and is skipped.
 class X11Hotkeys : public IHotkeys, public QAbstractNativeEventFilter
 {
     Q_OBJECT
 public:
-    // nullptr, если Qt работает не через xcb
+    // nullptr if Qt does not run through xcb
     static X11Hotkeys *create(QObject *parent = nullptr);
     ~X11Hotkeys() override;
 

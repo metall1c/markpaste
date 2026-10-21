@@ -34,9 +34,9 @@ constexpr int kThumbWidth = 212;
 constexpr int kThumbMaxHeight = 130;
 } // namespace
 
-// Корзина на миниатюре: удалить снимок одним щелчком, без подтверждения (удаление идёт через
-// undo-стек модели, его можно отменить в редакторе). Лежит поверх картинки, поэтому
-// своя тёмная подложка, как у счётчика комментариев: на светлом снимке значок не теряется.
+// Trash button on a thumbnail: delete the shot with one click, without confirmation (the deletion goes
+// through the model's undo stack and can be undone in the editor). It sits on top of the image, hence
+// its own dark backing, like the comment counter's: the icon does not get lost on a light shot.
 class ThumbDeleteButton : public QToolButton
 {
 public:
@@ -65,7 +65,7 @@ protected:
     }
 };
 
-// Миниатюра снимка: клик — открыть в редакторе, перетаскивание — наружу как файл (STR-6).
+// Shot thumbnail: a click opens it in the editor, a drag takes it outside as a file (STR-6).
 class ShotThumb : public QWidget
 {
     Q_DECLARE_TR_FUNCTIONS(ShotThumb)
@@ -75,12 +75,12 @@ public:
         : m_strip(strip), m_id(id), m_index(index), m_pixmap(pixmap), m_comments(comments), m_marks(marks),
           m_current(current)
     {
-        // Ширина — по списку (меньше на полосу прокрутки, если она есть), высота — по снимку
+        // Width follows the list (less the scroll bar, if any), height follows the shot
         setFixedHeight(std::max(48, int(pixmap.height() / pixmap.devicePixelRatio()) + 2));
         setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
         setCursor(Qt::PointingHandCursor);
         setToolTip(tr("Click — edit · Drag — into a chat as a file or within the strip to reorder · Right click — menu"));
-        // Миниатюра удаляется отложенно (rebuild → deleteLater), так что удалять из её же кнопки безопасно
+        // The thumbnail is deleted later (rebuild → deleteLater), so deleting from its own button is safe
         m_delete = new ThumbDeleteButton(tr("Delete shot"), this);
         connect(m_delete, &QToolButton::clicked, this, [this] { m_strip->m_model->removeShot(m_id); });
     }
@@ -97,7 +97,7 @@ protected:
         QPainterPath clip;
         clip.addRoundedRect(frame, 8, 8);
 
-        // Миниатюра в скруглённой карточке; узкий снимок — по центру на фоне карточки
+        // Thumbnail in a rounded card; a narrow shot is centered on the card background
         p.save();
         p.setClipPath(clip);
         p.fillRect(frame, c.raised);
@@ -113,7 +113,7 @@ protected:
             p.drawRoundedRect(frame.adjusted(0.5, 0.5, -0.5, -0.5), 8, 8);
         }
 
-        // Буква снимка — кружок, как значок метки
+        // Shot letter in a circle, like a mark badge
         const QRectF badge(8, 8, 24, 24);
         p.setPen(QPen(Qt::white, 2));
         p.setBrush(c.accentFill);
@@ -124,7 +124,7 @@ protected:
         p.setPen(Qt::white);
         p.drawText(badge, Qt::AlignCenter, QString(shotLetter(m_index)));
 
-        // Число комментариев
+        // Number of comments
         if (m_marks > 0) {
             QFont small = smallerFont(font());
             small.setBold(true);
@@ -194,9 +194,9 @@ private:
     ThumbDeleteButton *m_delete;
 };
 
-// Список миниатюр — цель перетаскивания внутри ленты (STR-3): снимок, брошенный между
-// другими, встаёт на это место, буквы пересчитываются. Наружу тот же снимок уходит файлом
-// (STR-6) — это одно перетаскивание, решает место, где его отпустили.
+// The thumbnail list is a drop target within the strip (STR-3): a shot dropped between
+// others takes that place, the letters are recomputed. Outside, the same shot goes as a file
+// (STR-6): it is one drag, and the drop location decides.
 class ShotListHost : public QWidget
 {
 public:
@@ -224,7 +224,7 @@ protected:
             return;
         e->setDropAction(Qt::CopyAction);
         e->accept();
-        // Отложенно: перестройка ленты удалит миниатюру — источник ещё идущего QDrag
+        // Deferred: rebuilding the strip deletes the thumbnail, which is the source of the still running QDrag
         QTimer::singleShot(0, m_strip, [strip = m_strip, id, at] { strip->moveShotTo(id, at); });
     }
     void paintEvent(QPaintEvent *) override
@@ -250,7 +250,7 @@ private:
     int m_dropIndex = -1;
 };
 
-// Ручка «перетащить весь набор»
+// "Drag the whole set" handle
 class DragHandle : public QWidget
 {
     Q_DECLARE_TR_FUNCTIONS(DragHandle)
@@ -294,7 +294,7 @@ private:
     QPoint m_press;
 };
 
-// Число снимков в заголовке; полный счётчик «3 снимка · 4 комментария» (STR-2) — в подсказке
+// Number of shots in the header; the full counter "3 shots · 4 comments" (STR-2) is in the tooltip
 class CountPill : public QWidget
 {
 public:
@@ -335,7 +335,7 @@ private:
     QString m_text;
 };
 
-// Пустой набор: что сделать, чтобы появился снимок
+// Empty set: what to do to get a shot
 class EmptyHint : public QWidget
 {
     Q_DECLARE_TR_FUNCTIONS(EmptyHint)
@@ -386,7 +386,7 @@ private:
     QString m_key;
 };
 
-// Сообщение ленты («Вставлено», «Сначала щёлкните в окне чата») — на скруглённой плашке
+// Strip message ("Pasted", "Click into the chat window first") on a rounded plate
 class MessageLabel : public QLabel
 {
 public:
@@ -411,7 +411,7 @@ protected:
     }
 };
 
-// Заголовок ленты — ручка перетаскивания
+// The strip header is the drag handle
 class StripHeader : public QWidget
 {
     Q_DECLARE_TR_FUNCTIONS(StripHeader)
@@ -441,8 +441,8 @@ protected:
         if (e->button() != Qt::LeftButton)
             return;
         setCursor(Qt::OpenHandCursor);
-        // Пока кнопка зажата, события идут нам даже за пределами поверхности (неявный захват),
-        // координаты — относительно нашего окна
+        // While the button is held, events come to us even outside the surface (implicit grab),
+        // with coordinates relative to our window
         m_strip->finishMove(mapTo(m_strip, e->position().toPoint()));
     }
 
@@ -450,7 +450,7 @@ private:
     StripWindow *m_strip;
 };
 
-// Значок программы в заголовке ленты
+// Program icon in the strip header
 class WindowIconView : public QWidget
 {
 public:
@@ -486,16 +486,16 @@ StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
     title->setFont(titleFont);
     m_count = new CountPill;
     for (QWidget *w : {static_cast<QWidget *>(icon), static_cast<QWidget *>(title), static_cast<QWidget *>(m_count)})
-        w->setAttribute(Qt::WA_TransparentForMouseEvents);   // тянем за весь заголовок
-    m_count->setAttribute(Qt::WA_TransparentForMouseEvents, false);   // подсказка со счётчиком
+        w->setAttribute(Qt::WA_TransparentForMouseEvents);   // the whole header is draggable
+    m_count->setAttribute(Qt::WA_TransparentForMouseEvents, false);   // the counter tooltip
 
-    // «Очистить» (STR-2) — корзина в заголовке, рядом с меню
+    // "Clear" (STR-2) is the trash icon in the header, next to the menu
     m_clear = new FlatButton(Icon::Trash, tr("Clear"));
     m_clear->setToolTip(tr("Clear the set"));
     m_clear->setSide(28, 18);
     auto *menuButton = new FlatButton(Icon::More, tr("Menu"));
     menuButton->setSide(28, 18);
-    // Меню, а не сразу настройки: здесь же предпросмотр (PST-6) и сохранение в папку (APP-6)
+    // A menu rather than settings right away: preview (PST-6) and save to folder (APP-6) are here too
     auto *menu = new QMenu(menuButton);
     m_previewAction = menu->addAction(tr("Preview message…"), this, &StripWindow::previewRequested);
     m_saveAction = menu->addAction(tr("Save to folder…"), this, &StripWindow::saveToFolderRequested);
@@ -531,7 +531,7 @@ StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
     m_scroll->setFrameShape(QFrame::NoFrame);
     m_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_scroll->setFixedWidth(kThumbWidth);
-    // Фон списка — фон ленты: у прозрачного окна (скруглённые углы) он рисуется в paintEvent
+    // The list background is the strip background: for a transparent window (rounded corners) it is painted in paintEvent
     m_scroll->viewport()->setAutoFillBackground(false);
     listHost->setAutoFillBackground(false);
     layout->addWidget(m_scroll, 1);
@@ -545,12 +545,12 @@ StripWindow::StripWindow(CaptureSetModel *model, QWidget *parent)
     layout->addWidget(m_dragHandle);
 
     m_message = new MessageLabel;
-    // Не шире списка: иначе длинное сообщение раздувало ленту, и на Windows она уходила за край экрана
+    // Not wider than the list: otherwise a long message widened the strip, and on Windows it went off the screen edge
     m_message->setMaximumWidth(kThumbWidth);
     m_message->setVisible(false);
     layout->addWidget(m_message);
 
-    // Главная кнопка — «Вставить набор»; в пустом наборе её место занимает «Новый снимок»
+    // The primary button is "Paste set"; in an empty set "New shot" takes its place
     m_paste = new ActionButton(tr("Paste set"), ActionButton::Kind::Primary);
     m_paste->setButtonHeight(40);
     m_newShot = new ActionButton(tr("New shot"));
@@ -605,7 +605,7 @@ void StripWindow::setPasteMode(bool sequential, const QString &hotkey)
         m_paste->setToolTip(tr("Copies files and text — then press Ctrl+V in the chat"));
         m_paste->setKeyHint({});
     }
-    rebuild();   // отдельная кнопка «Скопировать» не нужна, если главная уже копирует
+    rebuild();   // a separate "Copy" button is not needed if the primary one already copies
 }
 
 void StripWindow::setCaptureHotkey(const QString &hotkey)
@@ -644,7 +644,7 @@ QPixmap StripWindow::thumbnailFor(int index)
     auto it = m_thumbs.find(shot.id);
     if (it != m_thumbs.end() && it->index == index && it->shot == shot)
         return it->pixmap;
-    // Миниатюра — запечённый снимок: видно метки и размытие так, как их увидит чат
+    // The thumbnail is the baked shot: marks and blur look exactly as the chat will see them
     const QImage baked = renderShot(shot, index, m_style);
     const qreal dpr = devicePixelRatioF();
     QImage scaled = baked.scaled(QSize(int((kThumbWidth - 2) * dpr), int(kThumbMaxHeight * dpr)), Qt::KeepAspectRatio,
@@ -657,9 +657,9 @@ QPixmap StripWindow::thumbnailFor(int index)
 
 void StripWindow::rebuild()
 {
-    // Чистим старые миниатюры (последний элемент — растяжка). Удаляем отложенно: перестройку
-    // часто вызывает сама миниатюра — щелчок, пункт её меню (меню в exec() — её дочерний объект
-    // на стеке), перетаскивание. Прямой delete здесь ронял программу (docs/problems.md).
+    // Remove the old thumbnails (the last item is the stretch). Deleted later: a rebuild
+    // is often triggered by the thumbnail itself: a click, an item of its menu (the menu in exec() is its child object
+    // on the stack), a drag. A direct delete here crashed the program (docs/problems.md).
     while (m_list->count() > 1) {
         QLayoutItem *item = m_list->takeAt(0);
         if (QWidget *w = item->widget()) {
@@ -680,7 +680,7 @@ void StripWindow::rebuild()
     for (auto it = m_thumbs.begin(); it != m_thumbs.end();)
         it = alive.contains(it.key()) ? std::next(it) : m_thumbs.erase(it);
 
-    // «3 снимка · 4 комментария» (STR-2) — подсказка к числу снимков в заголовке
+    // "3 shots · 4 comments" (STR-2) is the tooltip of the shot count in the header
     const int shots = int(set.shots.size());
     const bool empty = set.isEmpty();
     m_count->setCount(shots, tr("%n shot(s)", nullptr, shots) + QStringLiteral(" · ")
@@ -701,7 +701,7 @@ void StripWindow::rebuild()
     m_dragHandle->setVisible(shots > 1);
     m_newShot->setEnabled(!set.isFull());
 
-    // Высота ленты — по содержимому, но не выше экрана
+    // Strip height follows the content, but no taller than the screen
     int listHeight = 0;
     for (int i = 0; i < m_list->count() - 1; ++i)
         listHeight += m_list->itemAt(i)->widget()->height() + m_list->spacing();
@@ -711,9 +711,9 @@ void StripWindow::rebuild()
     adjustSize();
 
     if (m_snapToEdge && isVisible())
-        snapToEdge();   // по центру края — центр сместился; у низа — не вылезти за экран
+        snapToEdge();   // centered on the edge: the center moved; at the bottom: do not go off the screen
 
-    // Лента выросла и вылезла за низ экрана — поднимаем её
+    // The strip grew and went below the screen bottom: lift it
     if (m_layerShell && m_placement.offset >= 0 && isVisible()) {
         const int maxOffset = std::max(0, currentScreen()->geometry().height() - height());
         if (m_placement.offset > maxOffset) {
@@ -725,7 +725,7 @@ void StripWindow::rebuild()
 
 QByteArray StripWindow::shotDragData(const QUuid &shotId)
 {
-    // pid — чтобы снимок из другого экземпляра программы не переставлял ничего здесь
+    // pid, so that a shot from another program instance does not reorder anything here
     return QByteArray::number(QCoreApplication::applicationPid()) + ' ' + shotId.toByteArray(QUuid::WithoutBraces);
 }
 
@@ -741,8 +741,8 @@ QUuid StripWindow::draggedShot(const QMimeData *data)
 
 int StripWindow::dropIndexAt(int y) const
 {
-    // Место вставки — перед первой миниатюрой, середина которой ниже курсора
-    const int n = m_list->count() - 1;   // последний элемент — растяжка
+    // The insert position is before the first thumbnail whose middle is below the cursor
+    const int n = m_list->count() - 1;   // the last item is the stretch
     for (int i = 0; i < n; ++i) {
         const QWidget *w = m_list->itemAt(i)->widget();
         if (y < w->geometry().center().y())
@@ -768,7 +768,7 @@ void StripWindow::moveShotTo(const QUuid &shotId, int insertIndex)
     const int from = m_model->set().shotIndex(shotId);
     if (from < 0)
         return;
-    // Место вставки считается до удаления снимка со старого места
+    // The insert position is computed before the shot is removed from its old place
     const int to = insertIndex > from ? insertIndex - 1 : insertIndex;
     if (to != from)
         m_model->moveShot(shotId, to);
@@ -781,7 +781,7 @@ void StripWindow::startDrag(const QList<QUuid> &shots, QWidget *source)
     QMimeData *data = m_dragProvider(shots);
     if (!data)
         return;
-    // Один снимок можно бросить и обратно в ленту — тогда он переставляется (STR-3)
+    // A single shot can be dropped back into the strip, then it is reordered (STR-3)
     if (shots.size() == 1)
         data->setData(QString::fromLatin1(kShotMime), shotDragData(shots.first()));
     auto *drag = new QDrag(source);
@@ -801,7 +801,7 @@ void StripWindow::present()
         loadPlacement();
         m_layerShell = applyPanelRole(this, currentScreen(), m_placement);
         if (!m_layerShell) {
-            // Обычное окно: на GNOME «поверх» и позиция недоступны (STR-1), двигает оконный менеджер
+            // An ordinary window: on GNOME "on top" and position are unavailable (STR-1), the window manager moves it
             setWindowFlag(Qt::WindowStaysOnTopHint);
             setWindowFlag(Qt::Tool);
             m_snapToEdge = watchPanelMoves(this, [this] { onMovedByUser(); });
@@ -816,16 +816,16 @@ void StripWindow::present()
 void StripWindow::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
-    // Окно, которое ставим сами (Windows), выросло от сообщения или кнопки «Стоп» — встаём заново,
-    // чтобы не уйти за низ рабочей области под панель задач
+    // A window we place ourselves (Windows) grew because of a message or the "Stop" button: snap again
+    // so as not to go below the work area under the taskbar
     if (m_snapToEdge && isVisible())
         snapToEdge();
 }
 
 void StripWindow::paintEvent(QPaintEvent *)
 {
-    // Прозрачное окно (layer-shell, Windows): фон со скруглёнными углами и рамкой рисуем сами.
-    // Непрозрачному — обычному окну с рамкой системы — фон рисует Qt.
+    // A transparent window (layer-shell, Windows): we paint the background with rounded corners and a border ourselves.
+    // For an opaque one (an ordinary window with a system frame) Qt paints the background.
     if (!testAttribute(Qt::WA_TranslucentBackground))
         return;
     const UiColors c = UiColors::from(palette());
@@ -840,22 +840,22 @@ void StripWindow::snapToEdge()
 {
     QScreen *screen = currentScreen();
     PanelPlacement pl = m_placement;
-    if (pl.offset >= 0)   // лента выросла — не даём ей уйти за низ экрана
+    if (pl.offset >= 0)   // the strip grew: do not let it go below the screen bottom
         pl.offset = std::min(pl.offset, std::max(0, placementArea(screen).height() - height()));
     move(topLeftFor(screen, pl));
 }
 
 QRect StripWindow::placementArea(QScreen *screen) const
 {
-    // Окно, которое ставим сами (Windows), — в пределах рабочей области: иначе лента у низа экрана
-    // закрывала панель задач с часами и значком в трее. Поверхность layer-shell от панелей
-    // отодвигает композитор, её положение считаем от всего экрана.
+    // A window we place ourselves (Windows) stays within the work area: otherwise a strip at the bottom of the screen
+    // covered the taskbar with the clock and the tray icon. The compositor moves a layer-shell surface away from panels,
+    // so its position is computed from the whole screen.
     return m_snapToEdge ? screen->availableGeometry() : screen->geometry();
 }
 
 void StripWindow::onMovedByUser()
 {
-    // Куда отпустили — туда и встаём, но вплотную к ближайшему краю (STR-5)
+    // Where it was dropped is where it goes, but flush with the nearest edge (STR-5)
     const QPoint center = frameGeometry().center();
     QScreen *target = QGuiApplication::screenAt(center);
     if (!target)
@@ -890,13 +890,13 @@ void StripWindow::beginMove(const QPoint &posInStrip)
     m_movePress = posInStrip;
     m_moving = false;
     if (!m_layerShell && windowHandle())
-        windowHandle()->startSystemMove();   // обычное окно двигает оконный менеджер
+        windowHandle()->startSystemMove();   // an ordinary window is moved by the window manager
 }
 
 void StripWindow::moveTarget(const QPoint &posInStrip, QScreen **screen, PanelPlacement *placement) const
 {
-    // Пока кнопка зажата, лента стоит на месте, поэтому её положение известно точно,
-    // и точка на экране = положение ленты + координаты указателя в ней.
+    // While the button is held, the strip stays in place, so its position is known exactly,
+    // and the point on the screen = the strip position + the pointer coordinates in it.
     const QPoint global = assumedTopLeft() + posInStrip;
     QScreen *target = QGuiApplication::screenAt(global);
     if (!target)
@@ -932,8 +932,8 @@ void StripWindow::finishMove(const QPoint &posInStrip)
     m_moving = false;
     if (!m_layerShell || !moved)
         return;
-    // Переезд — один раз, при отпускании: во время движения Qt не знает, применил ли композитор
-    // новые отступы, и координаты указателя «плыли» бы (docs/decisions/0004-*.md)
+    // The move happens once, on release: during the motion Qt does not know whether the compositor has applied
+    // the new margins, and the pointer coordinates would "drift" (docs/decisions/0004-*.md)
     QScreen *target = nullptr;
     PanelPlacement pl;
     moveTarget(posInStrip, &target, &pl);

@@ -44,13 +44,13 @@ struct StripFixture {
         return out;
     }
 
-    // Бросить снимок в точку списка так, как это сделал бы QDrag
+    // Drop a shot at a point of the list the way QDrag would
     void drop(const QByteArray &payload, int y)
     {
         QMimeData data;
         data.setData(QString::fromLatin1(StripWindow::kShotMime), payload);
         QDropEvent e(QPointF(20, y), Qt::CopyAction, &data, Qt::LeftButton, Qt::NoModifier);
-        // QApplication::notify пропускает Drop только внутри настоящего QDrag — отдаём напрямую
+        // QApplication::notify lets a Drop through only inside a real QDrag, so deliver it directly
         static_cast<QObject *>(list())->event(&e);
         QTest::qWait(20);
     }
@@ -68,13 +68,13 @@ TEST(StripUi, DropIndexFollowsThumbnailMiddles)
 TEST(StripUi, DroppingShotReordersSet)
 {
     StripFixture f;
-    // A в конец: A B C → B C A
+    // A to the end: A B C → B C A
     f.drop(StripWindow::shotDragData(f.ids[0]), f.list()->height() - 1);
     EXPECT_EQ(f.order(), (QList<QUuid>{f.ids[1], f.ids[2], f.ids[0]}));
-    // A (теперь последний) в начало: → A B C
+    // A (now last) to the start: → A B C
     f.drop(StripWindow::shotDragData(f.ids[0]), 1);
     EXPECT_EQ(f.order(), (QList<QUuid>{f.ids[0], f.ids[1], f.ids[2]}));
-    // Перестановка отменяется одним шагом
+    // The reorder is undone in one step
     f.model.undoStack()->undo();
     EXPECT_EQ(f.order(), (QList<QUuid>{f.ids[1], f.ids[2], f.ids[0]}));
 }
@@ -83,15 +83,15 @@ TEST(StripUi, DropOnOwnPlaceOrFromOtherProcessChangesNothing)
 {
     StripFixture f;
     const int undoBefore = f.model.undoStack()->count();
-    f.drop(StripWindow::shotDragData(f.ids[1]), f.strip->dropLineY(1) + 1);   // B на своё место
-    f.drop("1 " + f.ids[0].toByteArray(QUuid::WithoutBraces), f.list()->height() - 1);   // чужой pid
+    f.drop(StripWindow::shotDragData(f.ids[1]), f.strip->dropLineY(1) + 1);   // B onto its own place
+    f.drop("1 " + f.ids[0].toByteArray(QUuid::WithoutBraces), f.list()->height() - 1);   // a foreign pid
     EXPECT_EQ(f.order(), f.ids);
     EXPECT_EQ(f.model.undoStack()->count(), undoBefore);
 }
 
 namespace {
-// Выбрать пункт контекстного меню миниатюры так, как это делает человек: меню открыто
-// своим exec(), пункт выбирается клавишей Enter.
+// Choose a thumbnail context menu item the way a person does: the menu is open
+// in its own exec(), the item is chosen with Enter.
 void chooseFromThumbMenu(StripFixture &f, int thumbIndex, const QString &actionText)
 {
     QWidget *thumb = f.list()->layout()->itemAt(thumbIndex)->widget();
@@ -114,8 +114,8 @@ void chooseFromThumbMenu(StripFixture &f, int thumbIndex, const QString &actionT
 }
 } // namespace
 
-// Пункт меню меняет набор → лента перестраивается и удаляет миниатюру, пока её меню
-// ещё в exec(). Раньше это роняло программу: меню — дочерний объект миниатюры на стеке.
+// A menu item changes the set → the strip rebuilds and deletes the thumbnail while its menu
+// is still in exec(). This used to crash the program: the menu is the thumbnail's child object on the stack.
 TEST(StripUi, ThumbMenuDeleteDoesNotCrash)
 {
     StripFixture f;
@@ -123,7 +123,7 @@ TEST(StripUi, ThumbMenuDeleteDoesNotCrash)
     EXPECT_EQ(f.order(), (QList<QUuid>{f.ids[0], f.ids[2]}));
 }
 
-// Корзина на миниатюре удаляет снимок сразу, без подтверждения; отменяется одним шагом
+// The trash button on a thumbnail deletes the shot right away, without confirmation; undone in one step
 TEST(StripUi, ThumbTrashButtonDeletesShot)
 {
     StripFixture f;
@@ -135,7 +135,7 @@ TEST(StripUi, ThumbTrashButtonDeletesShot)
             trash = b;
     ASSERT_NE(trash, nullptr);
     EXPECT_TRUE(trash->isVisible());
-    EXPECT_GT(trash->x(), thumb->width() / 2);   // в правом верхнем углу
+    EXPECT_GT(trash->x(), thumb->width() / 2);   // in the top-right corner
     QTest::mouseClick(trash, Qt::LeftButton);
     QTest::qWait(20);
     EXPECT_EQ(f.order(), (QList<QUuid>{f.ids[0], f.ids[2]}));
@@ -150,8 +150,8 @@ TEST(StripUi, ThumbMenuMoveDoesNotCrash)
     EXPECT_EQ(f.order(), (QList<QUuid>{f.ids[1], f.ids[0], f.ids[2]}));
 }
 
-// Длинное сообщение («Сначала щёлкните в окне чата…») раздувало ленту вширь: на Windows она
-// уходила за правый край экрана, текст обрезался
+// A long message ("Click into the chat window first…") widened the strip: on Windows it
+// went past the right screen edge, and the text was cut off
 TEST(StripUi, LongMessageWrapsInsteadOfWideningStrip)
 {
     StripFixture f;
@@ -165,18 +165,18 @@ TEST(StripUi, LongMessageWrapsInsteadOfWideningStrip)
 }
 
 #ifdef Q_OS_WIN
-// Лента, которую программа ставит сама (Windows), выросла от сообщения — низ остаётся в рабочей области
+// A strip the program places itself (Windows) grew because of a message: its bottom stays in the work area
 TEST(StripUi, GrownStripStaysInsideWorkArea)
 {
-    // Без имени организации QSettings в Windows ничего не сохраняет
+    // Without an organization name QSettings saves nothing on Windows
     const QString org = QCoreApplication::organizationName();
     QCoreApplication::setOrganizationName(QStringLiteral("markpaste-tests"));
-    QSettings().setValue(QStringLiteral("strip/offset"), 100000);   // «у самого низа»
+    QSettings().setValue(QStringLiteral("strip/offset"), 100000);   // "at the very bottom"
     StripFixture f;
     f.strip->hide();
     f.strip->present();
     QApplication::processEvents();
-    f.strip->present();   // размер устоялся — встаём вплотную к низу
+    f.strip->present();   // the size has settled: snap flush to the bottom
     QApplication::processEvents();
     const QRect area = f.strip->screen()->availableGeometry();
     ASSERT_EQ(f.strip->geometry().bottom(), area.bottom());

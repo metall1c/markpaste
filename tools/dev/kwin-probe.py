@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# Замер на живой сессии KDE: отправляет команду работающему Markpaste и каждые 250 мс
-# спрашивает у KWin геометрию окон программы.
+# A measurement in a live KDE session: sends a command to the running Markpaste and every 250 ms
+# asks KWin for the geometry of the program's windows.
 #
-#   tools/dev/kwin-probe.py "debug-move-strip DP-1 left 300" [фильтр]
+#   tools/dev/kwin-probe.py "debug-move-strip DP-1 left 300" [filter]
 #
-# KWin-скрипт (kwin-geometry.js) возвращает геометрию через callDBus в этот процесс:
-# вывод print() из скриптов KWin в журнал не попадает. Нужен python3-dbus.
+# The KWin script (kwin-geometry.js) returns the geometry via callDBus to this process:
+# print() output from KWin scripts does not reach the log. Needs python3-dbus.
 import dbus, dbus.service, dbus.mainloop.glib, socket, subprocess, sys, time, os
 from gi.repository import GLib
 dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)

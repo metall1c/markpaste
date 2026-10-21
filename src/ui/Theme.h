@@ -13,27 +13,27 @@ class QWidget;
 
 namespace mp {
 
-// Оформление окон программы (docs/decisions/0019-ui-style.md). Фон и текст — из системной
-// палитры, поэтому светлая и тёмная тема берутся из системы. Акцент — из настроек, тот же,
-// что у меток: им залиты выбранный инструмент, главная кнопка и значки снимков.
+// Styling of the program's windows (docs/decisions/0019-ui-style.md). Background and text come from the system
+// palette, so the light and dark themes come from the system. The accent comes from settings, the same one
+// as for marks: it fills the selected tool, the primary button and the shot badges.
 struct UiColors {
     bool dark = false;
-    QColor surface;    // фон окна, панель инструментов
-    QColor raised;     // второстепенная кнопка, поле комментария, клавиша
-    QColor card;       // карточка комментария
-    QColor panel;      // боковая панель комментариев
-    QColor backdrop;   // подложка под снимком
+    QColor surface;    // window background, toolbar
+    QColor raised;     // secondary button, comment field, key cap
+    QColor card;       // comment card
+    QColor panel;      // side panel with comments
+    QColor backdrop;   // backdrop under the shot
     QColor border;
     QColor text;
-    QColor muted;      // подсказки (контраст с фоном не ниже 4.5:1)
+    QColor muted;      // hints (contrast with the background at least 4.5:1)
     QColor icon;
     QColor hover;
     QColor pressed;
-    QColor accent;     // как задан в настройках: рамки, обводка выбранного
-    QColor accentFill; // затемнённый до контраста 4.5:1 с белым: заливки под белым текстом
+    QColor accent;     // as set in settings: frames, outline of the selected item
+    QColor accentFill; // darkened to a 4.5:1 contrast with white: fills under white text
     QColor onAccent;
-    QColor link;       // акцент с контрастом 4.5:1 к фону окна
-    // Результаты проверок (мастер): читаемые на карточке и в тёмной, и в светлой теме
+    QColor link;       // the accent with a 4.5:1 contrast against the window background
+    // Check results (wizard): readable on a card in both dark and light themes
     QColor success;
     QColor warning;
     QColor danger;
@@ -41,16 +41,16 @@ struct UiColors {
     static UiColors from(const QPalette &palette);
 };
 
-// Акцент интерфейса — один на программу, меняется вместе с настройками
+// The UI accent: one per program, changes together with the settings
 void setUiAccent(const QColor &accent);
 QColor uiAccent();
 
 QColor mixColors(const QColor &a, const QColor &b, qreal t);
 
-// Выделение, флажки, рамка фокуса и ссылки системных виджетов окна — цветом акцента, а не системным
-// (окна настроек, мастера, предпросмотра)
+// Selection, checkboxes, focus frame and links of the window's system widgets in the accent color rather than the system one
+// (settings, wizard, preview windows)
 void useAccentSelection(QWidget *window);
-// Подсказки и пояснения — бледным цветом темы
+// Hints and explanations in the theme's pale color
 void setMutedText(QWidget *widget);
 
 enum class Icon {
@@ -60,19 +60,19 @@ enum class Icon {
     MarkRounded, MarkEllipse, FrameRect, FrameRounded, FrameEllipse
 };
 
-// Значок из набора data/icons/ui нужного цвета; size — в логических пикселях
+// An icon from the data/icons/ui set in the needed color; size is in logical pixels
 QPixmap iconPixmap(Icon icon, const QColor &color, int size, qreal devicePixelRatio);
 
-// «Клавиша»: текст в скруглённой рамке (подсказки сочетаний, кнопка «Вставить набор Alt+V»)
+// "Key cap": text in a rounded frame (shortcut hints, the "Paste set Alt+V" button)
 QSizeF keyCapSize(const QFontMetricsF &fm, const QString &text);
 void drawKeyCap(QPainter &p, const QRectF &rect, const QString &text, const QColor &fg, const QColor &bg,
                 const QColor &border);
 
-// Мелкий шрифт подсказок и клавиш: 88 % от основного
+// Small font for hints and keys: 88 % of the main one
 QFont smallerFont(QFont font);
 
-// Сочетание для подписи: из «Ctrl+Alt+V, Alt+V» (так их отдаёт KDE) — самое короткое,
-// переносимое Primary — как Ctrl
+// The shortcut for a label: the shortest of "Ctrl+Alt+V, Alt+V" (that is how KDE reports them),
+// the portable Primary shown as Ctrl
 QString shortcutLabel(const QString &triggers);
 
 } // namespace mp

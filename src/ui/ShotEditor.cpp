@@ -28,8 +28,8 @@ namespace {
 
 enum CommentRole { IdRole = Qt::UserRole, LabelRole, BadgeColorRole };
 
-// Карточка комментария: значок метки, как на картинке, и текст, который уйдёт в чат.
-// Метка без комментария — пунктирная карточка: в текст сообщения она не попадает (ADR 0018).
+// Comment card: the mark badge as on the image, and the text that goes to the chat.
+// A mark without a comment is a dashed card: it does not get into the message text (ADR 0018).
 class CommentDelegate : public QStyledItemDelegate
 {
     Q_DECLARE_TR_FUNCTIONS(CommentDelegate)
@@ -54,7 +54,7 @@ public:
         p->save();
         p->setRenderHint(QPainter::Antialiasing);
         if (index.data(IdRole).toUuid().isNull()) {
-            // «Меток пока нет» — просто текст
+            // "No marks yet" is plain text
             p->setPen(c.muted);
             p->drawText(QRectF(opt.rect).adjusted(2, 4, -2, 0), Qt::TextWordWrap, text);
             p->restore();
@@ -73,7 +73,7 @@ public:
         }
         p->drawRoundedRect(card, 8, 8);
 
-        // Значок A1 — как на снимке, цветом метки
+        // The A1 badge as on the shot, in the mark color
         const QRectF badge(card.left() + kPad, card.top() + kPad, kBadge, kBadge);
         const QColor badgeColor = index.data(BadgeColorRole).value<QColor>();
         p->setPen(Qt::NoPen);
@@ -163,8 +163,8 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
         group->addButton(b);
     m_markTool->setChecked(true);
 
-    // Форма рамки — меню у инструмента «Метка», как у Snapik. Выбор — для новых меток и для
-    // выделенной рамки; запоминается вместе с пером (docs/decisions/0020-frame-shape.md)
+    // Frame shape is a menu on the "Mark" tool, as in Snapik. The choice applies to new marks and to
+    // the selected frame; it is remembered together with the pen (docs/decisions/0020-frame-shape.md)
     m_frameButton = new FlatButton(Icon::ChevronDown, tr("Frame shape"));
     m_frameButton->setSide(36, 14);
     m_frameButton->setFixedWidth(18);
@@ -200,7 +200,7 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     done->setGlyph(Icon::Check);
     done->setToolTip(tr("Close the shot (Ctrl+Enter)"));
 
-    // Панель инструментов: инструменты меток | размытие и обрезка | перо | история … действия
+    // Toolbar: mark tools | blur and crop | pen | history … actions
     auto *toolbar = new QWidget;
     toolbar->setFixedHeight(52);
     auto *bar = new QHBoxLayout(toolbar);
@@ -227,7 +227,7 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     bar->addSpacing(6);
     bar->addWidget(done);
 
-    // Комментарии снимка: весь текст, который уйдёт в чат, виден сразу
+    // The shot's comments: all the text that goes to the chat is visible at once
     auto *side = new Panel(Qt::LeftEdge);
     side->setFixedWidth(300);
     auto *sideLayout = new QVBoxLayout(side);
@@ -273,7 +273,7 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     middle->addWidget(m_canvas, 1);
     middle->addWidget(side);
 
-    // Строка подсказки: что делает инструмент и главные клавиши
+    // Hint line: what the tool does and the main keys
     auto *status = new QWidget;
     status->setFixedHeight(32);
     auto *statusLayout = new QHBoxLayout(status);
@@ -308,8 +308,8 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     connect(m_canvas, &ShotCanvas::cropPendingChanged, this, &ShotEditor::updateTools);
     connect(m_canvas, &ShotCanvas::selectedMarkChanged, this, &ShotEditor::updateCommentSelection);
 
-    // Перо: выбор в панели — для новых меток и для выделенной; выделение метки
-    // показывает в панели её перо.
+    // Pen: the choice in the panel applies to new marks and to the selected one; selecting a mark
+    // shows its pen in the panel.
     connect(m_penPicker, &PenPicker::penChanged, this, [this](const MarkPen &pen) {
         m_canvas->setPen(pen);
         emit penChanged(pen);
@@ -317,7 +317,7 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     connect(m_canvas, &ShotCanvas::markSelected, this, [this](const MarkPen &pen, MarkShape shape) {
         updatePenDefaults(shape);
         m_penPicker->setPen(pen);
-        updateFrameUi();   // выделили овал — следующая метка тоже овал, как и с цветом
+        updateFrameUi();   // an ellipse was selected, so the next mark is an ellipse too, as with color
     });
     connect(m_canvas, &ShotCanvas::toolChanged, this, [this](ShotCanvas::Tool tool) {
         updatePenDefaults(tool == ShotCanvas::Tool::Arrow ? MarkShape::Arrow
@@ -334,7 +334,7 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     m_undo->setEnabled(undo->canUndo());
     m_redo->setEnabled(undo->canRedo());
 
-    // Отмена без ограничения глубины, в пределах набора (EDT-8)
+    // Unlimited undo within the set (EDT-8)
     auto *undoKey = new QShortcut(QKeySequence::Undo, this);
     connect(undoKey, &QShortcut::activated, this, [this, undo] {
         m_canvas->commitComment();
@@ -344,8 +344,8 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
         auto *redoKey = new QShortcut(seq, this);
         connect(redoKey, &QShortcut::activated, undo, &QUndoStack::redo);
     }
-    // Однобуквенные клавиши инструментов не должны срабатывать в поле комментария.
-    // M — прежняя клавиша рамки, оставлена рядом с R.
+    // Single-letter tool keys must not fire in the comment field.
+    // M is the old frame key, kept next to R.
     using Tool = ShotCanvas::Tool;
     for (auto [key, tool] : {std::pair{Qt::Key_R, Tool::Mark}, std::pair{Qt::Key_M, Tool::Mark},
                              std::pair{Qt::Key_A, Tool::Arrow}, std::pair{Qt::Key_P, Tool::Pen}, std::pair{Qt::Key_D, Tool::Point},
@@ -360,13 +360,13 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
     connect(newShot, &QPushButton::clicked, this, &ShotEditor::newShotRequested);
     auto finish = [this] {
         m_canvas->commitComment();
-        m_fresh = false;   // снимок принят
+        m_fresh = false;   // the shot is accepted
         updateTools();
         emit doneRequested();
     };
     connect(done, &QPushButton::clicked, this, finish);
-    // Ctrl+Enter — как «Готово». В поле комментария его ловит CommentPopup
-    // (иначе Enter там сохранил бы только комментарий).
+    // Ctrl+Enter works like "Done". In the comment field CommentPopup catches it
+    // (otherwise Enter there would save only the comment).
     connect(m_canvas, &ShotCanvas::finishRequested, this, finish);
     for (const QKeySequence &seq : {QKeySequence(Qt::CTRL | Qt::Key_Return), QKeySequence(Qt::CTRL | Qt::Key_Enter)}) {
         auto *sc = new QShortcut(seq, this);
@@ -375,12 +375,12 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
 
     connect(m_model, &CaptureSetModel::changed, this, [this] {
         if (!m_model->shot(m_canvas->shotId())) {
-            // Снимок удалён (кнопкой «Удалить снимок» или из ленты) — закрываемся, как по Esc.
-            // Раньше открывался последний снимок ленты: пользователь его не выбирал (docs/problems.md).
+            // The shot was deleted (with "Delete shot" or from the strip): close, as with Esc.
+            // It used to open the last shot of the strip, which the user had not chosen (docs/problems.md).
             m_fresh = false;
             hide();
             if (!m_model->set().isEmpty())
-                m_canvas->setShot(m_model->set().shots.last().id);   // окно не пустое при следующем показе
+                m_canvas->setShot(m_model->set().shots.last().id);   // so the window is not empty the next time it shows
             updateTools();
         }
         updateTitle();
@@ -393,7 +393,7 @@ ShotEditor::ShotEditor(CaptureSetModel *model, QWidget *parent)
 void ShotEditor::changeEvent(QEvent *e)
 {
     QWidget::changeEvent(e);
-    // Системная тема сменилась на ходу — подсказкам нужен новый бледный цвет
+    // The system theme changed on the fly: hints need a new muted color
     if (e->type() == QEvent::PaletteChange && !m_applyingColors)
         applyColors();
 }
@@ -404,8 +404,8 @@ void ShotEditor::applyColors()
     for (QWidget *w : {static_cast<QWidget *>(m_hint), static_cast<QWidget *>(m_commentsCount),
                        static_cast<QWidget *>(m_commentsFooter)})
         setMutedText(w);
-    m_penPicker->setPen(m_penPicker->pen());   // образцы цвета и линии — по новой теме
-    updateFrameUi();                          // значки меню формы — цветом новой темы
+    m_penPicker->setPen(m_penPicker->pen());   // color and line samples follow the new theme
+    updateFrameUi();                          // frame shape menu icons in the new theme's color
     m_applyingColors = false;
     updateTools();
     update();
@@ -461,7 +461,7 @@ void ShotEditor::setStyle(const RenderStyle &style)
     m_canvas->setStyle(style);
     updatePenDefaults(MarkShape::Rect);
     applyColors();
-    updateComments();   // значки карточек — цветом меток, а он мог прийти из акцента
+    updateComments();   // card badges use the mark colors, which may come from the accent
 }
 
 void ShotEditor::setPen(const MarkPen &pen)
@@ -476,7 +476,7 @@ void ShotEditor::setFrame(FrameShape frame)
     MarkPen pen = m_penPicker->pen();
     pen.frame = frame;
     m_penPicker->setPen(pen);
-    m_canvas->setPen(pen);      // и выделенной рамке — одной правкой в истории
+    m_canvas->setPen(pen);      // and the selected frame, as one edit in the history
     m_canvas->setTool(ShotCanvas::Tool::Mark);
     updateFrameUi();
     emit penChanged(pen);
@@ -508,12 +508,12 @@ void ShotEditor::showShot(const QUuid &shotId, bool fresh)
 {
     m_fresh = fresh;
     m_canvas->setShot(shotId);
-    m_canvas->setTool(ShotCanvas::Tool::Mark);   // каждый снимок начинается с рамки
+    m_canvas->setTool(ShotCanvas::Tool::Mark);   // every shot starts with the frame tool
     updateTitle();
     updateComments();
-    updateTools();   // подсказка про Esc зависит от того, свежий ли снимок
+    updateTools();   // the Esc hint depends on whether the shot is fresh
 
-    // Размер — по снимку (плюс панель комментариев, инструменты и подсказка), но не больше 85 % экрана
+    // Size follows the shot (plus the comment panel, tools and hint), but no more than 85 % of the screen
     const QSize hint = m_canvas->sizeHint() + QSize(300, 52 + 32 + 2);
     QScreen *screen = this->screen() ? this->screen() : QGuiApplication::primaryScreen();
     const QSize avail = screen->availableGeometry().size() * 0.85;
@@ -577,8 +577,8 @@ void ShotEditor::updateTools()
 
 void ShotEditor::keyPressEvent(QKeyEvent *e)
 {
-    // Сюда Esc доходит, только если внутри окна нечего закрывать: поле комментария,
-    // рамку обрезки и выделение холст и поле обрабатывают сами.
+    // Esc gets here only if there is nothing to close inside the window: the comment field,
+    // the crop frame and the selection are handled by the canvas and the field themselves.
     if (e->key() == Qt::Key_Escape && e->modifiers() == Qt::NoModifier) {
         cancelShot();
         return;
@@ -591,12 +591,12 @@ void ShotEditor::cancelShot()
     const QUuid id = m_canvas->shotId();
     const Shot *shot = m_model->shot(id);
     if (!m_fresh || !shot) {
-        // Снимок из ленты — только закрыть, правки сохранены
+        // A shot from the strip: just close, the edits are saved
         m_canvas->commitComment();
         emit doneRequested();
         return;
     }
-    // Свежий снимок: отменить. Если на нём уже есть работа — спросить.
+    // A fresh shot: discard it. If there is already work on it, ask.
     if (!shot->marks.isEmpty() || !shot->redactions.isEmpty() || !shot->crop.isNull()) {
         const int index = m_model->set().shotIndex(id);
         const auto answer = QMessageBox::question(

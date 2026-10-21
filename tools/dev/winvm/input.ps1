@@ -1,4 +1,4 @@
-# input.ps1 — читает C:\mp\cmd.txt: «click X Y», «dclick X Y», «drag X1 Y1 X2 Y2»
+# input.ps1 reads C:\mp\cmd.txt: "click X Y", "dclick X Y", "drag X1 Y1 X2 Y2"
 $parts = (Get-Content C:\mp\cmd.txt -Raw).Trim() -split '\s+'
 $Cmd = $parts[0]; $X1 = [int]$parts[1]; $Y1 = [int]$parts[2]
 if ($parts.Count -ge 5) { $X2 = [int]$parts[3]; $Y2 = [int]$parts[4] }

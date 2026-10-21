@@ -1,6 +1,6 @@
 #include "platform/Memory.h"
 
-#include <cstdlib>   // определяет __GLIBC__: без заголовка libc проверка ниже всегда ложна
+#include <cstdlib>   // defines __GLIBC__: without a libc header the check below is always false
 
 #if defined(__GLIBC__) || defined(_WIN32)
 #include <malloc.h>
@@ -13,7 +13,7 @@ void releaseFreedMemory()
 #ifdef __GLIBC__
     malloc_trim(0);
 #elif defined(_WIN32)
-    _heapmin();   // CRT отдаёт системе свободные страницы своей кучи
+    _heapmin();   // the CRT returns free pages of its heap to the system
 #endif
 }
 

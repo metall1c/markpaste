@@ -23,7 +23,7 @@ namespace mp {
 static constexpr int kPreviewWidth = 520;
 
 namespace {
-// Картинка, как её увидит чат: скруглённые углы и тонкая рамка
+// An image as the chat will see it: rounded corners and a thin border
 class PictureView : public QWidget
 {
 public:
@@ -121,7 +121,7 @@ void PreviewDialog::showSet(const CaptureSet &set, const PasteOptions &options)
 
     PasteOptions opt = options;
     if (opt.mode == PasteMode::FilesAndText)
-        opt.mode = PasteMode::Sequential;   // картинки и текст те же, отличается только способ доставки
+        opt.mode = PasteMode::Sequential;   // the images and text are the same, only the delivery differs
     const quint64 gen = ++m_generation;
     QPointer<PreviewDialog> self(this);
     QtConcurrent::run([set, opt] { return PasteOrchestrator::bakeSequence(set, opt); })
@@ -175,7 +175,7 @@ void PreviewDialog::fill(const QList<PasteOrchestrator::Item> &items)
                     break;
                 }
             caption->setText(tr("%1. Text").arg(step));
-            // Текст — на карточке, как сообщение в чате
+            // The text on a card, like a chat message
             auto *card = new Card;
             auto *cardLayout = new QVBoxLayout(card);
             cardLayout->setContentsMargins(10, 8, 10, 8);

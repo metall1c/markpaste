@@ -9,31 +9,31 @@ class QTimer;
 
 namespace mp {
 
-// Уведомление о новой версии (APP-7, Linux): раз в сутки один GET к API релизов.
-// Это единственный сетевой запрос программы, отключается в настройках (NFR-4).
-// Обновление — через пакетный менеджер, программа сама ничего не скачивает.
+// New version notification (APP-7, Linux): one GET to the releases API once a day.
+// This is the program's only network request; it can be turned off in settings (NFR-4).
+// Updating is done by the package manager, the program downloads nothing itself.
 //
-// Источник — GitHub: GET api.github.com/repos/<владелец>/<имя>/releases/latest →
-// {"tag_name": "v0.2.0", "html_url": …}. Ответ GitLab (`_links.self`) тоже понимаем.
-// Адрес задаётся при сборке (MARKPASTE_UPDATE_URL), пустой — проверка выключена в сборке.
+// Source: GitHub, GET api.github.com/repos/<owner>/<name>/releases/latest →
+// {"tag_name": "v0.2.0", "html_url": …}. A GitLab answer (`_links.self`) is understood too.
+// The URL is set at build time (MARKPASTE_UPDATE_URL); empty disables the check in the build.
 class UpdateChecker : public QObject
 {
     Q_OBJECT
 public:
     UpdateChecker(const QString &currentVersion, const QUrl &url, QObject *parent = nullptr);
 
-    // Включить или выключить периодическую проверку. Первая — через startDelayMs после
-    // включения, если с прошлой прошло больше суток (время хранится в настройках).
+    // Turn the periodic check on or off. The first one runs startDelayMs after it is
+    // enabled, if more than a day has passed since the last one (the time is kept in settings).
     void setEnabled(bool enabled, int startDelayMs = 30000);
     void checkNow();
 
-    // Разбор ответа и сравнение версий — для тестов. Пустая строка — новее нет.
+    // Parsing the answer and comparing versions, for tests. An empty string means nothing newer.
     static QString newerVersion(const QByteArray &json, const QString &currentVersion);
-    // Страница релиза из ответа: html_url (GitHub) или _links.self (GitLab)
+    // Release page from the answer: html_url (GitHub) or _links.self (GitLab)
     static QUrl releasePage(const QByteArray &json);
 
 signals:
-    // Сообщается один раз на версию: повтор после перезапуска не надоедает
+    // Reported once per version: a repeat after a restart does not nag
     void updateAvailable(const QString &version, const QUrl &page);
 
 private:

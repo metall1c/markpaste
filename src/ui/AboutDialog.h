@@ -4,8 +4,8 @@
 
 namespace mp {
 
-// Что показать в окне «О программе». Версию и адреса задаёт сборка (CMake), сведения о
-// системе — платформа; окно о них не знает, поэтому их передают снаружи.
+// What the About window shows. The version and URLs come from the build (CMake), the system
+// details from the platform; the window knows about neither, so they are passed in from outside.
 struct AboutInfo {
     QString version;
     QString homepage;
@@ -16,15 +16,15 @@ struct AboutInfo {
     QString injector;
 };
 
-// «О программе»: версия, авторы, лицензия, исходный код, сведения о системе.
-// «Скопировать сведения» кладёт в буфер версию и систему — для сообщения об ошибке.
+// "About": version, authors, license, source code, system details.
+// "Copy details" puts the version and system into the clipboard, for a bug report.
 class AboutDialog : public QDialog
 {
     Q_OBJECT
 public:
     explicit AboutDialog(const AboutInfo &info, QWidget *parent = nullptr);
 
-    // Текст для «Скопировать сведения» (и для тестов)
+    // Text for "Copy details" (and for tests)
     QString details() const;
 
 private:

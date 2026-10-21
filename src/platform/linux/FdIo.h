@@ -6,13 +6,13 @@
 
 namespace mp::lx {
 
-// Блокирующая запись всего буфера с общим таймаутом (poll), потом close(fd).
-// Вызывать из рабочего потока. Возвращает false, если получатель не дочитал.
+// Blocking write of the whole buffer with an overall timeout (poll), then close(fd).
+// Call from a worker thread. Returns false if the receiver did not read everything.
 bool writeAllAndClose(int fd, const QByteArray &data, int timeoutMs);
 
-// Асинхронное чтение до EOF в потоке context (QSocketNotifier). fd закрывается.
-// Данные — только если пришли целиком: по таймауту, ошибке чтения или сверх maxBytes
-// результат пустой. maxBytes защищает от бесконечного потока.
+// Asynchronous read until EOF in the context's thread (QSocketNotifier). fd is closed.
+// Data only if it arrived completely: on timeout, read error or over maxBytes
+// the result is empty. maxBytes protects against an endless stream.
 QFuture<QByteArray> readAllAsync(int fd, int timeoutMs, QObject *context,
                                  qint64 maxBytes = 512LL * 1024 * 1024);
 

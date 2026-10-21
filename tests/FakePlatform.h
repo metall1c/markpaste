@@ -9,15 +9,15 @@
 
 namespace mp::test {
 
-// Заглушки платформенных интерфейсов для тестов оркестратора вставки и мастера.
+// Platform interface stubs for the paste orchestrator and wizard tests.
 
 class FakeClipboard : public IClipboard
 {
 public:
     bool background = true;
-    // Как портал Clipboard: писать и читать можно только при открытой сессии ввода
+    // Like the Clipboard portal: reading and writing only while an input session is open
     std::function<bool()> sessionOpen;
-    QStringList log;   // "snapshot", "write" — порядок операций
+    QStringList log;   // "snapshot", "write": the order of operations
     ClipboardPayload current;
     QList<ClipboardPayload> writes;
     Status nextWriteStatus;
@@ -49,7 +49,7 @@ class FakeInjector : public IInputInjector
 public:
     explicit FakeInjector(FakeClipboard *cb) : clipboard(cb) {}
     FakeClipboard *clipboard;
-    QList<ClipboardPayload> pasted;   // что лежало в буфере в момент каждого Ctrl+V
+    QList<ClipboardPayload> pasted;   // what was in the clipboard at each Ctrl+V
     int begins = 0, ends = 0;
     bool sessionOpen = false;
     Status beginStatus;

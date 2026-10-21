@@ -16,7 +16,7 @@ namespace mp::win {
 
 namespace {
 
-constexpr int kGapMs = 20;   // между событиями клавиш, как на X11 и Wayland
+constexpr int kGapMs = 20;   // between key events, as on X11 and Wayland
 constexpr std::chrono::milliseconds kModifierWait{1500};
 
 DWORD integrityLevel(HANDLE token)
@@ -68,7 +68,7 @@ bool WinInputInjector::isElevatedAbove(HWND window)
         return false;
     HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
     if (!process)
-        return GetLastError() == ERROR_ACCESS_DENIED;   // не пускают даже спросить — защищённый процесс
+        return GetLastError() == ERROR_ACCESS_DENIED;   // not even allowed to ask: a protected process
     const DWORD theirs = processIntegrity(process);
     CloseHandle(process);
     const DWORD ours = processIntegrity(GetCurrentProcess());
@@ -120,7 +120,7 @@ QFuture<Status> WinInputInjector::waitModifiersReleased(std::chrono::millisecond
         if (!anyModifierDown() || timer->elapsed() >= timeout.count()) {
             promise->addResult(Status::success());
             promise->finish();
-            *poll = nullptr;   // разрываем цикл ссылок
+            *poll = nullptr;   // break the reference cycle
             return;
         }
         QTimer::singleShot(kGapMs, this, [poll] {
@@ -134,8 +134,8 @@ QFuture<Status> WinInputInjector::waitModifiersReleased(std::chrono::millisecond
 
 QFuture<Status> WinInputInjector::sendModifierMask()
 {
-    // Неназначенный код 0xE8: программы его не обрабатывают, а одиночным Alt нажатие уже не будет
-    // (так же делает AutoHotkey). Ctrl здесь хуже: Ctrl+Alt — это AltGr в части раскладок
+    // The unassigned code 0xE8: programs do not handle it, and the press no longer counts as a lone Alt
+    // (AutoHotkey does the same). Ctrl is worse here: Ctrl+Alt is AltGr in some layouts
     INPUT in[2] = {};
     for (int i = 0; i < 2; ++i) {
         in[i].type = INPUT_KEYBOARD;
@@ -154,9 +154,9 @@ QFuture<Status> WinInputInjector::sendPaste()
 
     auto promise = std::make_shared<QPromise<Status>>();
     promise->start();
-    // Зажатые пользователем Shift/Alt/Win превратили бы Ctrl+V в другое сочетание
+    // Shift/Alt/Win held by the user would turn Ctrl+V into another shortcut
     waitModifiersReleased(kModifierWait).then(this, [this, promise](const Status &) {
-        // Ожидание длится до 1,5 с — за это время пользователь мог перейти в другое окно
+        // The wait lasts up to 1.5 s, and the user may have switched to another window meanwhile
         if (m_target && GetForegroundWindow() != m_target) {
             promise->addResult(Status::failure(QStringLiteral("The active window changed: paste stopped")));
             promise->finish();
@@ -171,8 +171,8 @@ QFuture<Status> WinInputInjector::sendPaste()
         auto failed = std::make_shared<DWORD>(0);
         for (int i = 0; i < int(std::size(steps)); ++i)
             QTimer::singleShot(i * kGapMs, this, [in = steps[i], failed] {
-                // После сбоя отпускания всё равно шлём (не оставить Ctrl зажатым), а нажатия — нет:
-                // V без Ctrl напечатала бы в чат «v»
+                // After a failed release, still send the releases (do not leave Ctrl held), but not the presses:
+                // V without Ctrl would type "v" into the chat
                 if (*failed && !(in.ki.dwFlags & KEYEVENTF_KEYUP))
                     return;
                 INPUT copy = in;

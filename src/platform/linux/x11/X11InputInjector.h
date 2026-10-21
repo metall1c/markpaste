@@ -4,20 +4,20 @@
 
 namespace mp::lx {
 
-// Эмуляция Ctrl+V на X11 через расширение XTEST (ТЗ разд. 9). Без диалога и без сессии.
-// V нажимается по коду клавиши, на которой в раскладке есть «v» (ТЗ разд. 10): при русской
-// раскладке Qt и GTK на X11 сами сопоставляют Ctrl+М с Ctrl+V по латинскому варианту клавиши.
+// Ctrl+V emulation on X11 via the XTEST extension (spec section 9). No dialog and no session.
+// V is pressed by the code of the key that has "v" in the layout (spec section 10): with a Russian
+// layout Qt and GTK on X11 map Ctrl+М to Ctrl+V by the key's Latin variant themselves.
 class X11InputInjector : public IInputInjector
 {
     Q_OBJECT
 public:
-    // nullptr, если Qt работает не через xcb или у сервера нет XTEST
+    // nullptr if Qt does not run through xcb or the server has no XTEST
     static X11InputInjector *create(QObject *parent = nullptr);
 
     bool isAvailable() const override { return true; }
     QFuture<Status> begin() override { return readyFuture(Status::success()); }
     void end() override {}
-    // На X11 состояние клавиатуры видно (QueryKeymap): ждём, пока отпустят модификаторы
+    // On X11 the keyboard state is visible (QueryKeymap): wait until the modifiers are released
     QFuture<Status> waitModifiersReleased(std::chrono::milliseconds timeout) override;
     QFuture<Status> sendPaste() override;
     QFuture<Status> sendModifierMask() override;

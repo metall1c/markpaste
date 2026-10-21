@@ -15,24 +15,24 @@ class FlatButton;
 class KeyHint;
 class PenPicker;
 
-// Окно редактирования снимка (ТЗ разд. 4, шаги 3–4). Один снимок за раз;
-// переключение между снимками — из ленты. Оформление — docs/decisions/0019-ui-style.md.
+// Shot editing window (spec section 4, steps 3–4). One shot at a time;
+// switching between shots is done from the strip. Styling: docs/decisions/0019-ui-style.md.
 class ShotEditor : public QWidget
 {
     Q_OBJECT
 public:
     explicit ShotEditor(CaptureSetModel *model, QWidget *parent = nullptr);
 
-    // fresh — снимок только что снят: Esc его отменяет (удаляет из набора).
-    // Снимок, открытый из ленты для правки, Esc только закрывает.
+    // fresh: the shot was just taken, Esc discards it (removes it from the set).
+    // A shot opened from the strip for editing is only closed by Esc.
     void showShot(const QUuid &shotId, bool fresh = false);
     bool isFreshShot() const { return m_fresh; }
     QUuid shotId() const { return m_canvas->shotId(); }
-    // Сохранить набираемый комментарий. Нужно перед вставкой: окно прячется, а сохранение
-    // по потере фокуса приходит позже, чем набор уходит во вставку.
+    // Save the comment being typed. Needed before a paste: the window hides, and saving
+    // on focus loss comes later than the set goes into the paste.
     void commitPendingEdits() { m_canvas->commitComment(); }
     void setStyle(const RenderStyle &style);
-    // Перо новых меток (сохраняется в настройках между запусками)
+    // Pen for new marks (kept in settings between runs)
     void setPen(const MarkPen &pen);
 
 signals:
@@ -59,7 +59,7 @@ private:
     CaptureSetModel *m_model;
     ShotCanvas *m_canvas;
     FlatButton *m_markTool;
-    FlatButton *m_frameButton;              // форма рамки: прямоугольник, скруглённый, овал
+    FlatButton *m_frameButton;              // frame shape: rectangle, rounded, ellipse
     QList<std::pair<FrameShape, QAction *>> m_frameActions;
     FlatButton *m_arrowTool;
     FlatButton *m_penTool;

@@ -7,15 +7,15 @@ class QScreen;
 
 namespace mp {
 
-// Особые роли окон, которые на разных системах делаются по-разному (ТЗ разд. 9).
-// Вызывать ДО первого show(). Возвращают true, если роль назначена средствами
-// композитора (layer-shell); false — окно остаётся обычным, и вызывающий сам
-// разворачивает его на весь экран или ставит «поверх».
+// Special window roles that are done differently on different systems (spec section 9).
+// Call BEFORE the first show(). They return true if the role was assigned by the
+// compositor (layer-shell); false means the window stays ordinary, and the caller
+// makes it full screen or "on top" itself.
 
 enum class PanelEdge { Left, Right };
 
-// Положение панели: у левого или правого края, на высоте offset от верха экрана
-// (логические px; -1 — по центру), с отступом margin от края.
+// Panel position: at the left or right edge, at offset from the top of the screen
+// (logical px; -1 means centered), with a margin from the edge.
 struct PanelPlacement {
     PanelEdge edge = PanelEdge::Right;
     int offset = -1;
@@ -24,37 +24,37 @@ struct PanelPlacement {
 
 bool layerShellAvailable();
 
-// Оверлей захвата: поверх всего, на весь указанный экран, забирает клавиатуру.
+// Capture overlay: above everything, over the whole given screen, takes the keyboard.
 bool applyOverlayRole(QWidget *widget, QScreen *screen);
 
-// Прозрачный слой на весь экран поверх всего, не принимает ни мышь, ни клавиатуру.
-// Для подсказок вроде контура переносимой ленты. false — layer-shell нет.
+// A transparent full-screen layer above everything that accepts neither mouse nor keyboard.
+// For hints like the outline of the strip being moved. false: no layer-shell.
 bool applyGhostRole(QWidget *widget, QScreen *screen);
 
-// Лента: панель у края экрана поверх окон. Клавиатуру НЕ забирает, поэтому клик по ней
-// не уводит фокус из окна чата — кнопка «Вставить» может работать в режиме 1.
+// Strip: a panel at the screen edge above windows. It does NOT take the keyboard, so clicking it
+// does not move focus away from the chat window, and the "Paste" button can work in mode 1.
 bool applyPanelRole(QWidget *widget, QScreen *screen, const PanelPlacement &placement);
 
-// Переставить уже показанную панель (STR-5). Пользователь не может двигать поверхность
-// layer-shell мышью — положение задаёт программа. Смена монитора пересоздаёт поверхность.
-// false — панель не layer-shell, её двигает оконный менеджер.
+// Move a panel that is already shown (STR-5). The user cannot drag a layer-shell surface
+// with the mouse; the program sets the position. Changing the monitor recreates the surface.
+// false: the panel is not layer-shell, the window manager moves it.
 bool movePanel(QWidget *widget, QScreen *screen, const PanelPlacement &placement);
 
-// Лента без layer-shell, которую программа сама ставит к краю экрана (Windows): окно без рамки,
-// пользователь тянет его за заголовок ленты, а по окончании перетаскивания вызывается
-// onMoveFinished — один раз, а не на каждое движение. false — так нельзя: окно двигает оконный
-// менеджер, программа его положение не трогает.
+// A strip without layer-shell that the program itself puts at the screen edge (Windows): a frameless window
+// the user drags by the strip header; when the drag ends, onMoveFinished is called
+// once, not on every move. false: this is not possible; the window manager moves the window
+// and the program does not touch its position.
 bool watchPanelMoves(QWidget *widget, std::function<void()> onMoveFinished);
 
-// Окна программы появляются и исчезают без анимации системы. Перед снимком программа прячет
-// свои окна: в Windows окно тает ~200 мс, и полупрозрачный редактор попадал в снимок.
-// Вызвать один раз после создания QApplication. Где анимаций нет — ничего не делает.
+// Program windows appear and disappear without system animations. Before a capture the program hides
+// its windows: on Windows a window fades for ~200 ms, and the half-transparent editor got into the shot.
+// Call once after creating QApplication. Where there are no animations, does nothing.
 void disableWindowAnimations();
 
-// Отдать окну клавиатуру сразу после показа. На Windows система не даёт программе стать
-// активной, если последнее событие ввода получила не она — а Print Screen проглатывает наш хук,
-// и событие до программы не доходит. Тогда окно только мигает на панели задач, а Esc и Enter
-// уходят в прежнее окно.
+// Give the window the keyboard right after it is shown. On Windows the system does not let a program become
+// active if the last input event was not received by it, and our hook swallows Print Screen,
+// so the event never reaches the program. Then the window only flashes in the taskbar, and Esc and Enter
+// go to the previous window.
 void forceActivate(QWidget *widget);
 
 } // namespace mp

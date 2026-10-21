@@ -44,17 +44,17 @@ TEST(CaptureSetModel, RemoveMarkRenumbers)
     const Shot *shot = m.shot(s);
     ASSERT_EQ(shot->marks.size(), 2);
     EXPECT_EQ(shot->markIndex(a1), 0);
-    EXPECT_EQ(shot->markIndex(a3), 1);   // была A3, стала A2 (EDT-2)
+    EXPECT_EQ(shot->markIndex(a3), 1);   // it was A3 and became A2 (EDT-2)
 }
 
 TEST(CaptureSetModel, MarkIsClampedToVisibleArea)
 {
     CaptureSetModel m;
     const QUuid s = m.addShot(makeShot(100, 100));
-    const QUuid id = m.addMark(s, rectFromPoints(QPoint(150, 150), QPoint(50, 50)));   // перевёрнутый, за краем
+    const QUuid id = m.addMark(s, rectFromPoints(QPoint(150, 150), QPoint(50, 50)));   // inverted, beyond the edge
     ASSERT_FALSE(id.isNull());
     EXPECT_EQ(m.shot(s)->marks[0].rect, QRect(50, 50, 50, 50));
-    EXPECT_TRUE(m.addMark(s, QRect(200, 200, 10, 10)).isNull());             // целиком снаружи
+    EXPECT_TRUE(m.addMark(s, QRect(200, 200, 10, 10)).isNull());             // entirely outside
 }
 
 TEST(CaptureSetModel, CommentIsLimited)
@@ -76,11 +76,11 @@ TEST(CaptureSetModel, UndoRedoEverything)
 
     m.removeShot(a);
     EXPECT_EQ(m.set().shots.size(), 1);
-    EXPECT_EQ(m.set().shotIndex(b), 0);   // B стал A (STR-4)
+    EXPECT_EQ(m.set().shotIndex(b), 0);   // B became A (STR-4)
 
     m.undoStack()->undo();
     EXPECT_EQ(m.set(), full);
-    m.undoStack()->undo();                 // метка
+    m.undoStack()->undo();                 // the mark
     EXPECT_EQ(m.shot(b)->marks.size(), 0);
     m.undoStack()->redo();
     m.undoStack()->redo();
@@ -125,10 +125,10 @@ TEST(CaptureSetModel, CropRemovesOutsideAndClipsPartial)
 {
     CaptureSetModel m;
     const QUuid s = m.addShot(makeShot(200, 100));
-    m.addMark(s, QRect(0, 0, 20, 20));      // снаружи
-    m.addMark(s, QRect(90, 40, 40, 20));    // частично
-    m.addMark(s, QRect(110, 50, 10, 10));   // внутри
-    m.addRedaction(s, QRect(0, 80, 20, 20)); // снаружи
+    m.addMark(s, QRect(0, 0, 20, 20));      // outside
+    m.addMark(s, QRect(90, 40, 40, 20));    // partly inside
+    m.addMark(s, QRect(110, 50, 10, 10));   // inside
+    m.addRedaction(s, QRect(0, 80, 20, 20)); // outside
 
     const QRect crop(100, 30, 100, 70);
     EXPECT_EQ(m.marksOutsideCrop(s, crop), 1);
@@ -157,7 +157,7 @@ TEST(CaptureSetModel, CommentCounters)
     EXPECT_EQ(m.set().totalComments(), 1);
 }
 
-// --- Стрелка и карандаш (EDT-9) ---
+// --- Arrow and freehand (EDT-9) ---
 
 TEST(Geometry, ClipSegment)
 {
@@ -171,7 +171,7 @@ TEST(Geometry, ClipSegment)
 
 TEST(Geometry, ClipPolylineKeepsLongestRun)
 {
-    // Короткий кусок, выход наружу, длинный кусок
+    // A short piece, a trip outside, a long piece
     const QList<QPoint> pts{{10, 10}, {20, 10}, {20, -10}, {30, -10}, {30, 50}, {35, 50}};
     const QList<QPoint> clipped = clipPolyline(pts, QRect(0, 0, 100, 100));
     ASSERT_EQ(clipped.size(), 3);
@@ -206,9 +206,9 @@ TEST(CaptureSetModel, MixedShapesShareNumbering)
     const QUuid pen = m.addLinearMark(s, MarkShape::Freehand, {{150, 50}, {160, 60}, {170, 50}});
     const Shot *shot = m.shot(s);
     ASSERT_EQ(shot->marks.size(), 3);
-    EXPECT_EQ(shot->markIndex(arrow), 0);   // A1 — стрелка
-    EXPECT_EQ(shot->markIndex(rect), 1);    // A2 — рамка
-    EXPECT_EQ(shot->markIndex(pen), 2);     // A3 — карандаш
+    EXPECT_EQ(shot->markIndex(arrow), 0);   // A1 is the arrow
+    EXPECT_EQ(shot->markIndex(rect), 1);    // A2 is the frame
+    EXPECT_EQ(shot->markIndex(pen), 2);     // A3 is the freehand line
     EXPECT_EQ(shot->marks[0].rect, QRect(10, 10, 51, 31));
     EXPECT_EQ(shot->marks[0].badgeAnchor(), QPoint(10, 10));
     EXPECT_EQ(shot->marks[2].badgeAnchor(), QPoint(150, 50));
@@ -221,7 +221,7 @@ TEST(CaptureSetModel, LinearMarksRejectDegenerate)
     const QUuid s = m.addShot(makeShot(100, 100));
     EXPECT_TRUE(m.addLinearMark(s, MarkShape::Arrow, {{10, 10}, {10, 10}}).isNull());
     EXPECT_TRUE(m.addLinearMark(s, MarkShape::Arrow, {{10, 10}}).isNull());
-    EXPECT_TRUE(m.addLinearMark(s, MarkShape::Freehand, {{200, 200}, {300, 300}}).isNull());   // снаружи
+    EXPECT_TRUE(m.addLinearMark(s, MarkShape::Freehand, {{200, 200}, {300, 300}}).isNull());   // outside
 }
 
 TEST(CaptureSetModel, FreehandIsSimplified)
@@ -243,7 +243,7 @@ TEST(CaptureSetModel, SetMarkPointsMovesArrowAndUndoes)
     const QUuid id = m.addLinearMark(s, MarkShape::Arrow, {{10, 10}, {60, 40}});
     EXPECT_TRUE(m.setMarkPoints(s, id, {{10, 10}, {150, 90}}));
     EXPECT_EQ(m.shot(s)->marks[0].rect, QRect(10, 10, 141, 81));
-    EXPECT_FALSE(m.setMarkRect(s, id, QRect(0, 0, 5, 5)));   // у стрелки нет рамки
+    EXPECT_FALSE(m.setMarkRect(s, id, QRect(0, 0, 5, 5)));   // an arrow has no frame
     m.undoStack()->undo();
     EXPECT_EQ(m.shot(s)->marks[0].points, (QList<QPoint>{{10, 10}, {60, 40}}));
 }
@@ -252,9 +252,9 @@ TEST(CaptureSetModel, CropClipsLinesNotTheirBounds)
 {
     CaptureSetModel m;
     const QUuid s = m.addShot(makeShot(200, 100));
-    // Диагональ: охватывающий прямоугольник задевает обрезку, а сама линия — нет
+    // A diagonal: the bounding rectangle touches the crop, but the line itself does not
     m.addLinearMark(s, MarkShape::Arrow, {{0, 0}, {60, 60}});
-    // Пересекает край обрезки: хвост переезжает на край
+    // Crosses the crop edge: the tail moves to the edge
     m.addLinearMark(s, MarkShape::Arrow, {{50, 80}, {150, 80}});
     const QRect crop(100, 0, 100, 40);
     const QRect crop2(70, 50, 130, 50);
@@ -276,10 +276,10 @@ TEST(CaptureSetModel, MarkPenIsStoredAndUndoable)
     EXPECT_EQ(m.shot(s)->marks[0].pen, blue);
     EXPECT_TRUE(m.setMarkPen(s, id, MarkPen{}));
     EXPECT_EQ(m.shot(s)->marks[0].pen, MarkPen{});
-    EXPECT_FALSE(m.setMarkPen(s, id, MarkPen{}));   // без изменений — без записи в историю
+    EXPECT_FALSE(m.setMarkPen(s, id, MarkPen{}));   // no change, no history entry
     m.undoStack()->undo();
     EXPECT_EQ(m.shot(s)->marks[0].pen, blue);
-    // Пересечение при обрезке перо не теряет
+    // Clipping on crop does not lose the pen
     m.setCrop(s, QRect(20, 0, 180, 100));
     EXPECT_EQ(m.shot(s)->marks[0].pen, blue);
 }
@@ -295,10 +295,10 @@ TEST(CaptureSetModel, PointMarkSharesNumberingAndLeavesWithCrop)
     ASSERT_EQ(shot->marks.size(), 2);
     EXPECT_EQ(shot->markIndex(p), 1);   // A2
     EXPECT_EQ(shot->marks[1].points, QList<QPoint>{QPoint(150, 50)});
-    // Точка вне снимка не ставится, две точки — не точка
+    // A point outside the shot is not placed, two points are not a point
     EXPECT_TRUE(m.addLinearMark(s, MarkShape::Point, {{250, 50}}).isNull());
     EXPECT_TRUE(m.addLinearMark(s, MarkShape::Point, {{1, 1}, {2, 2}}).isNull());
-    // Перетаскивание и обрезка
+    // Dragging and cropping
     EXPECT_TRUE(m.setMarkPoints(s, p, {{120, 40}}));
     EXPECT_EQ(m.marksOutsideCrop(s, QRect(0, 0, 100, 100)), 1);
     EXPECT_TRUE(m.setCrop(s, QRect(0, 0, 100, 100)));

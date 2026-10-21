@@ -4,24 +4,24 @@
 
 namespace mp::win {
 
-// Сочетания клавиш для WinAPI. Общее для глобальных клавиш и эмуляции ввода.
+// Key shortcuts for WinAPI. Shared by global hotkeys and input emulation.
 
 struct WinTrigger {
-    unsigned vk = 0;          // виртуальный код клавиши (VK_*)
-    unsigned modifiers = 0;   // MOD_ALT | MOD_CONTROL | MOD_SHIFT | MOD_WIN — как у RegisterHotKey
+    unsigned vk = 0;          // virtual key code (VK_*)
+    unsigned modifiers = 0;   // MOD_ALT | MOD_CONTROL | MOD_SHIFT | MOD_WIN, as for RegisterHotKey
     bool valid() const { return vk != 0; }
 };
 
-// «Primary+Alt+V», «Print», «Ctrl+Shift+F12» → код клавиши и модификаторы. Primary = Ctrl (ТЗ разд. 9).
+// "Primary+Alt+V", "Print", "Ctrl+Shift+F12" → key code and modifiers. Primary = Ctrl (spec section 9).
 WinTrigger parseTrigger(const QString &portable);
 
-// Для людей: «Ctrl+Alt+V», а не переносимое «Primary+Alt+V»
+// For people: "Ctrl+Alt+V", not the portable "Primary+Alt+V"
 QString displayTrigger(const QString &portable);
 
-// Состояние клавиатуры сейчас (GetAsyncKeyState): работает и когда окна программы не в фокусе
+// The keyboard state right now (GetAsyncKeyState): works when the program's windows are not focused too
 bool isKeyDown(unsigned vk);
 bool anyModifierDown();                   // Shift, Ctrl, Alt, Win
-bool modifiersDown(unsigned modifiers);      // хотя бы один из MOD_* зажат
-bool modifiersDownAll(unsigned modifiers);   // зажаты все из MOD_*
+bool modifiersDown(unsigned modifiers);      // at least one of the MOD_* is held
+bool modifiersDownAll(unsigned modifiers);   // all of the MOD_* are held
 
 } // namespace mp::win

@@ -8,42 +8,42 @@
 
 namespace mp {
 
-// Настройки программы (APP-3, ТЗ разд. 11). Хранятся в QSettings (INI) в каталоге
-// конфигурации пользователя. Сочетания — в переносимом виде (Primary+Alt+V).
+// Program settings (APP-3, spec section 11). Stored in QSettings (INI) in the user's
+// configuration directory. Shortcuts are stored in portable form (Primary+Alt+V).
 struct Settings {
-    // Клавиши
+    // Hotkeys
     QString captureHotkey = QStringLiteral("Print");
-    QString pasteHotkey = QStringLiteral("Primary+Alt+V");   // не Ctrl+Shift+V (PST-2)
-    QString captureToStripHotkey = QStringLiteral("Primary+Print");   // снимок сразу в ленту (ADR 0022)
+    QString pasteHotkey = QStringLiteral("Primary+Alt+V");   // not Ctrl+Shift+V (PST-2)
+    QString captureToStripHotkey = QStringLiteral("Primary+Print");   // shot straight to the strip (ADR 0022)
 
-    // Захват
-    bool quickCapture = true;          // CAP-4: подтверждение отпусканием мыши
-    bool clearOnNextCapture = false;   // ТЗ разд. 4, шаг 8
+    // Capture
+    bool quickCapture = true;          // CAP-4: confirm by releasing the mouse
+    bool clearOnNextCapture = false;   // spec section 4, step 8
 
-    // Вставка
+    // Paste
     PasteMode pasteMode = PasteMode::Sequential;
     bool restoreClipboard = true;
     bool clearAfterPaste = false;
     int imageDelayMs = 400;
 
-    // Сообщение
-    QString templateLanguage = QStringLiteral("auto");   // auto / ru / en — отдельно от интерфейса (NFR-10)
-    QString shotHeader;    // пусто — из шаблона языка
+    // Message
+    QString templateLanguage = QStringLiteral("auto");   // auto / ru / en, separate from the UI language (NFR-10)
+    QString shotHeader;    // empty means the language template
     QString markLine;
     QString intro;
     QString outro;
     bool textBeforeImages = false;
-    bool captionsOnImage = false;      // EDT-10: комментарии подписями на картинке
-    bool markHalo = true;              // тёмная кайма линий меток (ADR 0021)
+    bool captionsOnImage = false;      // EDT-10: comments as captions on the image
+    bool markHalo = true;              // dark halo around mark lines (ADR 0021)
 
-    // Вид и картинки
+    // Appearance and images
     QColor accent = QColor(0xFF, 0x5A, 0x1F);
-    int badgeSize = 28;                // диаметр значка номера, логические px
-    QString uiLanguage = QStringLiteral("auto");   // auto / ru / en — язык интерфейса (APP-5), после перезапуска
-    bool hideStripWhenEmpty = true;    // пустой набор — лента прячется в трей (ADR 0004)
-    bool keepSetOnRestart = false;     // NFR-5: набор на диске, переживает перезапуск
-    bool checkUpdates = true;          // APP-7, NFR-4: единственный сетевой запрос
-    MarkPen markPen;                   // последнее перо редактора; пустые поля — по умолчанию
+    int badgeSize = 28;                // number badge diameter, logical px
+    QString uiLanguage = QStringLiteral("auto");   // auto / ru / en: UI language (APP-5), after a restart
+    bool hideStripWhenEmpty = true;    // an empty set hides the strip to the tray (ADR 0004)
+    bool keepSetOnRestart = false;     // NFR-5: the set is kept on disk and survives a restart
+    bool checkUpdates = true;          // APP-7, NFR-4: the only network request
+    MarkPen markPen;                   // the editor's last pen; empty fields mean defaults
     int maxLongSide = 4096;
     int jpegThresholdMb = 5;
     int jpegQuality = 85;
@@ -56,8 +56,8 @@ struct Settings {
     RenderStyle renderStyle() const;
 };
 
-// Каталог сохранённого набора (NFR-5): <AppLocalDataLocation>/session, на Linux —
-// ~/.local/share/markpaste/session, права 0700
+// Directory of the saved set (NFR-5): <AppLocalDataLocation>/session, on Linux
+// ~/.local/share/markpaste/session, mode 0700
 QString sessionDirectory();
 
 } // namespace mp

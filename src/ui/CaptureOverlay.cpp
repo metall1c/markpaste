@@ -15,9 +15,9 @@ namespace mp {
 
 namespace {
 const QColor kAccent(0xFF, 0x5A, 0x1F);
-constexpr int kHandle = 8;          // логические px
-constexpr int kMinSize = 4;         // физические px: меньше — считаем кликом
-constexpr int kMagnifier = 128;     // логические px
+constexpr int kHandle = 8;          // logical px
+constexpr int kMinSize = 4;         // physical px: anything smaller counts as a click
+constexpr int kMagnifier = 128;     // logical px
 constexpr int kZoom = 4;            // CAP-3
 
 QScreen *screenByName(const QString &name)
@@ -52,7 +52,7 @@ void CaptureSession::start()
         auto *w = new OverlayWidget(this, f, m_quick);
         m_widgets << w;
         if (!applyOverlayRole(w, screen)) {
-            // Без layer-shell: обычное окно на весь экран (GNOME, X11).
+            // Without layer-shell: an ordinary full-screen window (GNOME, X11).
             w->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
             w->setGeometry(screen->geometry());
             w->createWinId();
@@ -67,7 +67,7 @@ void CaptureSession::start()
         emit cancelled();
         return;
     }
-    // Клавиатура — окну под курсором.
+    // The keyboard goes to the window under the cursor.
     const QPoint cursor = QCursor::pos();
     for (const auto &w : std::as_const(m_widgets))
         if (w && w->geometry().contains(cursor)) {
@@ -137,8 +137,8 @@ void OverlayWidget::showEvent(QShowEvent *)
 
 void OverlayWidget::closeEvent(QCloseEvent *e)
 {
-    // Окно закрыли извне (Alt+F4 на GNOME и X11, где оверлей — обычное окно). Без отмены сеанс
-    // остался бы незавершённым, и следующий захват не запустился бы до перезапуска программы.
+    // The window was closed from outside (Alt+F4 on GNOME and X11, where the overlay is an ordinary window). Without cancelling, the session
+    // would stay unfinished, and the next capture would not start until the program restarts.
     m_session->cancel();
     QWidget::closeEvent(e);
 }
@@ -152,7 +152,7 @@ void OverlayWidget::clearSelection()
 
 QRect OverlayWidget::toPhysical(const QRectF &logical) const
 {
-    // Наружу расширяем до целых физических пикселей: ничего из выделенного не потеряется.
+    // Expand outwards to whole physical pixels: nothing selected gets lost.
     const qreal s = m_frame.scale > 0 ? m_frame.scale : 1.0;
     const int x0 = int(std::floor(logical.left() * s));
     const int y0 = int(std::floor(logical.top() * s));
@@ -207,7 +207,7 @@ void OverlayWidget::paintEvent(QPaintEvent *)
         p.setPen(QPen(kAccent, 1, Qt::DashLine));
         p.drawRect(sel.adjusted(-1, -1, 0, 0));
 
-        // Размер в физических пикселях
+        // Size in physical pixels
         const QRect phys = toPhysical(sel);
         const QString size = QStringLiteral("%1 × %2").arg(phys.width()).arg(phys.height());
         QFont f = font();
@@ -234,7 +234,7 @@ void OverlayWidget::paintEvent(QPaintEvent *)
                 p.drawRect(QRectF(c.x() - 3.5, c.y() - 3.5, 7, 7));
         }
     } else {
-        // Подсказка, пока ничего не выделено
+        // A hint while nothing is selected
         const QString hint = tr("Drag to select an area · Click — whole screen · Esc — cancel");
         QFont f = font();
         f.setPixelSize(15);
@@ -255,7 +255,7 @@ void OverlayWidget::paintEvent(QPaintEvent *)
 void OverlayWidget::paintMagnifier(QPainter &p, const QPointF &pos)
 {
     const qreal s = m_frame.scale > 0 ? m_frame.scale : 1.0;
-    // Квадрат kMagnifier логических px показывает (kMagnifier / kZoom) логических px вокруг курсора.
+    // A square of kMagnifier logical px shows (kMagnifier / kZoom) logical px around the cursor.
     const qreal srcLogical = qreal(kMagnifier) / kZoom;
     const QRectF srcPhys((pos.x() - srcLogical / 2) * s, (pos.y() - srcLogical / 2) * s, srcLogical * s, srcLogical * s);
 
@@ -266,7 +266,7 @@ void OverlayWidget::paintMagnifier(QPainter &p, const QPointF &pos)
         box.moveBottom(pos.y() - 24);
 
     p.save();
-    p.setRenderHint(QPainter::SmoothPixmapTransform, false);   // видно отдельные пиксели
+    p.setRenderHint(QPainter::SmoothPixmapTransform, false);   // individual pixels are visible
     QPainterPath clip;
     clip.addRoundedRect(box, 6, 6);
     p.setClipPath(clip);
@@ -377,7 +377,7 @@ void OverlayWidget::mouseReleaseEvent(QMouseEvent *e)
     if (m_mode == Mode::Selecting) {
         const QRect phys = toPhysical(selectionRect());
         if (phys.width() < kMinSize || phys.height() < kMinSize)
-            m_sel = rect();   // клик — весь экран
+            m_sel = rect();   // a click means the whole screen
         m_mode = Mode::Adjusting;
         if (m_quick)
             return confirmSelection();
@@ -410,7 +410,7 @@ void OverlayWidget::keyPressEvent(QKeyEvent *e)
     case Qt::Key_Down: {
         if (selectionRect().isEmpty())
             return;
-        // Шаг — один физический пиксель; с Shift меняется размер, а не положение.
+        // The step is one physical pixel; with Shift the size changes, not the position.
         const qreal step = 1.0 / (m_frame.scale > 0 ? m_frame.scale : 1.0);
         const qreal dx = e->key() == Qt::Key_Left ? -step : e->key() == Qt::Key_Right ? step : 0;
         const qreal dy = e->key() == Qt::Key_Up ? -step : e->key() == Qt::Key_Down ? step : 0;

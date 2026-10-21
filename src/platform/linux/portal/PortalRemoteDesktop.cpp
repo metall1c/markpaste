@@ -15,8 +15,8 @@ namespace {
 constexpr uint kDeviceKeyboard = 1;
 constexpr uint kPersistUntilRevoked = 2;
 
-// Ответ с задержкой: на Wayland состояние клавиатуры без фокуса не узнать,
-// отпускание сочетания приходит сигналом Deactivated портала GlobalShortcuts.
+// A delayed answer: on Wayland the keyboard state cannot be read without focus;
+// the shortcut release arrives as the Deactivated signal of the GlobalShortcuts portal.
 QFuture<Status> delayed(QObject *ctx, int ms)
 {
     auto promise = std::make_shared<QPromise<Status>>();
@@ -86,7 +86,7 @@ QFuture<Status> PortalRemoteDesktop::begin()
                 PortalBus::kService, m_session, QStringLiteral("org.freedesktop.portal.Session"),
                 QStringLiteral("Closed"), this, SLOT(onSessionClosed(QVariantMap)));
 
-            // 2. SelectDevices: только клавиатура, разрешение до отзыва
+            // 2. SelectDevices: keyboard only, permission until revoked
             QVariantMap opts{
                 {QStringLiteral("types"), kDeviceKeyboard},
                 {QStringLiteral("persist_mode"), kPersistUntilRevoked},
@@ -100,7 +100,7 @@ QFuture<Status> PortalRemoteDesktop::begin()
                     if (!r.ok())
                         return fail(QStringLiteral("SelectDevices: ") + r.describe());
 
-                    // 2a. Доступ к буферу — строго до Start (спецификация портала Clipboard)
+                    // 2a. Clipboard access strictly before Start (Clipboard portal specification)
                     if (m_requestClipboard) {
                         QDBusMessage msg = QDBusMessage::createMethodCall(
                             PortalBus::kService, PortalBus::kPath, QStringLiteral("org.freedesktop.portal.Clipboard"),
@@ -111,8 +111,8 @@ QFuture<Status> PortalRemoteDesktop::begin()
                             qCWarning(lcPortal) << "RequestClipboard failed:" << reply.errorMessage();
                     }
 
-                    // 3. Start — здесь появляется диалог разрешения, если токена нет или он не подошёл.
-                    // Таймаут не ставим: человек может читать диалог сколько угодно.
+                    // 3. Start: this is where the permission dialog appears if there is no token or it did not fit.
+                    // No timeout: a person may read the dialog for as long as they like.
                     PortalBus::instance()
                         .request(kIface, QStringLiteral("Start"),
                                  {QVariant::fromValue(QDBusObjectPath(m_session)), QString()}, {})
@@ -152,9 +152,9 @@ void PortalRemoteDesktop::end()
     bus.asyncCall(close);
     m_session.clear();
     m_clipboardEnabled = false;
-    // Как и при закрытии порталом: буфер через портал (PortalClipboard) жив только в сессии.
-    // Без сигнала он считал бы себя владельцем буфера и в следующей сессии вернул бы
-    // после вставки устаревшее содержимое вместо скопированного пользователем.
+    // Same as when the portal closes it: the portal clipboard (PortalClipboard) lives only in the session.
+    // Without the signal it would consider itself the clipboard owner and in the next session would restore
+    // stale content after a paste instead of what the user copied.
     emit sessionClosed();
 }
 
@@ -182,7 +182,7 @@ QFuture<Status> PortalRemoteDesktop::sendModifierMask()
 {
     if (m_session.isEmpty())
         return readyFuture(Status::failure(QStringLiteral("RemoteDesktop session is not started")));
-    // Ctrl↓ Ctrl↑: с зажатым Alt это не сочетание, а одиночным Alt уже не считается
+    // Ctrl↓ Ctrl↑: with Alt held this is not a shortcut, and Alt no longer counts as a lone press
     return key(kKeyLeftCtrl, true).then(this, [this](const Status &s) {
         key(kKeyLeftCtrl, false);
         return s;
@@ -194,8 +194,8 @@ QFuture<Status> PortalRemoteDesktop::sendPaste()
     if (m_session.isEmpty())
         return readyFuture(Status::failure(QStringLiteral("RemoteDesktop session is not started")));
 
-    // Ctrl↓ V↓ V↑ Ctrl↑ с паузами: часть клиентов не успевает обработать модификатор,
-    // если V приходит в том же кадре.
+    // Ctrl↓ V↓ V↑ Ctrl↑ with pauses: some clients do not manage to process the modifier
+    // if V arrives in the same frame.
     struct Step { int key; bool pressed; };
     static constexpr Step steps[] = {
         {kKeyLeftCtrl, true}, {kKeyV, true}, {kKeyV, false}, {kKeyLeftCtrl, false}};
@@ -208,12 +208,12 @@ QFuture<Status> PortalRemoteDesktop::sendPaste()
         if (i == int(std::size(steps))) {
             promise->addResult(Status::success());
             promise->finish();
-            *run = nullptr;   // разрываем цикл ссылок
+            *run = nullptr;   // break the reference cycle
             return;
         }
         key(steps[i].key, steps[i].pressed).then(this, [this, promise, run, i](const Status &s) {
             if (!s.ok) {
-                // Не оставляем Ctrl зажатым
+                // Do not leave Ctrl held
                 key(kKeyLeftCtrl, false);
                 promise->addResult(s);
                 promise->finish();

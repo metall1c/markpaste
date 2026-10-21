@@ -1,8 +1,8 @@
-# Установщик Windows на NSIS (ADR 0023): cmake --build build-win --target installer
-# → build-win/package/Markpaste-<версия>-win64-setup.exe
+# Windows installer with NSIS (ADR 0023): cmake --build build-win --target installer
+# → build-win/package/Markpaste-<version>-win64-setup.exe
 #
-# Своя схема .nsi, а не генератор NSIS из CPack: шаблон CPack ставит программу для всех
-# пользователей с правами администратора, а ТЗ (разд. 11) требует установку в профиль.
+# Our own .nsi rather than CPack's NSIS generator: the CPack template installs for all
+# users with administrator rights, while the spec (section 11) asks for a per-user install.
 
 find_program(MARKPASTE_MAKENSIS makensis)
 if(NOT MARKPASTE_MAKENSIS)
@@ -16,7 +16,7 @@ set(MARKPASTE_UNINSTALL_LIST ${MARKPASTE_INSTALLER_DIR}/uninstall-files.nsh)
 set(MARKPASTE_INSTALLER_OUT ${CMAKE_BINARY_DIR}/package/Markpaste-${PROJECT_VERSION}-win64-setup.exe)
 set(MARKPASTE_ICO ${PROJECT_SOURCE_DIR}/data/icons/app.ico)
 
-# Окно лицензии NSIS — RichEdit: строки только с LF он показывает одной простынёй
+# The NSIS license page is a RichEdit: it shows LF-only lines as one long wall of text
 file(READ ${PROJECT_SOURCE_DIR}/LICENSE license_text)
 string(REPLACE "\n" "\r\n" license_text "${license_text}")
 set(MARKPASTE_LICENSE_CRLF ${MARKPASTE_INSTALLER_DIR}/LICENSE.txt)

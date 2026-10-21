@@ -36,11 +36,11 @@ WaylandConnection *WaylandConnection::instance()
             thread->quit();
             thread->wait();
             delete thread;
-            // Объект уже в остановленном потоке: удаляем напрямую, обработчиков у него нет.
+            // The object is already in a stopped thread: delete it directly, it has no handlers.
             delete c;
             return static_cast<WaylandConnection *>(nullptr);
         }
-        // Поток живёт до конца процесса: композитор может прислать запрос данных в любой момент.
+        // The thread lives until the process ends: the compositor may send a data request at any moment.
         return c;
     }();
     return conn;
@@ -72,7 +72,7 @@ bool WaylandConnection::init()
         return false;
     m_initialGlobals = m_globals;
 
-    // Первое сиденье. Несколько сидений на десктопе — редкость, поддержим при необходимости.
+    // The first seat. Several seats on a desktop are rare; we will support them if needed.
     if (m_globals.contains("wl_seat"))
         m_seat = static_cast<wl_seat *>(bind(&wl_seat_interface, 1));
 
@@ -84,7 +84,7 @@ bool WaylandConnection::init()
 
 void WaylandConnection::onReadable()
 {
-    // Стандартная схема libwayland для внешнего цикла событий.
+    // The standard libwayland scheme for an external event loop.
     if (wl_display_prepare_read(m_display) == 0) {
         if (wl_display_read_events(m_display) < 0 && errno != EAGAIN) {
             qCWarning(lcWayland) << "connection to compositor lost";

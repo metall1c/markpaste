@@ -21,7 +21,7 @@ namespace mp::win {
 
 namespace {
 
-// Владение COM-указателем без WRL: Release при выходе из области видимости
+// COM pointer ownership without WRL: Release when leaving the scope
 template <class T>
 class Com
 {
@@ -56,7 +56,7 @@ QString hr(HRESULT code)
     return QStringLiteral("0x%1").arg(quint32(code), 8, 16, QLatin1Char('0'));
 }
 
-// BGRA строки с шагом pitch → QImage. Альфа рабочего стола не определена — ставим 255.
+// BGRA rows with a pitch → QImage. Desktop alpha is undefined, so set 255.
 QImage fromBgra(const uchar *data, int pitch, int width, int height)
 {
     QImage img(width, height, QImage::Format_RGB32);
@@ -73,7 +73,7 @@ QImage fromBgra(const uchar *data, int pitch, int width, int height)
 
 bool looksBlack(const QImage &img)
 {
-    // Первый кадр дублирования на некоторых драйверах пустой: проверяем сетку точек
+    // The first duplication frame is empty on some drivers: check a grid of points
     for (int y = 0; y < img.height(); y += std::max(1, img.height() / 16))
         for (int x = 0; x < img.width(); x += std::max(1, img.width() / 16))
             if ((img.pixel(x, y) & 0x00ffffffu) != 0)
@@ -93,7 +93,7 @@ QImage dxgiGrab(IDXGIAdapter1 *adapter, IDXGIOutput *output, QString *error)
     }
 
     Com<IDXGIOutputDuplication> dup;
-    // Windows 10 1703+: формат задаём сами — HDR система переведёт в 8 бит
+    // Windows 10 1703+: we set the format ourselves, and the system converts HDR to 8 bits
     Com<IDXGIOutput5> out5;
     if (SUCCEEDED(output->QueryInterface(__uuidof(IDXGIOutput5), out5.putVoid()))) {
         const DXGI_FORMAT formats[] = {DXGI_FORMAT_B8G8R8A8_UNORM};
@@ -106,7 +106,7 @@ QImage dxgiGrab(IDXGIAdapter1 *adapter, IDXGIOutput *output, QString *error)
             h = out1->DuplicateOutput(device.get(), dup.put());
     }
     if (FAILED(h) || !dup) {
-        // E_ACCESSDENIED — экран блокировки или окно UAC; DXGI_ERROR_UNSUPPORTED — драйвер не умеет
+        // E_ACCESSDENIED: the lock screen or a UAC window; DXGI_ERROR_UNSUPPORTED: the driver cannot do it
         *error = QStringLiteral("DuplicateOutput: %1").arg(hr(h));
         return {};
     }
@@ -114,13 +114,13 @@ QImage dxgiGrab(IDXGIAdapter1 *adapter, IDXGIOutput *output, QString *error)
     dup->GetDesc(&desc);
 
     QImage image;
-    bool presented = false;   // кадр с настоящей отрисовкой, а не пустая поверхность
+    bool presented = false;   // a frame with actual rendering, not an empty surface
     for (int attempt = 0; attempt < 2; ++attempt) {
         DXGI_OUTDUPL_FRAME_INFO info;
         Com<IDXGIResource> resource;
         h = dup->AcquireNextFrame(attempt == 0 ? 500 : 100, &info, resource.put());
         if (h == DXGI_ERROR_WAIT_TIMEOUT)
-            break;   // новых кадров нет — остаётся тот, что уже есть
+            break;   // no new frames: the one we have stays
         if (FAILED(h)) {
             *error = QStringLiteral("AcquireNextFrame: %1").arg(hr(h));
             return {};
@@ -164,12 +164,12 @@ QImage dxgiGrab(IDXGIAdapter1 *adapter, IDXGIOutput *output, QString *error)
             break;
     }
     if (image.isNull() || !presented) {
-        // Чёрный кадр без отрисовки — не снимок: так DXGI отвечает, например, в сеансе RDP.
-        // Лучше GDI, чем чёрный экран (docs/problems.md, 2026-10-20)
+        // A black frame without rendering is not a shot: DXGI answers like this e.g. in an RDP session.
+        // GDI is better than a black screen (docs/problems.md, 2026-10-20)
         *error = image.isNull() ? QStringLiteral("no frame") : QStringLiteral("empty black frame");
         return {};
     }
-    // Поверхность дублирования — в собственной ориентации панели, без поворота экрана
+    // The duplication surface is in the panel's own orientation, without screen rotation
     switch (desc.Rotation) {
     case DXGI_MODE_ROTATION_ROTATE90: image = image.transformed(QTransform().rotate(90)); break;
     case DXGI_MODE_ROTATION_ROTATE180: image = image.transformed(QTransform().rotate(180)); break;
@@ -183,7 +183,7 @@ struct Output {
     Com<IDXGIAdapter1> adapter;
     Com<IDXGIOutput> output;
     QString deviceName;
-    QRect desktop;   // физические пиксели
+    QRect desktop;   // physical pixels
 };
 
 } // namespace
@@ -197,7 +197,7 @@ QImage DxgiCapture::gdiGrab(const QRect &r)
     BITMAPINFO bi{};
     bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bi.bmiHeader.biWidth = r.width();
-    bi.bmiHeader.biHeight = -r.height();   // сверху вниз
+    bi.bmiHeader.biHeight = -r.height();   // top-down
     bi.bmiHeader.biPlanes = 1;
     bi.bmiHeader.biBitCount = 32;
     bi.bmiHeader.biCompression = BI_RGB;
@@ -206,7 +206,7 @@ QImage DxgiCapture::gdiGrab(const QRect &r)
     QImage img;
     if (bmp && bits) {
         HGDIOBJ old = SelectObject(mem, bmp);
-        // CAPTUREBLT — вместе с многослойными окнами (подсказки, меню)
+        // CAPTUREBLT: together with layered windows (tooltips, menus)
         if (BitBlt(mem, 0, 0, r.width(), r.height(), screen, r.x(), r.y(), SRCCOPY | CAPTUREBLT)) {
             GdiFlush();
             img = fromBgra(static_cast<const uchar *>(bits), r.width() * 4, r.width(), r.height());
@@ -222,8 +222,8 @@ QImage DxgiCapture::gdiGrab(const QRect &r)
 
 CaptureResult DxgiCapture::grab(const QList<ScreenInfo> &screens, bool useDxgi)
 {
-    // Удалённый рабочий стол: рабочий стол сеанса рисует не видеокарта, DXGI отдаёт пустые
-    // чёрные кадры. GDI в RDP работает (docs/problems.md, 2026-10-20)
+    // Remote desktop: the session desktop is not drawn by the GPU, DXGI returns empty
+    // black frames. GDI works in RDP (docs/problems.md, 2026-10-20)
     const bool remote = GetSystemMetrics(SM_REMOTESESSION) != 0;
     if (remote && useDxgi) {
         qCInfo(lcDxgi) << "remote desktop session: DXGI off, using GDI";
@@ -258,8 +258,8 @@ CaptureResult DxgiCapture::grab(const QList<ScreenInfo> &screens, bool useDxgi)
     for (const ScreenInfo &s : screens) {
         QElapsedTimer t;
         t.start();
-        // Монитор ищем по имени устройства (\\.\DISPLAY1), а если Qt назвал его иначе — по левому
-        // верхнему углу: Qt сохраняет его в физических координатах и при разном масштабе экранов
+        // Find the monitor by device name (\\.\DISPLAY1), and if Qt named it differently, by its top-left
+        // corner: Qt keeps it in physical coordinates, also with different screen scales
         const Output *match = nullptr;
         for (const Output &o : outputs)
             if (o.deviceName == s.name)

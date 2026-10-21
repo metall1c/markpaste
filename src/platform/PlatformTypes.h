@@ -12,8 +12,8 @@
 
 namespace mp {
 
-// Результат асинхронной платформенной операции. Ошибки возвращаем значением,
-// а не исключением: на Wayland отказ пользователя в диалоге портала — обычный исход.
+// Result of an asynchronous platform operation. Errors are returned as values,
+// not exceptions: on Wayland the user declining a portal dialog is a normal outcome.
 struct Status {
     bool ok = true;
     QString error;
@@ -33,59 +33,59 @@ QFuture<T> readyFuture(T value)
     return promise.future();
 }
 
-// --- Захват ---
+// --- Capture ---
 
 struct ScreenFrame {
-    QString screenName;     // имя выхода: совпадает с QScreen::name()
-    QRect logicalGeometry;  // положение монитора в логических координатах рабочего стола
-    qreal scale = 1.0;      // физические пиксели / логические
-    QImage image;           // физические пиксели
+    QString screenName;     // output name: matches QScreen::name()
+    QRect logicalGeometry;  // monitor position in logical desktop coordinates
+    qreal scale = 1.0;      // physical pixels / logical
+    QImage image;           // physical pixels
 };
 
 struct CaptureResult {
     Status status;
     QList<ScreenFrame> frames;
-    // Файл программы заменён, пока она работала (обновление пакета, пересборка): система
-    // больше не узнаёт процесс и не даёт быстрый захват. Снимок может быть получен запасным
-    // путём — пользователю стоит перезапустить программу (docs/problems.md, 2026-10-20).
+    // The program file was replaced while it was running (package update, rebuild): the system
+    // no longer recognizes the process and does not allow fast capture. The shot may have come through
+    // a fallback; the user should restart the program (docs/problems.md, 2026-10-20).
     bool programReplaced = false;
 };
 
 enum class CaptureCap {
     None = 0,
     WindowUnderCursor = 1 << 0,   // CAP-5
-    Silent = 1 << 1,              // без диалога и вспышки
+    Silent = 1 << 1,              // no dialog and no flash
 };
 Q_DECLARE_FLAGS(CaptureCaps, CaptureCap)
 Q_DECLARE_OPERATORS_FOR_FLAGS(CaptureCaps)
 
-// --- Клавиши ---
+// --- Hotkeys ---
 
 enum class Action {
     Capture,
     PasteSet,
     NewShot,
     ClearSet,
-    CaptureToStrip,   // снимок сразу в ленту, без редактора (Ctrl+Print)
+    CaptureToStrip,   // shot straight to the strip, without the editor (Ctrl+Print)
 };
 
 struct BindResult {
     Status status;
-    QString trigger;   // фактическое сочетание; на Wayland его подтверждает пользователь
+    QString trigger;   // the actual shortcut; on Wayland the user confirms it
 };
 
 struct ActivationContext {
-    QString activationToken;   // xdg-activation, если платформа его дала
+    QString activationToken;   // xdg-activation, if the platform provided one
 };
 
-// --- Буфер обмена ---
+// --- Clipboard ---
 
 struct ClipboardEntry {
     QString mimeType;
     QByteArray data;
 };
 
-// Одна запись буфера в нескольких форматах. Порядок — по убыванию предпочтения.
+// One clipboard entry in several formats. Ordered from most to least preferred.
 struct ClipboardPayload {
     QList<ClipboardEntry> entries;
 
@@ -93,7 +93,7 @@ struct ClipboardPayload {
     QStringList mimeTypes() const;
     const ClipboardEntry *find(const QString &mimeType) const;
 
-    // Текст со всеми принятыми синонимами MIME-типа (text/plain;charset=utf-8, UTF8_STRING…).
+    // Text with all accepted MIME type synonyms (text/plain;charset=utf-8, UTF8_STRING…).
     void addText(const QString &text);
     void addImage(const QByteArray &encoded, const QByteArray &mimeType = "image/png");
     static ClipboardPayload text(const QString &text);
@@ -102,7 +102,7 @@ struct ClipboardPayload {
 
 enum class ClipboardFlag {
     None = 0,
-    ExcludeFromHistory = 1 << 0,   // не в историю и не в облако (NFR-4)
+    ExcludeFromHistory = 1 << 0,   // not into history and not into the cloud (NFR-4)
 };
 Q_DECLARE_FLAGS(ClipboardFlags, ClipboardFlag)
 Q_DECLARE_OPERATORS_FOR_FLAGS(ClipboardFlags)

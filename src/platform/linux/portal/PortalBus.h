@@ -10,8 +10,8 @@
 namespace mp::lx {
 
 struct PortalResponse {
-    // 0 — успех, 1 — пользователь отменил, 2 — другая ошибка (спецификация Request).
-    // Для ошибок D-Bus и таймаута используем code = 2 и заполняем error.
+    // 0 = success, 1 = cancelled by the user, 2 = another error (Request specification).
+    // For D-Bus errors and timeouts we use code = 2 and fill in error.
     uint code = 2;
     QVariantMap results;
     QString error;
@@ -20,14 +20,14 @@ struct PortalResponse {
     QString describe() const;
 };
 
-// Отдельное подключение к сессионной шине для всех вызовов xdg-desktop-portal.
+// A separate session bus connection for all xdg-desktop-portal calls.
 //
-// Почему отдельное: портал узнаёт программу по подключению (sender). Регистрация
-// app id через org.freedesktop.host.portal.Registry должна быть ПЕРВЫМ вызовом порталов
-// на подключении, а общее подключение Qt (QDBusConnection::sessionBus) к этому моменту
-// уже мог использовать сам Qt — например, платформенная тема читает портал Settings.
-// Все порталы программы обязаны идти через это подключение, иначе разрешения
-// и токены восстановления не свяжутся с app id.
+// Why separate: the portal identifies the program by its connection (sender). Registering the
+// app id via org.freedesktop.host.portal.Registry must be the FIRST portal call
+// on the connection, and Qt's shared connection (QDBusConnection::sessionBus) may already
+// have been used by Qt itself by then, e.g. the platform theme reads the Settings portal.
+// All of the program's portal calls must go through this connection, otherwise permissions
+// and restore tokens will not be tied to the app id.
 class PortalBus : public QObject
 {
     Q_OBJECT
@@ -37,20 +37,20 @@ public:
     QDBusConnection connection() const { return m_bus; }
     bool isConnected() const { return m_bus.isConnected(); }
 
-    // Регистрация app id. Повторный вызов ничего не делает.
+    // Register the app id. A repeated call does nothing.
     Status registerApp(const QString &appId);
     QString appId() const { return m_appId; }
     bool hasInterface(const QString &interface) const;
     uint interfaceVersion(const QString &interface) const;
 
-    // Вызов метода портала, который отвечает через объект Request.
-    // В options добавляется handle_token, подписка на Response — до вызова (иначе гонка).
-    // timeoutMs = 0 — ждать бесконечно (диалог разрешения может висеть долго).
+    // Call a portal method that answers through a Request object.
+    // handle_token is added to options; the Response subscription is made before the call (otherwise a race).
+    // timeoutMs = 0 means wait forever (a permission dialog may stay open for a long time).
     QFuture<PortalResponse> request(const QString &interface, const QString &method,
                                     QVariantList argsBeforeOptions, QVariantMap options,
                                     QVariantList argsAfterOptions = {}, int timeoutMs = 0);
 
-    // Обычный вызов без Request (например, NotifyKeyboardKeycode).
+    // A plain call without a Request (e.g. NotifyKeyboardKeycode).
     QFuture<Status> call(const QString &interface, const QString &method, const QVariantList &args);
 
     QString newToken(const QString &prefix);

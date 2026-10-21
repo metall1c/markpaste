@@ -1,6 +1,6 @@
-; Установщик Markpaste для Windows (ТЗ разд. 11, ADR 0023).
-; Собирается целью `installer` (cmake/WindowsInstaller.cmake): makensis из NSIS 3.
-; Установка в профиль пользователя, без прав администратора; удаление — через «Приложения».
+; Markpaste installer for Windows (spec section 11, ADR 0023).
+; Built by the `installer` target (cmake/WindowsInstaller.cmake) with makensis from NSIS 3.
+; Installs into the user profile without administrator rights; uninstall via "Apps".
 
 Unicode true
 ManifestDPIAware true
@@ -40,7 +40,7 @@ VIAddVersionKey /LANG=0 "LegalCopyright" "GPL-3.0-or-later"
 
 !define MUI_WELCOMEPAGE_TEXT "$(WelcomeText)"
 !insertmacro MUI_PAGE_WELCOME
-; GPL ничего не требует принимать — страница только показывает лицензию
+; The GPL requires nothing to be accepted: the page only shows the license
 !define MUI_LICENSEPAGE_BUTTON "$(^NextBtn)"
 !define MUI_LICENSEPAGE_TEXT_BOTTOM "$(LicenseNote)"
 !insertmacro MUI_PAGE_LICENSE "@MARKPASTE_LICENSE_CRLF@"
@@ -52,7 +52,7 @@ VIAddVersionKey /LANG=0 "LegalCopyright" "GPL-3.0-or-later"
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 
-; Язык выбирается по языку Windows; нет такого — первый (английский)
+; The language follows the Windows language; if there is no match, the first one (English)
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "Russian"
 
@@ -61,8 +61,8 @@ LangString WelcomeText ${LANG_RUSSIAN} "Markpaste снимает области 
 LangString LicenseNote ${LANG_ENGLISH} "Markpaste is free software under the GNU GPL. Nothing to accept — just read."
 LangString LicenseNote ${LANG_RUSSIAN} "Markpaste — свободная программа под GNU GPL. Принимать ничего не нужно, лицензия — для сведения."
 
-; Запущенная копия держит файлы: просим её завершиться (тот же сокет единственного
-; экземпляра, что у `markpaste --quit`). Если не запущена, команда сразу выходит.
+; A running copy holds the files: ask it to quit (the same single-instance socket as
+; `markpaste --quit`). If it is not running, the command exits immediately.
 !macro QuitRunning
     IfFileExists "$INSTDIR\${APP_EXE}" 0 +3
         ExecWait '"$INSTDIR\${APP_EXE}" --quit'
@@ -77,7 +77,7 @@ Section "Install"
 
     CreateShortcut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}"
 
-    ; Запись в «Приложения» — в HKCU: установка без прав администратора
+    ; The "Apps" entry goes to HKCU: installation without administrator rights
     WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "${APP_NAME}"
     WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayVersion" "${APP_VERSION}"
     WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "${PUBLISHER}"
@@ -95,17 +95,17 @@ SectionEnd
 
 Section "Uninstall"
     !insertmacro QuitRunning
-    ; Автозапуск программа ставит сама (вкладка «Система»): после удаления он вёл бы в пустоту
+    ; The program sets up autostart itself ("System" tab): after uninstall it would point nowhere
     DeleteRegValue HKCU "${RUN_KEY}" "${APP_ID}"
     DeleteRegValue HKCU "${APPROVED_KEY}" "${APP_ID}"
 
-    ; Только свои файлы, по списку из сборки: каталог мог выбрать пользователь, RMDir /r опасен
+    ; Only our own files, from the build's list: the user may have picked the directory, RMDir /r is dangerous
     !include "@MARKPASTE_UNINSTALL_LIST@"
     Delete "$INSTDIR\uninstall.exe"
     RMDir "$INSTDIR"
 
     Delete "$SMPROGRAMS\${APP_NAME}.lnk"
     DeleteRegKey HKCU "${UNINSTALL_KEY}"
-    ; Настройки (HKCU\Software\markpaste) и журнал в %LOCALAPPDATA%\markpaste остаются:
-    ; при повторной установке программа продолжит с ними
+    ; Settings (HKCU\Software\markpaste) and the log in %LOCALAPPDATA%\markpaste stay:
+    ; after a reinstall the program continues with them
 SectionEnd

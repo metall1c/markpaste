@@ -9,7 +9,7 @@ namespace mp::win {
 static unsigned vkForQtKey(int key)
 {
     if (key >= Qt::Key_A && key <= Qt::Key_Z)
-        return unsigned('A' + (key - Qt::Key_A));   // VK букв и цифр совпадают с ASCII
+        return unsigned('A' + (key - Qt::Key_A));   // VKs of letters and digits match ASCII
     if (key >= Qt::Key_0 && key <= Qt::Key_9)
         return unsigned('0' + (key - Qt::Key_0));
     if (key >= Qt::Key_F1 && key <= Qt::Key_F24)
@@ -38,10 +38,10 @@ static unsigned vkForQtKey(int key)
     default:
         break;
     }
-    // Остальные печатные символы — по текущей раскладке (`, -, =, [, …)
+    // Other printable characters follow the current layout (`, -, =, [, …)
     if (key > 0x20 && key < 0x7f) {
         const SHORT scan = VkKeyScanW(wchar_t(key));
-        if (scan != -1 && (scan >> 8) == 0)   // символ без Shift и AltGr — иначе это другое сочетание
+        if (scan != -1 && (scan >> 8) == 0)   // a character without Shift and AltGr, otherwise it is another shortcut
             return unsigned(scan & 0xff);
     }
     return 0;

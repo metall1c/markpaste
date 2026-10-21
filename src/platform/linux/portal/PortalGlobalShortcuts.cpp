@@ -12,7 +12,7 @@ Q_DECLARE_LOGGING_CATEGORY(lcPortal)
 
 namespace {
 
-// a(sa{sv}) — список сочетаний в BindShortcuts и ответе
+// a(sa{sv}): the list of shortcuts in BindShortcuts and its reply
 struct PortalShortcut {
     QString id;
     QVariantMap properties;
@@ -98,7 +98,7 @@ bool PortalGlobalShortcuts::actionFromId(const QString &id, Action *action)
 
 QString PortalGlobalShortcuts::toPortalTrigger(const QString &portable)
 {
-    // Спецификация XDG shortcuts: модификаторы CTRL, ALT, SHIFT, NUM, LOGO и имя клавиши по xkb.
+    // XDG shortcuts specification: CTRL, ALT, SHIFT, NUM, LOGO modifiers and the xkb key name.
     QStringList out;
     const QStringList parts = portable.split(u'+', Qt::SkipEmptyParts);
     for (int i = 0; i < parts.size(); ++i) {
@@ -131,7 +131,7 @@ QFuture<Status> PortalGlobalShortcuts::ensureSession()
     m_sessionFuture = bus.request(kIface, QStringLiteral("CreateSession"), {}, opts, {}, 10000)
                           .then(this, [this](const PortalResponse &r) {
                               if (!r.ok()) {
-                                  m_sessionStarted = false;   // следующая попытка создаст сессию заново
+                                  m_sessionStarted = false;   // the next attempt creates the session again
                                   return Status::failure(QStringLiteral("GlobalShortcuts.CreateSession: ") + r.describe());
                               }
                               m_session = r.results.value(QStringLiteral("session_handle")).toString();
@@ -176,7 +176,7 @@ QFuture<QHash<Action, BindResult>> PortalGlobalShortcuts::bindAll(const QHash<Ac
                 list << sc;
             }
 
-            // Ответ BindShortcuts может прийти после диалога: таймаута нет.
+            // The BindShortcuts reply may come after a dialog: no timeout.
             return PortalBus::instance()
                 .request(kIface, QStringLiteral("BindShortcuts"),
                          {QVariant::fromValue(QDBusObjectPath(m_session)), QVariant::fromValue(list), QString()}, {})
@@ -231,8 +231,8 @@ void PortalGlobalShortcuts::onActivated(const QDBusObjectPath &session, const QS
 
 void PortalGlobalShortcuts::onShortcutsChanged(const QDBusMessage &message)
 {
-    // ShortcutsChanged(o session_handle, a(sa{sv}) shortcuts): пользователь поменял сочетание
-    // в настройках системы (в KDE — «Комбинации клавиш» или диалог ConfigureShortcuts)
+    // ShortcutsChanged(o session_handle, a(sa{sv}) shortcuts): the user changed a shortcut
+    // in the system settings (in KDE, "Shortcuts" or the ConfigureShortcuts dialog)
     const QList<QVariant> args = message.arguments();
     if (args.size() < 2 || args[0].value<QDBusObjectPath>().path() != m_session)
         return;

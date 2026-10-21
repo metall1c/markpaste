@@ -22,14 +22,14 @@ QString buildMessage(const CaptureSet &set, const MessageTemplate &tpl)
     if (!tpl.intro.trimmed().isEmpty())
         blocks << tpl.intro.trimmed();
 
-    // Ни у одного снимка нет комментариев — нет и заголовков «Снимок A»: сослаться в тексте
-    // не на что, сколько бы снимков ни было (решение пользователя, ADR 0018)
+    // No shot has comments, so there are no "Shot A" headers either: there is nothing to refer to
+    // in the text, however many shots there are (the user's decision, ADR 0018)
     const bool anyComments = set.totalComments() > 0;
     for (int si = 0; anyComments && si < set.shots.size(); ++si) {
         const Shot &shot = set.shots[si];
         QStringList lines;
-        // Метки без комментария в текст не попадают: «A1» без слов ничего не сообщает.
-        // Номер остаётся как на картинке — A2 так и называется A2, даже если A1 пропущена.
+        // Marks without a comment do not get into the text: "A1" without words says nothing.
+        // The number stays as on the image: A2 is still called A2 even if A1 is skipped.
         for (int mi = 0; mi < shot.marks.size(); ++mi) {
             const QString comment = shot.marks[mi].comment.trimmed();
             if (comment.isEmpty())
@@ -39,8 +39,8 @@ QString buildMessage(const CaptureSet &set, const MessageTemplate &tpl)
             line.replace(QStringLiteral("{text}"), comment);
             lines << line;
         }
-        // Если комментарии есть хоть где-то, заголовок остаётся у каждого снимка:
-        // по нему видно, какая картинка какая.
+        // If there are comments anywhere, every shot keeps its header:
+        // it shows which image is which.
         QString header = tpl.shotHeader;
         header.replace(QStringLiteral("{letter}"), QString(shotLetter(si)));
         lines.prepend(header);

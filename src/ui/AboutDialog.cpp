@@ -13,8 +13,8 @@ namespace mp {
 
 namespace {
 
-// Ссылка с цветом в самой разметке: QLabel берёт цвет ссылок из палитры программы
-// в момент разбора HTML, а не из палитры окна
+// A link with its color in the markup itself: QLabel takes the link color from the application palette
+// at the moment it parses the HTML, not from the window palette
 QString anchor(const QString &href, const QString &text)
 {
     return QStringLiteral("<a href=\"%1\" style=\"color:%2\">%3</a>")
@@ -31,7 +31,7 @@ QLabel *richLabel(const QString &html)
     return l;
 }
 
-// Карточка с заголовком и строками «название — значение»
+// A card with a title and "name: value" rows
 Card *infoCard(const QString &title, const QList<std::pair<QString, QString>> &rows)
 {
     auto *card = new Card;
@@ -76,7 +76,7 @@ AboutDialog::AboutDialog(const AboutInfo &info, QWidget *parent)
     layout->setContentsMargins(20, 18, 20, 16);
     layout->setSpacing(12);
 
-    // Значок, название, версия, назначение
+    // Icon, name, version, purpose
     auto *top = new QHBoxLayout;
     top->setSpacing(16);
     auto *icon = new QLabel;
@@ -137,18 +137,18 @@ AboutDialog::AboutDialog(const AboutInfo &info, QWidget *parent)
     buttons->addWidget(copy);
     buttons->addStretch();
     buttons->addWidget(close);
-    layout->addStretch();   // лишняя высота — над кнопками, а не между заголовком и карточками
+    layout->addStretch();   // extra height goes above the buttons, not between the title and the cards
     layout->addSpacing(4);
     layout->addLayout(buttons);
 
-    // Высота — по переносу строк при этой ширине: sizeHint считает переносы с запасом
+    // Height follows line wrapping at this width: sizeHint estimates wrapping with a margin
     constexpr int kWidth = 560;
     resize(kWidth, layout->totalHeightForWidth(kWidth));
 }
 
 QString AboutDialog::details() const
 {
-    // Без перевода: такой текст уходит в сообщение об ошибке разработчику
+    // Not translated: this text goes into a bug report to the developer
     QStringList lines{
         QStringLiteral("Markpaste %1").arg(m_info.version),
         QStringLiteral("Qt %1 (built with %2)").arg(QString::fromLatin1(qVersion()), QStringLiteral(QT_VERSION_STR)),

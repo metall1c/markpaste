@@ -32,7 +32,7 @@ bool clipSegment(QPointF &a, QPointF &b, const QRectF &rect)
     for (int i = 0; i < 4; ++i) {
         if (p[i] == 0) {
             if (q[i] < 0)
-                return false;   // параллелен стороне и снаружи
+                return false;   // parallel to the side and outside
             continue;
         }
         const qreal t = q[i] / p[i];
@@ -53,7 +53,7 @@ QList<QPoint> clipPolyline(const QList<QPoint> &points, const QRect &rect)
 {
     if (points.isEmpty() || rect.isEmpty())
         return {};
-    // Целочисленный прямоугольник включает правый и нижний пиксель: right() = left + width - 1
+    // An integer rectangle includes the right and bottom pixel: right() = left + width - 1
     const QRectF r(QPointF(rect.left(), rect.top()), QPointF(rect.right(), rect.bottom()));
     if (points.size() == 1)
         return r.contains(points[0]) ? points : QList<QPoint>{};
@@ -76,14 +76,14 @@ QList<QPoint> clipPolyline(const QList<QPoint> &points, const QRect &rect)
         }
         const QPoint pa = a.toPoint(), pb = b.toPoint();
         if (run.isEmpty() || run.last() != pa) {
-            finishRun();   // начало нового куска: предыдущий кончился на краю
+            finishRun();   // start of a new piece: the previous one ended at the edge
             run.append(pa);
         }
         if (pb != run.last())
             run.append(pb);
         runLength += QLineF(a, b).length();
         if (b != QPointF(points[i + 1]))
-            finishRun();   // вышли за край
+            finishRun();   // went over the edge
     }
     finishRun();
     return best;
@@ -111,7 +111,7 @@ static void rdp(const QList<QPoint> &pts, int first, int last, qreal eps, QList<
 
 QList<QPoint> simplifyPolyline(const QList<QPoint> &points, qreal epsilon)
 {
-    // Подряд одинаковые точки не несут формы
+    // Repeated identical points carry no shape
     QList<QPoint> pts;
     for (const QPoint &p : points)
         if (pts.isEmpty() || pts.last() != p)

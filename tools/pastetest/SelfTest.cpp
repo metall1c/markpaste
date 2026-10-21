@@ -33,7 +33,7 @@ namespace {
 
 QTextStream sout(stdout);
 
-// Каждая вставка — строка: "PASTE image 640x360 read=…" или "PASTE text <hex> read=…".
+// Every paste is a line: "PASTE image 640x360 read=…" or "PASTE text <hex> read=…".
 class Receiver : public QTextEdit
 {
 public:
@@ -66,7 +66,7 @@ QWidget *makeReceiverWindow(Receiver **out)
     auto *window = new QWidget;
     window->setWindowTitle(QStringLiteral("Markpaste paste self-test"));
     auto *layout = new QVBoxLayout(window);
-    layout->addWidget(new QLabel(QStringLiteral("Не трогайте клавиатуру: сюда сейчас будет вставлен набор.")));
+    layout->addWidget(new QLabel(QStringLiteral("Do not touch the keyboard: a set is about to be pasted here.")));
     auto *receiver = new Receiver;
     layout->addWidget(receiver);
     window->resize(520, 360);
@@ -100,16 +100,16 @@ int runReceiver()
     receiver->report = [](const QString &line) { sout << line << Qt::endl; };
     window->show();
     receiver->setFocus();
-    // Без оконного менеджера (Xvfb) фокус сам не придёт — просим его
+    // Without a window manager (Xvfb) focus does not come by itself, so ask for it
     QTimer::singleShot(100, window, [window] { window->activateWindow(); });
     QTimer::singleShot(300, [] { sout << "READY" << Qt::endl; });
-    QTimer::singleShot(60000, qApp, &QCoreApplication::quit);   // страховка, если родитель упал
+    QTimer::singleShot(60000, qApp, &QCoreApplication::quit);   // a safety net in case the parent crashed
     return qApp->exec();
 }
 
 int runSelfTest(const QList<QByteArray> &images, const QString &text, int settleMs, int delayMs, bool inProcess)
 {
-    QStringList lines;   // строки отчёта приёмника
+    QStringList lines;   // report lines from the receiver
     std::unique_ptr<QWidget> window;
     QProcess child;
 
@@ -140,7 +140,7 @@ int runSelfTest(const QList<QByteArray> &images, const QString &text, int settle
     const bool x11 = QGuiApplication::platformName() == u"xcb";
     std::unique_ptr<IClipboard> clipboard;
     if (x11)
-        clipboard = std::make_unique<QtClipboard>(true);   // на X11 владелец буфера может быть в фоне
+        clipboard = std::make_unique<QtClipboard>(true);   // on X11 the clipboard owner may be in the background
     else
         clipboard.reset(DataControlClipboard::create());
     if (!clipboard) {
@@ -148,7 +148,7 @@ int runSelfTest(const QList<QByteArray> &images, const QString &text, int settle
         return 3;
     }
 
-    // Ctrl+V: virtual-keyboard-v1, если композитор его даёт (wlroots), иначе портал RemoteDesktop
+    // Ctrl+V: virtual-keyboard-v1 if the compositor provides it (wlroots), otherwise the RemoteDesktop portal
     QSettings settings;
     std::unique_ptr<IInputInjector> injectorPtr;
     bool hadToken = false;
@@ -209,7 +209,7 @@ int runSelfTest(const QList<QByteArray> &images, const QString &text, int settle
     const qint64 elapsed = t.elapsed();
     sleepMs(delayMs);
     injector.end();
-    sleepMs(1000);   // ждём, пока приёмник прочитает последнее
+    sleepMs(1000);   // wait until the receiver reads the last one
 
     int imagesGot = 0, textsGot = 0, other = 0;
     bool textOk = false;
@@ -240,7 +240,7 @@ int runSelfTest(const QList<QByteArray> &images, const QString &text, int settle
     if (!saved.isEmpty()) {
         await(clipboard->write(saved, ClipboardFlag::None));
         sout << "Clipboard restored: " << saved.mimeTypes().join(QStringLiteral(", ")) << Qt::endl;
-        sleepMs(3000);   // даём Klipper забрать восстановленное содержимое
+        sleepMs(3000);   // let Klipper pick up the restored content
     }
     return ok ? 0 : 7;
 }

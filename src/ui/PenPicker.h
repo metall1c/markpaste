@@ -14,21 +14,21 @@ namespace mp {
 
 class FlatButton;
 
-// Цвет, толщина и тип линии меток: две кнопки панели редактора с выпадающими панелями.
+// Mark color, width and line style: two editor toolbar buttons with drop-down panels.
 //
-// Панели — QMenu с QWidgetAction: на Wayland программа не может сама поставить окно у кнопки,
-// а меню — всплывающая поверхность, которую композитор ставит относительно родителя.
-// Клики внутри панели меню не закрывают, поэтому ползунок и кнопки толщины работают как в окне.
+// The panels are a QMenu with a QWidgetAction: on Wayland a program cannot place a window next to a button itself,
+// while a menu is a popup surface that the compositor places relative to its parent.
+// Clicks inside the panel do not close the menu, so the slider and the width buttons work as in a window.
 class PenPicker : public QWidget
 {
     Q_OBJECT
 public:
     explicit PenPicker(QWidget *parent = nullptr);
 
-    // Без сигнала penChanged: показать перо выделенной метки или загруженное из настроек
+    // Without the penChanged signal: show the pen of the selected mark or the one loaded from settings
     void setPen(const MarkPen &pen);
     MarkPen pen() const { return m_pen; }
-    // Чем показывать пустые поля пера: акцент из настроек и толщина формы по умолчанию
+    // How to show empty pen fields: the accent from settings and the shape's default width
     void setDefaults(const QColor &accent, qreal width);
 
     static QList<qreal> presetWidths() { return {2, 3, 5, 8}; }
@@ -46,7 +46,7 @@ private:
     QWidget *buildWidthPanel();
 
     MarkPen m_pen;
-    QColor m_accent;          // из RenderStyle по умолчанию, см. конструктор
+    QColor m_accent;          // from the default RenderStyle, see the constructor
     qreal m_defaultWidth;
 
     FlatButton *m_colorButton;

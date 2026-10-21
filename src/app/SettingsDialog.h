@@ -15,17 +15,17 @@ namespace mp {
 
 class ActionButton;
 
-// Настройки (APP-3). Минимальный набор для 1.0: клавиши, вставка, сообщение, вид.
+// Settings (APP-3). The minimal set for 1.0: hotkeys, paste, message, appearance.
 class SettingsDialog : public QDialog
 {
     Q_OBJECT
 public:
-    // boundTriggers — фактические сочетания от системы; показываются вместо своих, если
-    // сочетания назначает система (IHotkeys::systemAssignsTriggers)
+    // boundTriggers are the actual shortcuts from the system; shown instead of our own when
+    // the system assigns shortcuts (IHotkeys::systemAssignsTriggers)
     SettingsDialog(const Settings &settings, const Platform &platform,
                    const QHash<Action, QString> &boundTriggers = {}, QWidget *parent = nullptr);
     Settings settings() const;
-    // Автозапуск хранится не в настройках, а файлом в ~/.config/autostart: его видит и система
+    // Autostart is not kept in settings but as a file in ~/.config/autostart: the system sees it too
     bool autostart() const;
 
 private:

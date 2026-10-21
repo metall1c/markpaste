@@ -54,7 +54,7 @@ TEST(ShotEditorUi, CtrlEnterInCommentSavesAndFinishes)
     ASSERT_NE(edit, nullptr);
     ASSERT_TRUE(edit->isVisible());
     edit->setFocus();
-    edit->insertPlainText(QStringLiteral("кнопку ярче"));   // keyClicks не умеет кириллицу
+    edit->insertPlainText(QStringLiteral("кнопку ярче"));   // keyClicks cannot type Cyrillic
     QTest::keyClick(edit, Qt::Key_Return, Qt::ControlModifier);
 
     EXPECT_EQ(f.done, 1);
@@ -73,7 +73,7 @@ TEST(ShotEditorUi, PlainEnterInCommentOnlySaves)
     QTest::keyClick(edit, Qt::Key_Return);
     EXPECT_EQ(f.done, 0);
     EXPECT_EQ(f.model.shot(f.shot)->marks[0].comment, QStringLiteral("x"));
-    EXPECT_TRUE(f.canvas()->selectedMark().isNull());   // Enter снимает выделение
+    EXPECT_TRUE(f.canvas()->selectedMark().isNull());   // Enter drops the selection
 }
 
 namespace {
@@ -92,7 +92,7 @@ TEST(ShotEditorUi, EscDiscardsFreshShot)
 
 TEST(ShotEditorUi, EscOnReopenedShotOnlyCloses)
 {
-    EditorFixture f;   // открыт как из ленты (не свежий)
+    EditorFixture f;   // opened as from the strip (not fresh)
     QTest::keyClick(f.canvas(), Qt::Key_Escape);
     EXPECT_NE(f.model.shot(f.shot), nullptr);
     EXPECT_EQ(f.done, 1);
@@ -108,7 +108,7 @@ TEST(ShotEditorUi, EscInCommentClosesOnlyTheComment)
     edit->setFocus();
     QTest::keyClick(edit, Qt::Key_Escape);
     EXPECT_FALSE(edit->isVisible());
-    EXPECT_NE(f.model.shot(f.shot), nullptr);   // снимок жив
+    EXPECT_NE(f.model.shot(f.shot), nullptr);   // the shot is alive
     EXPECT_EQ(f.done, 0);
 }
 
@@ -119,18 +119,18 @@ TEST(ShotEditorUi, DoneMakesShotNotFresh)
     EXPECT_FALSE(f.editor.isFreshShot());
 }
 
-// Снимок удалили кнопкой «Удалить снимок», отменой (Ctrl+Z) или из ленты — редактор закрывается,
-// как по Esc, и не открывает сам другой снимок ленты (docs/problems.md, 2026-10-20).
+// The shot was deleted with "Delete shot", by undo (Ctrl+Z) or from the strip: the editor closes,
+// as with Esc, and does not open another strip shot by itself (docs/problems.md, 2026-10-20).
 TEST(ShotEditorUi, RemovedShotClosesEditor)
 {
-    EditorFixture f;                                    // A принят
+    EditorFixture f;                                    // A is accepted
     const QUuid b = f.model.addShot(makeShot(400, 300));
-    f.editor.showShot(b, true);                         // B только что снят
+    f.editor.showShot(b, true);                         // B was just taken
     QTest::qWait(20);
-    f.model.removeShot(b);                              // Ctrl+Z или удаление из ленты
+    f.model.removeShot(b);                              // Ctrl+Z or deletion from the strip
     EXPECT_FALSE(f.editor.isVisible());
     EXPECT_FALSE(f.editor.isFreshShot());
-    EXPECT_NE(f.model.shot(f.shot), nullptr);           // A на месте
+    EXPECT_NE(f.model.shot(f.shot), nullptr);           // A is in place
 }
 
 TEST(ShotEditorUi, DeleteShotButtonRemovesAndCloses)
@@ -149,7 +149,7 @@ TEST(ShotEditorUi, DeleteShotButtonRemovesAndCloses)
     EXPECT_NE(f.model.shot(f.shot), nullptr);
     EXPECT_FALSE(f.editor.isVisible());
 
-    // Открытый потом из ленты A не «свежий»: Esc его только закрывает
+    // A opened later from the strip is not "fresh": Esc only closes it
     f.editor.showShot(f.shot);
     QTest::qWait(20);
     QTest::keyClick(f.canvas(), Qt::Key_Escape);
@@ -158,8 +158,8 @@ TEST(ShotEditorUi, DeleteShotButtonRemovesAndCloses)
 
 TEST(Translations, RussianLoadsForEditor)
 {
-    // Переводы привязаны к имени класса с пространством имён (mp::ShotEditor).
-    // После переименования ps → mp контексты в .ts разошлись с кодом, и интерфейс стал английским.
+    // Translations are tied to the class name with its namespace (mp::ShotEditor).
+    // After the ps → mp rename the .ts contexts drifted apart from the code, and the UI became English.
     QTranslator tr;
     ASSERT_TRUE(tr.load(QStringLiteral(":/i18n/markpaste_ru.qm")));
     EXPECT_EQ(tr.translate("mp::ShotEditor", "Done"), QStringLiteral("Готово"));
@@ -168,10 +168,10 @@ TEST(Translations, RussianLoadsForEditor)
 }
 
 namespace {
-// Перетаскивание в координатах исходника. Окно редактора крупнее снимка, масштаб 1:1.
+// Dragging in source coordinates. The editor window is larger than the shot, the scale is 1:1.
 void dragSource(ShotCanvas *c, const QList<QPoint> &path)
 {
-    // Смещение снимка в окне: точка исходника (0,0) лежит в центре минус половина снимка
+    // The shot offset in the window: the source point (0,0) is at the center minus half the shot
     const QPoint origin((c->width() - 400) / 2, (c->height() - 300) / 2);
     QTest::mousePress(c, Qt::LeftButton, {}, origin + path.first());
     for (const QPoint &p : path.mid(1)) {
@@ -208,12 +208,12 @@ TEST(ShotEditorUi, PenLoopIsHitOnlyByLine)
     EXPECT_EQ(f.model.shot(f.shot)->marks[0].shape, MarkShape::Freehand);
     f.canvas()->commitComment();
 
-    // Внутри обвода рисуется новая линия, а не тащится старая
+    // Inside the loop a new line is drawn, the old one is not dragged
     dragSource(f.canvas(), {{130, 150}, {170, 150}});
     ASSERT_EQ(f.model.shot(f.shot)->marks.size(), 2);
     f.canvas()->commitComment();
 
-    // За линию — перетаскивается весь рисунок
+    // By the line, the whole drawing is dragged
     const QList<QPoint> before = f.model.shot(f.shot)->marks[0].points;
     dragSource(f.canvas(), {{150, 100}, {160, 110}});
     const QList<QPoint> after = f.model.shot(f.shot)->marks[0].points;
@@ -230,13 +230,13 @@ TEST(ShotEditorUi, PenAppliesToNewAndSelectedMarks)
     ASSERT_NE(picker, nullptr);
     const MarkPen red{QColor(Qt::red), 5, LineStyle::Solid};
     picker->setPen(red);
-    emit picker->penChanged(red);   // как выбор в панели
+    emit picker->penChanged(red);   // like a choice in the panel
 
     dragSource(f.canvas(), {{20, 20}, {120, 100}});
     ASSERT_EQ(f.model.shot(f.shot)->marks.size(), 1);
-    EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen, red);   // новая метка — текущим пером
+    EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen, red);   // a new mark uses the current pen
 
-    // Выделенная метка перекрашивается одной правкой
+    // The selected mark is recolored with one edit
     const MarkPen dotted{QColor(Qt::blue), 2, LineStyle::Dot};
     emit picker->penChanged(dotted);
     EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen, dotted);
@@ -256,7 +256,7 @@ QAction *frameAction(ShotEditor &editor, const QString &text)
 }
 } // namespace
 
-// Форма рамки (ADR 0020): выбор в меню у «Метки» — для новых рамок и для выделенной
+// Frame shape (ADR 0020): the choice in the "Mark" menu applies to new frames and to the selected one
 TEST(ShotEditorUi, FrameShapeAppliesToNewAndSelectedMarks)
 {
     EditorFixture f;
@@ -274,7 +274,7 @@ TEST(ShotEditorUi, FrameShapeAppliesToNewAndSelectedMarks)
     ASSERT_EQ(f.model.shot(f.shot)->marks.size(), 1);
     EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen.frame, FrameShape::Ellipse);
 
-    // Только что нарисованная рамка выделена: форма меняется у неё одной правкой
+    // The frame just drawn is selected: its shape changes with one edit
     rounded->trigger();
     EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen.frame, FrameShape::Rounded);
     f.model.undoStack()->undo();
@@ -290,10 +290,10 @@ TEST(ShotEditorUi, FrameShapeLeavesSelectedArrowAlone)
     QAction *oval = frameAction(f.editor, QStringLiteral("Oval"));
     ASSERT_NE(oval, nullptr);
     oval->trigger();
-    // У стрелки формы рамки нет — пустого шага в истории тоже
+    // An arrow has no frame shape, so no empty history step either
     EXPECT_EQ(f.model.undoStack()->count(), steps);
     EXPECT_EQ(f.model.shot(f.shot)->marks[0].pen.frame, FrameShape::Rect);
-    EXPECT_EQ(f.canvas()->pen().frame, FrameShape::Ellipse);   // а новые рамки — овалы
+    EXPECT_EQ(f.canvas()->pen().frame, FrameShape::Ellipse);   // and new frames are ellipses
 }
 
 TEST(ShotEditorUi, OvalIsHitInsideButNotInItsCorner)
@@ -302,16 +302,16 @@ TEST(ShotEditorUi, OvalIsHitInsideButNotInItsCorner)
     f.editor.resize(900, 600);
     QTest::qWait(20);
     f.model.addMark(f.shot, QRect(100, 100, 200, 100), {}, MarkPen{QColor(), 0, LineStyle::Solid, FrameShape::Ellipse});
-    // Перетаскивание из угла охватывающего прямоугольника — мимо овала: новая рамка, а не сдвиг
+    // A drag from a corner of the bounding rect misses the ellipse: a new frame, not a move
     dragSource(f.canvas(), {{108, 192}, {150, 150}, {180, 170}});
     EXPECT_EQ(f.model.shot(f.shot)->marks.size(), 2);
-    // Из середины — сдвиг овала
+    // From the middle: the ellipse moves
     const QRect before = f.model.shot(f.shot)->marks[0].rect;
     dragSource(f.canvas(), {{200, 150}, {210, 160}});
     EXPECT_EQ(f.model.shot(f.shot)->marks[0].rect, before.translated(10, 10));
 }
 
-// После Enter выбор формы и цвета — для следующей метки: нарисованная не меняется
+// After Enter the choice of shape and color applies to the next mark: the drawn one does not change
 TEST(ShotEditorUi, StyleChosenAfterEnterIsForNextMark)
 {
     EditorFixture f;
@@ -369,22 +369,22 @@ TEST(ShotEditorUi, PointToolPlacesPointByClick)
     QTest::qWait(20);
     QTest::keyClick(f.canvas(), Qt::Key_D);
     ASSERT_EQ(f.canvas()->tool(), ShotCanvas::Tool::Point);
-    dragSource(f.canvas(), {{120, 90}});   // щелчок без перетаскивания
+    dragSource(f.canvas(), {{120, 90}});   // a click without dragging
     const Shot *s = f.model.shot(f.shot);
     ASSERT_EQ(s->marks.size(), 1);
     EXPECT_EQ(s->marks[0].shape, MarkShape::Point);
     EXPECT_EQ(s->marks[0].points, QList<QPoint>{QPoint(120, 90)});
     f.canvas()->commitComment();
 
-    // Щелчок по значку точки берёт её, а не ставит новую; перетаскивание двигает
+    // A click on the point's badge picks it up rather than placing a new one; dragging moves it
     dragSource(f.canvas(), {{125, 92}, {160, 110}, {200, 130}});
     s = f.model.shot(f.shot);
     ASSERT_EQ(s->marks.size(), 1);
     EXPECT_EQ(s->marks[0].points, QList<QPoint>{QPoint(195, 128)});
 }
 
-// Клавиша инструмента посреди перетаскивания обрезки: раньше стрелка брала первую точку
-// из пустого списка и программа падала
+// A tool key in the middle of a crop drag: the arrow used to take the first point
+// from an empty list, and the program crashed
 TEST(ShotEditorUi, SwitchingToolDuringDragIsSafe)
 {
     EditorFixture f;
@@ -394,7 +394,7 @@ TEST(ShotEditorUi, SwitchingToolDuringDragIsSafe)
     c->setTool(ShotCanvas::Tool::Crop);
     const QPoint origin((c->width() - 400) / 2, (c->height() - 300) / 2);
     QTest::mousePress(c, Qt::LeftButton, {}, origin + QPoint(20, 20));
-    c->setTool(ShotCanvas::Tool::Arrow);   // как клавиша A, кнопка ещё зажата
+    c->setTool(ShotCanvas::Tool::Arrow);   // like the A key, the button is still held
     QMouseEvent move(QEvent::MouseMove, QPointF(origin + QPoint(120, 90)), c->mapToGlobal(QPointF(origin + QPoint(120, 90))),
                      Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
     QApplication::sendEvent(c, &move);
@@ -402,8 +402,8 @@ TEST(ShotEditorUi, SwitchingToolDuringDragIsSafe)
     EXPECT_TRUE(f.model.shot(f.shot)->marks.isEmpty());
 }
 
-// Оверлей закрыли извне (Alt+F4): сеанс захвата должен завершиться отменой,
-// иначе следующий захват не запустится
+// The overlay was closed from outside (Alt+F4): the capture session must end with a cancel,
+// otherwise the next capture will not start
 TEST(CaptureOverlayUi, ClosingOverlayWindowCancelsSession)
 {
     ScreenFrame frame;

@@ -14,9 +14,9 @@
 namespace mp {
 
 namespace {
-constexpr int kMinSourceSize = 6;   // физические px: меньше — случайный клик, а не метка
-constexpr qreal kHandleRadius = 6;  // логические px
-constexpr qreal kLineHitSlop = 5;   // логические px сверх половины толщины линии
+constexpr int kMinSourceSize = 6;   // physical px: anything smaller is an accidental click, not a mark
+constexpr qreal kHandleRadius = 6;  // logical px
+constexpr qreal kLineHitSlop = 5;   // logical px beyond half the line width
 constexpr int kPad = 16;
 } // namespace
 
@@ -28,7 +28,7 @@ ShotCanvas::ShotCanvas(CaptureSetModel *model, QWidget *parent)
     setMinimumSize(320, 200);
     connect(m_model, &CaptureSetModel::changed, this, [this] {
         refreshImage();
-        // Выделенный объект мог исчезнуть после отмены
+        // The selected object may have disappeared after an undo
         if (m_selected.valid() && rectOf(m_selected).isNull())
             setSelection(Hit{});
         if (m_popup->isVisible() && shot() && shot()->markIndex(m_popup->markId()) < 0)
@@ -85,8 +85,8 @@ void ShotCanvas::setTool(Tool tool)
         return;
     if (m_tool == Tool::Crop)
         cancelCrop();
-    // Клавиша инструмента во время перетаскивания: незаконченное действие прежнего инструмента
-    // бросаем. Иначе новый инструмент продолжил бы его с чужими точками (пустой список у обрезки).
+    // A tool key during a drag: the unfinished action of the previous tool
+    // is dropped. Otherwise the new tool would continue it with foreign points (an empty list for crop).
     m_drag = Drag::None;
     m_live = {};
     m_livePoints = {};
@@ -107,8 +107,8 @@ void ShotCanvas::setPen(const MarkPen &pen)
 {
     m_pen = pen;
     if (const Mark *m = markOf(m_selected)) {
-        // Форма рамки стрелке, карандашу и точке не нужна: выбор формы при выделенной стрелке
-        // не должен оставлять в истории отмен пустой шаг
+        // Arrows, freehand lines and points need no frame shape: choosing a shape with an arrow selected
+        // must not leave an empty step in the undo history
         MarkPen applied = pen;
         if (m->isLinear())
             applied.frame = m->pen.frame;
@@ -129,7 +129,7 @@ void ShotCanvas::selectMark(const QUuid &markId)
 {
     setSelection(Hit{true, markId, HNone});
     if (const Mark *m = markOf(m_selected)) {
-        m_pen = m->pen;   // следующая метка — тем же пером, что видно в панели
+        m_pen = m->pen;   // the next mark uses the same pen the panel shows
         emit markSelected(m->pen, m->shape);
     }
 }
@@ -141,7 +141,7 @@ void ShotCanvas::refreshImage()
         m_image = {};
         return;
     }
-    // QByteArray разделяется неявно: сравнение с тем же буфером — по указателю, дёшево.
+    // QByteArray is implicitly shared: comparing with the same buffer is a cheap pointer comparison.
     if (m_imageSource.constData() == s->sourcePng.constData() && m_imageRedactions == s->redactions && !m_image.isNull())
         return;
     m_imageSource = s->sourcePng;
@@ -156,7 +156,7 @@ QTransform ShotCanvas::toWidget() const
         return {};
     const QRect vis = s->visibleRect();
     const qreal dpr = s->devicePixelRatio > 0 ? s->devicePixelRatio : 1.0;
-    // Не крупнее «как на экране», иначе мелкий снимок расплывается.
+    // Not larger than "as on screen", otherwise a small shot gets blurry.
     const qreal fit = std::min((width() - 2.0 * kPad) / vis.width(), (height() - 2.0 * kPad) / vis.height());
     const qreal k = std::max(0.05, std::min(fit, 1.0 / dpr));
     const qreal ox = (width() - vis.width() * k) / 2;
@@ -221,15 +221,15 @@ std::optional<MarkShape> ShotCanvas::creatingShape() const
     }
 }
 
-// Рамка ловится всей площадью, стрелка и карандаш — только по линии:
-// иначе карандашный обвод закрыл бы для мыши всё, что внутри него.
+// A frame is hit by its whole area, an arrow and a freehand line only by the line:
+// otherwise a freehand loop would cover everything inside it for the mouse.
 bool ShotCanvas::hitsMark(const Mark &mark, const QPointF &pos) const
 {
     const QTransform t = toWidget();
     if (!mark.isLinear()) {
         if (mark.pen.frame != FrameShape::Ellipse)
             return QRectF(mark.rect).contains(toSource(pos));
-        // Овал ловим по нему самому, а не по углам охватывающего прямоугольника — там пусто
+        // An ellipse is hit by the ellipse itself, not by the corners of the bounding rect, which are empty
         const QRectF r = t.mapRect(QRectF(mark.rect)).adjusted(-kLineHitSlop, -kLineHitSlop, kLineHitSlop, kLineHitSlop);
         if (r.width() <= 0 || r.height() <= 0)
             return false;
@@ -238,7 +238,7 @@ bool ShotCanvas::hitsMark(const Mark &mark, const QPointF &pos) const
         return dx * dx + dy * dy <= 1.0;
     }
     if (mark.shape == MarkShape::Point && !mark.points.isEmpty()) {
-        // Точку ловим по её значку с кольцом
+        // A point is hit by its badge with the ring
         const qreal dpr = shot() && shot()->devicePixelRatio > 0 ? shot()->devicePixelRatio : 1.0;
         const qreal radius = (m_style.badgeDiameter / 2 + markWidth(mark, m_style) * 1.5 + 2) * dpr * t.m11();
         return QLineF(t.map(QPointF(mark.points.first()) + QPointF(0.5, 0.5)), pos).length() <= radius + kLineHitSlop;
@@ -273,11 +273,11 @@ ShotCanvas::Hit ShotCanvas::hitTest(const QPointF &pos) const
     const Shot *s = shot();
     if (!s)
         return {};
-    // Сначала ручки выделенного объекта. У стрелки ручки — концы, у карандаша ручек нет.
+    // Handles of the selected object first. An arrow's handles are its ends, freehand has no handles.
     if (const Mark *m = markOf(m_selected); m && m->isLinear()) {
         if (m->shape == MarkShape::Arrow) {
             const QTransform t = toWidget();
-            for (int i = 1; i >= 0; --i)   // острие важнее: на короткой стрелке концы рядом
+            for (int i = 1; i >= 0; --i)   // the tip matters more: on a short arrow the ends are close
                 if (QLineF(t.map(QPointF(m->points[i]) + QPointF(0.5, 0.5)), pos).length() <= kHandleRadius)
                     return Hit{true, m->id, HNone, i};
         }
@@ -287,7 +287,7 @@ ShotCanvas::Hit ShotCanvas::hitTest(const QPointF &pos) const
             return Hit{m_selected.isMark, m_selected.id, h};
     }
     const QPointF src = toSource(pos);
-    // Верхние — последние в списке; метки поверх размытия
+    // The topmost are the last in the list; marks are above blurs
     for (int i = int(s->marks.size()) - 1; i >= 0; --i)
         if (hitsMark(s->marks[i], pos))
             return Hit{true, s->marks[i].id, HNone};
@@ -311,7 +311,7 @@ void ShotCanvas::paintEvent(QPaintEvent *)
     const QRect vis = s->visibleRect();
     const QTransform t = toWidget();
 
-    // Тень и тонкая рамка: снимок отделён от подложки и в тёмной, и в светлой теме
+    // A shadow and a thin border: the shot stands out from the backdrop in both dark and light themes
     {
         const QRectF shotRect = t.mapRect(QRectF(vis));
         p.save();
@@ -327,7 +327,7 @@ void ShotCanvas::paintEvent(QPaintEvent *)
         p.restore();
     }
 
-    // Снимок и метки — в координатах исходника
+    // The shot and marks in source coordinates
     Shot preview = *s;
     const auto shape = creatingShape();
     if (m_drag == Drag::Create && shape && *shape != MarkShape::Rect
@@ -357,7 +357,7 @@ void ShotCanvas::paintEvent(QPaintEvent *)
     paintMarks(p, preview, std::max(0, shotIndex()), m_style, QRectF(vis));
     p.restore();
 
-    // Рамки размытия видны только в редакторе
+    // Blur frames are visible only in the editor
     p.setRenderHint(QPainter::Antialiasing);
     QPen redPen(palette().highlight().color(), 1, Qt::DashLine);
     p.setBrush(Qt::NoBrush);
@@ -374,19 +374,19 @@ void ShotCanvas::paintEvent(QPaintEvent *)
         p.drawRect(widgetRect(m_live));
     }
 
-    // Ручки выделенного объекта
+    // Handles of the selected object
     if (m_selected.valid() && m_drag == Drag::None) {
         const QRectF r = t.mapRect(QRectF(rectOf(m_selected)));
         const Mark *m = markOf(m_selected);
         if (m && m->shape == MarkShape::Point) {
-            // Точка тянется только целиком: пунктирный круг вокруг значка
+            // A point is dragged only as a whole: a dashed circle around the badge
             const qreal dpr = shot()->devicePixelRatio > 0 ? shot()->devicePixelRatio : 1.0;
             const qreal radius = (m_style.badgeDiameter / 2 + markWidth(*m, m_style) * 1.5 + 4) * dpr * t.m11();
             p.setPen(QPen(palette().highlight().color(), 1, Qt::DashLine));
             p.setBrush(Qt::NoBrush);
             p.drawEllipse(t.map(QPointF(m->points.first()) + QPointF(0.5, 0.5)), radius, radius);
         } else if (m && m->shape == MarkShape::Freehand) {
-            // Карандаш тянется только целиком: вместо ручек — пунктир вокруг
+            // Freehand is dragged only as a whole: a dashed outline instead of handles
             p.setPen(QPen(palette().highlight().color(), 1, Qt::DashLine));
             p.setBrush(Qt::NoBrush);
             p.drawRect(r.adjusted(-4, -4, 4, 4));
@@ -397,7 +397,7 @@ void ShotCanvas::paintEvent(QPaintEvent *)
             if (m && m->shape == MarkShape::Arrow)
                 handles = {t.map(QPointF(m->points[0]) + QPointF(0.5, 0.5)),
                            t.map(QPointF(m->points[1]) + QPointF(0.5, 0.5))};
-            // Ручка под значком метки закрывала номер — её не рисуем; тянуть угол можно и так
+            // A handle under the mark badge covered the number, so it is not drawn; the corner can be dragged anyway
             QPointF badgeCenter;
             qreal badgeRadius = -1;
             if (m) {
@@ -411,7 +411,7 @@ void ShotCanvas::paintEvent(QPaintEvent *)
         }
     }
 
-    // Обрезка: всё снаружи затемнено
+    // Crop: everything outside is dimmed
     const QRect crop = (m_drag == Drag::Create && m_tool == Tool::Crop) ? m_live : m_crop;
     if (m_tool == Tool::Crop && !crop.isEmpty()) {
         QPainterPath outside;
@@ -505,11 +505,11 @@ void ShotCanvas::mouseMoveEvent(QMouseEvent *e)
             m_livePoints = {m_livePoints.first(), clampedSource(pos)};
             m_live = boundsOf(m_livePoints);
         } else if (m_tool == Tool::Point) {
-            // Точку можно сразу довести до нужного места, не отпуская мышь
+            // A point can be moved to the right place right away without releasing the mouse
             m_livePoints = {clampedSource(pos)};
             m_live = boundsOf(m_livePoints);
         } else if (m_tool == Tool::Pen) {
-            // Сырые точки мыши; упрощает их модель при добавлении метки
+            // Raw mouse points; the model simplifies them when the mark is added
             if (const QPoint p = clampedSource(pos); p != m_livePoints.last())
                 m_livePoints.append(p);
             m_live = boundsOf(m_livePoints);
@@ -522,7 +522,7 @@ void ShotCanvas::mouseMoveEvent(QMouseEvent *e)
         r.moveLeft(std::clamp(r.left(), bounds.left(), bounds.right() - r.width() + 1));
         r.moveTop(std::clamp(r.top(), bounds.top(), bounds.bottom() - r.height() + 1));
         m_live = r;
-        // Стрелка и карандаш сдвигаются на столько же, на сколько их охватывающий прямоугольник
+        // An arrow and a freehand line move by as much as their bounding rectangle
         const QPoint d = r.topLeft() - m_dragOrigin.topLeft();
         m_livePoints = m_dragOriginPoints;
         for (QPoint &p : m_livePoints)
@@ -555,7 +555,7 @@ void ShotCanvas::mouseReleaseEvent(QMouseEvent *e)
 {
     if (e->button() != Qt::LeftButton || m_drag == Drag::None)
         return;
-    if (!shot()) {   // снимок удалили, пока тянули (глобальная клавиша «очистить»)
+    if (!shot()) {   // the shot was deleted during the drag (the global "clear" hotkey)
         m_drag = Drag::None;
         return;
     }
@@ -565,14 +565,14 @@ void ShotCanvas::mouseReleaseEvent(QMouseEvent *e)
     m_live = {};
 
     if (drag == Drag::Create) {
-        // Стрелке и линии хватает длины, рамке и обрезке нужны обе стороны.
-        // Стрелка короче значка спряталась бы под ним целиком.
+        // An arrow and a line need only length, a frame and a crop need both sides.
+        // An arrow shorter than the badge would hide under it entirely.
         const qreal dpr = shot()->devicePixelRatio > 0 ? shot()->devicePixelRatio : 1.0;
         bool tooSmall = live.width() < kMinSourceSize || live.height() < kMinSourceSize;
         if (m_tool == Tool::Pen)
             tooSmall = std::max(live.width(), live.height()) < kMinSourceSize;
         else if (m_tool == Tool::Point)
-            tooSmall = livePoints.size() != 1;   // точке размер не нужен: ставится щелчком
+            tooSmall = livePoints.size() != 1;   // a point needs no size: it is placed with a click
         else if (m_tool == Tool::Arrow && livePoints.size() == 2)
             tooSmall = QLineF(livePoints[0], livePoints[1]).length() < m_style.badgeDiameter * dpr;
         if (tooSmall) {
@@ -693,7 +693,7 @@ void ShotCanvas::keyPressEvent(QKeyEvent *e)
             setSelection(Hit{});
             update();
         } else
-            QWidget::keyPressEvent(e);   // окно закроется
+            QWidget::keyPressEvent(e);   // the window will close
         return;
     case Qt::Key_Return:
     case Qt::Key_Enter:

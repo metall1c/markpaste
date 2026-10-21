@@ -16,7 +16,7 @@ namespace mp::lx {
 namespace {
 constexpr uint32_t kXkControlL = 0xffe3;
 constexpr uint32_t kXkV = 0x0076;
-constexpr uint8_t kEvdevOffset = 8;   // X-код = evdev-код + 8
+constexpr uint8_t kEvdevOffset = 8;   // X code = evdev code + 8
 constexpr uint8_t kKeyLeftCtrl = 29 + kEvdevOffset;
 constexpr uint8_t kKeyV = 47 + kEvdevOffset;
 } // namespace
@@ -32,7 +32,7 @@ X11InputInjector *X11InputInjector::create(QObject *parent)
     auto *inj = new X11InputInjector(parent);
     const QList<uint8_t> ctrl = keycodesFor(kXkControlL);
     const QList<uint8_t> v = keycodesFor(kXkV);
-    // В раскладке без латиницы «v» может не найтись — тогда код клавиши V стандартной клавиатуры
+    // A layout without Latin letters may have no "v": then use the V key code of a standard keyboard
     inj->m_ctrl = ctrl.isEmpty() ? kKeyLeftCtrl : ctrl.first();
     inj->m_v = v.isEmpty() ? kKeyV : v.first();
     return inj;
@@ -58,7 +58,7 @@ QFuture<Status> X11InputInjector::waitModifiersReleased(std::chrono::millisecond
         if (!anyModifierDown() || timer->elapsed() >= timeout.count()) {
             promise->addResult(Status::success());
             promise->finish();
-            *poll = nullptr;   // разрываем цикл ссылок
+            *poll = nullptr;   // break the reference cycle
             return;
         }
         QTimer::singleShot(20, this, [poll] {
@@ -79,7 +79,7 @@ QFuture<Status> X11InputInjector::sendModifierMask()
 
 QFuture<Status> X11InputInjector::sendPaste()
 {
-    // Ctrl↓ V↓ V↑ Ctrl↑ с паузами 20 мс, как на Wayland
+    // Ctrl↓ V↓ V↑ Ctrl↑ with 20 ms pauses, as on Wayland
     const std::function<void()> steps[] = {
         [this] { key(m_ctrl, true); },
         [this] { key(m_v, true); },

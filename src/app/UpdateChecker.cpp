@@ -32,7 +32,7 @@ void UpdateChecker::setEnabled(bool enabled, int startDelayMs)
         return;
     const QDateTime last = QSettings().value(QStringLiteral("updates/lastCheck")).toDateTime();
     const qint64 since = last.isValid() ? last.msecsTo(QDateTime::currentDateTime()) : kIntervalMs;
-    // since < 0 — часы перевели назад: не ждём дольше суток (и не переполняем int)
+    // since < 0 means the clock went back: do not wait longer than a day (and do not overflow int)
     m_timer->start(int(std::clamp<qint64>(kIntervalMs - since, startDelayMs, std::max<qint64>(startDelayMs, kIntervalMs))));
 }
 
@@ -61,7 +61,7 @@ void UpdateChecker::onReply(const QByteArray &body, int httpStatus, const QStrin
     QSettings s;
     s.setValue(QStringLiteral("updates/lastCheck"), QDateTime::currentDateTime());
     m_timer->start(int(kIntervalMs));
-    // Ошибка сети или закрытый проект (404) — молча, только в журнал: это не забота пользователя
+    // A network error or a closed project (404): silently, only to the log; this is not the user's concern
     if (!error.isEmpty()) {
         qCInfo(lcUpdate) << "update check failed:" << httpStatus << error;
         return;
@@ -87,7 +87,7 @@ QUrl UpdateChecker::releasePage(const QByteArray &json)
 QString UpdateChecker::newerVersion(const QByteArray &json, const QString &currentVersion)
 {
     const QJsonObject o = QJsonDocument::fromJson(json).object();
-    // Черновики и предварительные выпуски GitHub, будущие релизы GitLab — не новая версия
+    // GitHub drafts and pre-releases, GitLab upcoming releases are not a new version
     if (o.value(QStringLiteral("upcoming_release")).toBool() || o.value(QStringLiteral("draft")).toBool()
         || o.value(QStringLiteral("prerelease")).toBool())
         return {};

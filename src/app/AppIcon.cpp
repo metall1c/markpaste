@@ -16,13 +16,13 @@ static QPixmap drawIcon(int size)
     const qreal s = size;
     const QColor accent(0xFF, 0x5A, 0x1F);
 
-    // Рамка выделения
+    // Selection frame
     QPen frame(accent, s * 0.09, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin);
     p.setPen(frame);
     p.setBrush(Qt::NoBrush);
     p.drawRoundedRect(QRectF(s * 0.18, s * 0.22, s * 0.72, s * 0.62), s * 0.06, s * 0.06);
 
-    // Значок метки в углу
+    // Mark badge in the corner
     const QRectF badge(s * 0.04, s * 0.06, s * 0.42, s * 0.42);
     p.setPen(QPen(Qt::white, s * 0.035));
     p.setBrush(badgeFillColor(accent));

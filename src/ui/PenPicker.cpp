@@ -22,7 +22,7 @@ namespace mp {
 
 namespace {
 
-// Первый образец — пустой цвет: «акцент из настроек»
+// The first swatch is the empty color: "accent from settings"
 const QList<QColor> kSwatches{QColor(), QColor(0xE5, 0x39, 0x35), QColor(0xFD, 0xD8, 0x35), QColor(0x43, 0xA0, 0x47),
                               QColor(0x1E, 0x88, 0xE5), QColor(0x8E, 0x24, 0xAA), QColor(0x21, 0x21, 0x21),
                               QColor(Qt::white)};
@@ -70,7 +70,7 @@ QString widthText(qreal w)
     return PenPicker::tr("%1 px").arg(QString::number(w, 'g', 3));
 }
 
-// Образец линии во всю ширину панели
+// Line sample across the whole panel width
 class LinePreview : public QWidget
 {
 public:
@@ -220,7 +220,7 @@ QWidget *PenPicker::buildWidthPanel()
 
     auto *presets = new QHBoxLayout;
     m_presets = new QButtonGroup(this);
-    m_presets->setExclusive(false);   // при толщине не из набора не отмечена ни одна
+    m_presets->setExclusive(false);   // with a width not from the presets, none is checked
     for (qreal w : presetWidths()) {
         auto *b = panelButton(panel);
         b->setIcon(lineIcon(palette().text().color(), w, LineStyle::Solid));
@@ -240,7 +240,7 @@ QWidget *PenPicker::buildWidthPanel()
     m_slider->setFocusPolicy(Qt::NoFocus);
     connect(m_slider, &QSlider::valueChanged, this, [this](int value) {
         if (qFuzzyCompare(shownWidth(), qreal(value)))
-            return;   // сдвинули программно в refresh()
+            return;   // moved programmatically in refresh()
         MarkPen p = m_pen;
         p.width = value;
         change(p);

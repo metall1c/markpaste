@@ -8,24 +8,24 @@
 
 namespace mp {
 
-// Набор реализаций для текущей системы. Любой указатель может быть пустым:
-// ядро и UI обязаны работать с тем, что есть (например, без глобальных клавиш —
-// через CLI и кнопки).
+// The set of implementations for the current system. Any pointer may be null:
+// the core and the UI must work with what there is (for example, without global hotkeys,
+// through the CLI and buttons).
 struct Platform {
     std::unique_ptr<ICapture> capture;
     std::unique_ptr<IHotkeys> hotkeys;
     std::unique_ptr<IClipboard> clipboard;
     std::unique_ptr<IInputInjector> injector;
 
-    QString environment;        // «Wayland · KDE» — для мастера и логов
+    QString environment;        // "Wayland · KDE", for the wizard and logs
     bool nativeWayland = false;
-    bool runningUnderXWayland = false;   // сессия Wayland, а Qt запущен через xcb (ТЗ разд. 14)
+    bool runningUnderXWayland = false;   // a Wayland session, but Qt runs through xcb (spec section 14)
     bool supportsLayerShell = false;
-    QStringList notes;          // что недоступно и почему — для мастера первого запуска
+    QStringList notes;          // what is unavailable and why, for the first-start wizard
 };
 
-// Определяет окружение при старте (ТЗ разд. 9) и включает доступные механизмы.
-// Вызывать после создания QApplication и до показа окон.
+// Detects the environment at startup (spec section 9) and enables the available mechanisms.
+// Call after creating QApplication and before showing windows.
 Platform createPlatform(const QString &appId);
 
 } // namespace mp

@@ -1,6 +1,6 @@
-# Список удаления для установщика NSIS: Delete на каждый установленный файл и RMDir на
-# каждый каталог, от глубоких к корню. Удалитель трогает только то, что поставил сам.
-#   cmake -DSTAGE=<каталог установки> -DOUT=<файл .nsh> -P NsisFileList.cmake
+# Uninstall list for the NSIS installer: Delete for every installed file and RMDir for every
+# directory, deepest first. The uninstaller touches only what it installed itself.
+#   cmake -DSTAGE=<install dir> -DOUT=<.nsh file> -P NsisFileList.cmake
 
 file(GLOB_RECURSE files RELATIVE ${STAGE} ${STAGE}/*)
 list(SORT files)
@@ -16,7 +16,7 @@ foreach(f IN LISTS files)
     endwhile()
 endforeach()
 list(REMOVE_DUPLICATES dirs)
-# Обратный порядок строк: вложенный каталог («plugins/tls») идёт раньше родителя («plugins»)
+# Reverse line order: a nested directory ("plugins/tls") comes before its parent ("plugins")
 list(SORT dirs ORDER DESCENDING)
 foreach(d IN LISTS dirs)
     string(REPLACE "/" "\\" win "${d}")

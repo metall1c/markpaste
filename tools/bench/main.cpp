@@ -1,9 +1,9 @@
-// Замеры NFR-1 и NFR-2 без настоящего экрана 4K: память набора из 26 снимков 4K, время
-// вставки 5 снимков (запекание + задержки профиля), время до первого кадра оверлея на 2×4K.
-// Платформа — заглушки: буфер и Ctrl+V мгновенные, поэтому время вставки — это наше
-// запекание плюс паузы профиля, без задержек самого чата.
+// NFR-1 and NFR-2 measurements without a real 4K screen: memory of a set of 26 4K shots, the time
+// to paste 5 shots (baking + profile delays), the time to the first overlay frame on 2×4K.
+// The platform is stubbed: clipboard and Ctrl+V are instant, so the paste time is our
+// baking plus the profile pauses, without the chat's own delays.
 //
-//   markpaste-bench [--shots 26] [--paste 5]       (QT_QPA_PLATFORM=offscreen ставится сам)
+//   markpaste-bench [--shots 26] [--paste 5]       (QT_QPA_PLATFORM=offscreen is set automatically)
 
 #include "../../tests/FakePlatform.h"
 #include "core/CaptureSetModel.h"
@@ -29,7 +29,7 @@ using namespace mp;
 
 namespace {
 
-// VmRSS и VmHWM из /proc/self/status, МБ
+// VmRSS and VmHWM from /proc/self/status, MB
 std::pair<double, double> memoryMb()
 {
     QFile f(QStringLiteral("/proc/self/status"));
@@ -52,8 +52,8 @@ void report(const char *what)
     std::fflush(stdout);
 }
 
-// Похоже на снимок экрана, а не на шум: панели, текст, кнопки, градиент и фото-вставка.
-// Шум сжимается плохо и завысил бы память, однотонный фон — занизил бы.
+// Looks like a screenshot rather than noise: panels, text, buttons, a gradient and a photo inset.
+// Noise compresses badly and would overstate memory, a flat background would understate it.
 QImage screenLike(int w, int h, int seed)
 {
     QImage img(w, h, QImage::Format_ARGB32);
@@ -77,7 +77,7 @@ QImage screenLike(int w, int h, int seed)
     }
     for (int i = 0; i < 8; ++i)
         p.fillRect(QRect(460 + i * 300, h - 220, 260, 70), QColor::fromHsv(rng.bounded(360), 160, 220));
-    // «Фотография» — плохо сжимаемая область, как картинка на странице
+    // A "photo": a poorly compressible area, like a picture on a web page
     QImage photo(900, 600, QImage::Format_RGB32);
     for (int y = 0; y < photo.height(); ++y)
         for (int x = 0; x < photo.width(); ++x)
@@ -92,7 +92,7 @@ QByteArray toPng(const QImage &img)
     QByteArray png;
     QBuffer buf(&png);
     buf.open(QIODevice::WriteOnly);
-    img.save(&buf, "PNG", 50);   // как AppController::onCaptured
+    img.save(&buf, "PNG", 50);   // as AppController::onCaptured does
     return png;
 }
 
@@ -116,13 +116,13 @@ int main(int argc, char **argv)
 
     report("start (QApplication)");
 
-    // --- NFR-1: оверлей на двух мониторах 4K ---
+    // --- NFR-1: overlay on two 4K monitors ---
     {
         QList<ScreenFrame> frames;
         for (int i = 0; i < 2; ++i)
             frames << ScreenFrame{QStringLiteral("bench-%1").arg(i), QRect(i * W, 0, W, H), 1.0, screenLike(W, H, i)};
-        // Время до оверлея здесь не мерим: без настоящего композитора окно не рисуется на экран,
-        // цифры — из журнала программы на живой сессии (overlay shown … ms). Здесь — память.
+        // The time to the overlay is not measured here: without a real compositor the window is not drawn on screen;
+        // the numbers come from the program log in a live session (overlay shown … ms). Here, memory.
         auto *session = new CaptureSession(frames, true);
         session->start();
         QApplication::processEvents();
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
         QApplication::processEvents();
     }
 
-    // --- NFR-2: набор из N снимков 4K ---
+    // --- NFR-2: a set of N 4K shots ---
     CaptureSetModel model;
     StripWindow strip(&model);
     strip.show();
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
         s.sourceSize = img.size();
         pngBytes += s.sourcePng.size();
         const QUuid id = model.addShot(s);
-        model.addMark(id, QRect(500, 300, 800, 200), QStringLiteral("Комментарий %1").arg(i + 1));
+        model.addMark(id, QRect(500, 300, 800, 200), QStringLiteral("Comment %1").arg(i + 1));
         model.addLinearMark(id, MarkShape::Arrow, {{2000, 1500}, {1400, 900}});
         if (i == 0) {
             editor.showShot(id);
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
                 pngBytes / 1048576.0, pngBytes / 1048576.0 / shots, encode.elapsed() / shots);
     report("set + strip + editor (one shot open)");
 
-    // --- NFR-1: вставка N снимков ---
+    // --- NFR-1: pasting N shots ---
     test::FakeClipboard clipboard;
     test::FakeInjector injector(&clipboard);
     PasteOrchestrator paste(&clipboard, &injector);
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
     PasteOptions opt;
     opt.messageTemplate = MessageTemplate::defaultFor(QLocale(QLocale::Russian));
     releaseFreedMemory();
-    // Пик RSS — заново, чтобы видеть пик самой вставки (Linux: запись «5» в clear_refs)
+    // Peak RSS again, to see the peak of the paste itself (Linux: writing "5" to clear_refs)
     if (QFile refs(QStringLiteral("/proc/self/clear_refs")); refs.open(QIODevice::WriteOnly))
         refs.write("5");
     report("before paste (peak reset)");
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
     std::printf("  until the last Ctrl+V: about %lld ms\n", total - tm.afterTextMs - tm.restoreAfterMs);
     QTest::qWait(1500);
     report("after paste + 1.5 s idle");
-    releaseFreedMemory();   // так делает программа через 2 с после вставки
+    releaseFreedMemory();   // the program does this 2 s after a paste
     report("after releaseFreedMemory()");
     return 0;
 }

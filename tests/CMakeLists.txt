@@ -1,5 +1,5 @@
-# Linux — системный пакет (gtest-devel, libgtest-dev). Для кросс-сборки под Windows
-# (MinGW на Fedora) пакета нет — берём исходники той же версии (docs/build.md).
+# Linux: the system package (gtest-devel, libgtest-dev). For cross-compiling for Windows
+# (MinGW on Fedora) there is no package, so sources of the same version are fetched (docs/build.md).
 find_package(GTest QUIET)
 if(NOT GTest_FOUND)
     include(FetchContent)
@@ -9,7 +9,7 @@ if(NOT GTest_FOUND)
         DOWNLOAD_EXTRACT_TIMESTAMP ON)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
     set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
-    set(BUILD_SHARED_LIBS OFF)   # тулчейн MinGW Fedora включает общие библиотеки
+    set(BUILD_SHARED_LIBS OFF)   # the Fedora MinGW toolchain enables shared libraries
     FetchContent_MakeAvailable(googletest)
 endif()
 
@@ -24,12 +24,12 @@ add_executable(markpaste_core_tests
 target_link_libraries(markpaste_core_tests PRIVATE markpaste_core GTest::gtest)
 
 include(GoogleTest)
-# При кросс-сборке тесты нельзя запустить сразу после сборки (это .exe) — список берётся
-# перед запуском ctest. Сами тесты под Windows гоняем через Wine (docs/build.md).
+# When cross-compiling, tests cannot run right after the build (they are .exe), so the list is taken
+# before running ctest. The tests themselves are run on Windows through Wine (docs/build.md).
 if(CMAKE_CROSSCOMPILING)
     set(CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE PRE_TEST)
 endif()
-# Рендер шрифтов требует QGuiApplication; в CI без дисплея — offscreen.
+# Font rendering needs QGuiApplication; in CI without a display, offscreen.
 gtest_discover_tests(markpaste_core_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 find_package(Qt6 REQUIRED COMPONENTS Test)
@@ -40,15 +40,15 @@ add_executable(markpaste_ui_tests
     test_setup_wizard.cpp
     test_app_parts.cpp
     test_strip_ui.cpp
-    # Части программы без зависимостей от контроллера
+    # Program parts with no dependency on the controller
     ${PROJECT_SOURCE_DIR}/src/app/LogFile.cpp
     ${PROJECT_SOURCE_DIR}/src/app/UpdateChecker.cpp
 )
 target_include_directories(markpaste_ui_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(markpaste_ui_tests PRIVATE markpaste_ui Qt6::Network Qt6::Test GTest::gtest)
 gtest_discover_tests(markpaste_ui_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
-# Только .qm, без цели lupdate: иначе update_translations запускает два lupdate
-# над одним markpaste_ru.ts одновременно и портит файл (docs/problems.md).
+# Only .qm, without an lupdate target: otherwise update_translations runs two lupdate
+# processes on the same markpaste_ru.ts at once and corrupts the file (docs/problems.md).
 qt_add_lrelease(markpaste_ui_tests
     TS_FILES ${PROJECT_SOURCE_DIR}/i18n/markpaste_ru.ts
     QM_FILES_OUTPUT_VARIABLE markpaste_test_qm)
@@ -57,7 +57,7 @@ qt_add_resources(markpaste_ui_tests test_translations
     BASE ${CMAKE_CURRENT_BINARY_DIR}
     FILES ${markpaste_test_qm})
 
-# Windows-реализации платформы — на настоящем модуле Qt windows (под Wine или на Windows)
+# Windows platform implementations on the real Qt windows module (under Wine or on Windows)
 if(WIN32)
     add_executable(markpaste_windows_tests test_windows.cpp)
     target_include_directories(markpaste_windows_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)

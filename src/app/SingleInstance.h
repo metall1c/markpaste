@@ -7,18 +7,18 @@ class QLocalServer;
 
 namespace mp {
 
-// Только один экземпляр (APP-2). Повторный запуск передаёт команду работающему
-// экземпляру через локальный сокет и завершается. Так же работает CLI
-// `markpaste --capture` для окружений без портала клавиш (CAP-7).
+// Single instance (APP-2). A repeated launch passes its command to the running
+// instance over a local socket and exits. The CLI `markpaste --capture` works the
+// same way, for environments without a hotkeys portal (CAP-7).
 class SingleInstance : public QObject
 {
     Q_OBJECT
 public:
     explicit SingleInstance(const QString &appId, QObject *parent = nullptr);
 
-    // true — мы первый экземпляр и слушаем сокет.
+    // true: we are the first instance and listen on the socket.
     bool listen();
-    // Отправить команду работающему экземпляру. false — его нет.
+    // Send a command to the running instance. false: there is none.
     bool sendToRunning(const QString &command, int timeoutMs = 1000);
 
 signals:

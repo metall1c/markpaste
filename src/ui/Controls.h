@@ -11,12 +11,12 @@ class QLabel;
 
 namespace mp {
 
-// Кнопки и мелкие элементы окон программы. Рисуются сами, а не стилем системы: на Breeze,
-// Windows 11 и Fusion выглядят одинаково, цвета — из UiColors (docs/decisions/0019-ui-style.md).
+// Buttons and small elements of the program's windows. They paint themselves rather than use the system style: on Breeze,
+// Windows 11 and Fusion they look the same, colors come from UiColors (docs/decisions/0019-ui-style.md).
 
-// Кнопка-значок: инструменты редактора, отмена, корзина, кнопки заголовка ленты, перо.
-// Текст кнопки — имя для экранного диктора и тестов; на самой кнопке он виден, только если
-// setTextVisible(true). Значок — из набора (setGlyph) или свой QIcon (setIcon), например образец цвета.
+// Icon button: editor tools, undo, trash, strip header buttons, pen.
+// The button text is its name for screen readers and tests; it is visible on the button only with
+// setTextVisible(true). The icon comes from the set (setGlyph) or is a custom QIcon (setIcon), e.g. a color swatch.
 class FlatButton : public QToolButton
 {
     Q_OBJECT
@@ -26,8 +26,8 @@ public:
 
     void setGlyph(Icon glyph);
     void setTextVisible(bool visible);
-    void setChevron(bool chevron);    // стрелка «откроется панель»
-    void setSide(int side, int iconSide);   // высота (и наименьшая ширина) и размер значка
+    void setChevron(bool chevron);    // a "panel will open" arrow
+    void setSide(int side, int iconSide);   // height (and minimum width) and icon size
 
     QSize sizeHint() const override;
     QSize minimumSizeHint() const override { return sizeHint(); }
@@ -43,9 +43,9 @@ private:
     int m_iconSide = 20;
 };
 
-// Кнопка действия: главная (залита акцентом) или второстепенная (с рамкой).
-// Может показать значок слева и сочетание клавиш справа («Вставить набор  Alt+V»).
-// Без текста — квадратная кнопка-значок.
+// Action button: primary (filled with the accent) or secondary (with a border).
+// May show an icon on the left and a shortcut on the right ("Paste set  Alt+V").
+// Without text it is a square icon button.
 class ActionButton : public QPushButton
 {
     Q_OBJECT
@@ -57,7 +57,7 @@ public:
     void setKind(Kind kind);
     Kind kind() const { return m_kind; }
     void setGlyph(std::optional<Icon> glyph);
-    void setSwatch(const QColor &color);   // кружок цвета вместо значка (цвет меток в настройках)
+    void setSwatch(const QColor &color);   // a color circle instead of an icon (mark color in settings)
     void setKeyHint(const QString &keys);
     void setButtonHeight(int height);
 
@@ -78,10 +78,10 @@ private:
     QColor m_swatch;
     QString m_keys;
     int m_height = 36;
-    bool m_keyboardFocus = false;   // рамку фокуса — только при переходе Tab, не от щелчка
+    bool m_keyboardFocus = false;   // focus frame only when reached by Tab, not by a click
 };
 
-// Вкладка-«пилюля» (окно настроек): выбранная подкрашена акцентом
+// A "pill" tab (settings window): the selected one is tinted with the accent
 class PillButton : public QPushButton
 {
     Q_OBJECT
@@ -98,7 +98,7 @@ private:
     bool m_keyboardFocus = false;
 };
 
-// Карточка: скруглённый блок с рамкой (шаги мастера, текст в предпросмотре, сведения о системе)
+// Card: a rounded block with a border (wizard steps, text in the preview, system details)
 class Card : public QWidget
 {
     Q_OBJECT
@@ -109,7 +109,7 @@ protected:
     void paintEvent(QPaintEvent *) override;
 };
 
-// Результат проверки: значок (✓, ⚠, ✗, часы) и текст цветом результата
+// Check result: an icon (✓, ⚠, ✗, clock) and text in the result's color
 class StatusLine : public QWidget
 {
     Q_OBJECT
@@ -131,7 +131,7 @@ private:
     QLabel *m_label;
 };
 
-// Подсказка сочетания: «[Ctrl+Z] отменить»
+// Shortcut hint: "[Ctrl+Z] undo"
 class KeyHint : public QWidget
 {
     Q_OBJECT
@@ -148,7 +148,7 @@ private:
     QString m_label;
 };
 
-// Тонкая разделительная линия цвета рамок
+// A thin separator line in the border color
 class Rule : public QWidget
 {
     Q_OBJECT
@@ -162,7 +162,7 @@ private:
     Qt::Orientation m_orientation;
 };
 
-// Фон области окна (боковая панель) с линией рамки по краям edges
+// Background of a window area (side panel) with a border line along the given edges
 class Panel : public QWidget
 {
     Q_OBJECT

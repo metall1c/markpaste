@@ -37,7 +37,7 @@ CaptureSet threeShots()
     return set;
 }
 
-// Ждёт сигнал finished, крутя цикл событий.
+// Waits for the finished signal while spinning the event loop.
 Status runToEnd(PasteOrchestrator &o, int timeoutMs = 5000)
 {
     Status result = Status::failure(QStringLiteral("timeout"));
@@ -53,14 +53,14 @@ Status runToEnd(PasteOrchestrator &o, int timeoutMs = 5000)
     return result;
 }
 
-// Для отказов, которые приходят прямо из start(): подписка — до запуска
+// For failures that come right from start(): subscribe before starting
 Status startAndFinish(PasteOrchestrator &o, const CaptureSet &set, const PasteOptions &opt)
 {
     std::optional<Status> result;
     const auto c = QObject::connect(&o, &PasteOrchestrator::finished, [&](const Status &s, PasteMode) { result = s; });
     o.start(set, opt);
     QObject::disconnect(c);
-    return result.value_or(Status::success());   // не закончилось сразу — тест увидит ok и упадёт
+    return result.value_or(Status::success());   // did not finish right away: the test sees ok and fails
 }
 
 bool isImage(const ClipboardPayload &p) { return p.find(QStringLiteral("image/png")) && !p.find(QStringLiteral("text/plain")); }
@@ -85,7 +85,7 @@ TEST(PasteOrchestrator, SequentialOrderAndRestore)
     ASSERT_NE(text, nullptr);
     EXPECT_EQ(QString::fromUtf8(text->data), QStringLiteral("Shot A\nA1 c0\n\nShot B\nB1 c1\n\nShot C\nC1 c2"));
 
-    // Буфер пользователя вернулся (PST-8), сессия ввода закрыта
+    // The user's clipboard came back (PST-8), the input session is closed
     EXPECT_EQ(QString::fromUtf8(cb.current.find(QStringLiteral("text/plain"))->data), QStringLiteral("user's clipboard"));
     EXPECT_EQ(inj.begins, 1);
     EXPECT_FALSE(inj.sessionOpen);
@@ -133,14 +133,14 @@ TEST(PasteOrchestrator, WaitsForHotkeyRelease)
     t.start();
     while (t.elapsed() < 200)
         QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
-    EXPECT_EQ(inj.pasted.size(), 0);   // клавиша ещё зажата
+    EXPECT_EQ(inj.pasted.size(), 0);   // the key is still held
     o.hotkeyReleased();
     ASSERT_TRUE(runToEnd(o).ok);
     EXPECT_EQ(inj.pasted.size(), 4);
 }
 
-// Alt+V: V забрала система, окно чата видит одиночный Alt и уходит в меню (Mattermost).
-// Пока Alt зажат — сессия открывается сразу и уходит «маска»; сессия одна на всю вставку.
+// Alt+V: the system took the V, the chat window sees a lone Alt and opens its menu (Mattermost).
+// While Alt is held, the session opens right away and the "mask" is sent; one session for the whole paste.
 TEST(PasteOrchestrator, AltHotkeyIsMaskedWhileHeld)
 {
     FakeClipboard cb;
@@ -173,7 +173,7 @@ TEST(PasteOrchestrator, NoMaskWithoutAltOrAfterRelease)
         PasteOrchestrator o(&cb, &inj);
         PasteOptions opt = fastOptions();
         opt.maskAltTap = mask;
-        opt.waitHotkeyRelease = !mask;   // с маской, но клавишу уже отпустили (кнопка ленты)
+        opt.waitHotkeyRelease = !mask;   // with a mask, but the key is already released (strip button)
         opt.timing.releaseTimeoutMs = 50;
         o.start(threeShots(), opt);
         ASSERT_TRUE(runToEnd(o).ok);
@@ -211,11 +211,11 @@ TEST(PasteOrchestrator, SessionDeniedFailsAndRestores)
 
 TEST(PasteOrchestrator, SessionBoundClipboardIsUsedInsideSession)
 {
-    // Портал Clipboard: буфер сохраняется после открытия сессии и возвращается до её закрытия
+    // Clipboard portal: the clipboard is saved after the session opens and restored before it closes
     FakeClipboard cb;
     FakeInjector inj(&cb);
     cb.sessionOpen = [&inj] { return inj.sessionOpen; };
-    inj.sessionOpen = true;   // чтобы положить исходное содержимое
+    inj.sessionOpen = true;   // to put the original content
     cb.current = ClipboardPayload::text(QStringLiteral("keep me"));
     inj.sessionOpen = false;
     cb.log.clear();
@@ -227,7 +227,7 @@ TEST(PasteOrchestrator, SessionBoundClipboardIsUsedInsideSession)
     ASSERT_GE(cb.log.size(), 4);
     EXPECT_EQ(cb.log.mid(0, 2), (QStringList{QStringLiteral("begin"), QStringLiteral("snapshot")}));
     EXPECT_EQ(cb.log.last(), QStringLiteral("end"));
-    EXPECT_EQ(cb.log[cb.log.size() - 2], QStringLiteral("write"));   // восстановление — до end
+    EXPECT_EQ(cb.log[cb.log.size() - 2], QStringLiteral("write"));   // the restore comes before end
     EXPECT_EQ(QString::fromUtf8(cb.current.find(QStringLiteral("text/plain"))->data), QStringLiteral("keep me"));
 }
 
@@ -320,7 +320,7 @@ TEST(PasteOrchestrator, EmptySetFails)
 }
 
 namespace {
-// Буфер, запись в который не заканчивается никогда (подключение к композитору оборвалось)
+// A clipboard whose write never finishes (the connection to the compositor broke)
 class HangingClipboard : public FakeClipboard
 {
 public:
@@ -350,13 +350,13 @@ TEST(PasteOrchestrator, CancelWorksWhileClipboardHangs)
         finished = true;
         EXPECT_FALSE(s.ok);
     });
-    o.cancel();   // «Стоп» — сразу, не дожидаясь буфера
+    o.cancel();   // "Stop" right away, without waiting for the clipboard
     EXPECT_TRUE(finished);
     EXPECT_FALSE(o.isRunning());
     EXPECT_FALSE(inj.sessionOpen);
     EXPECT_TRUE(inj.pasted.isEmpty());
 
-    // Следующая вставка не блокируется зависшей
+    // The next paste is not blocked by the hung one
     FakeClipboard cb2;
     FakeInjector inj2(&cb2);
     PasteOrchestrator o2(&cb2, &inj2);

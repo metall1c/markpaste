@@ -35,7 +35,7 @@ uint32_t nowMs()
     return uint32_t(clock.elapsed());
 }
 
-// Выполнить в потоке подключения и дождаться (запросы — быстрые, без roundtrip)
+// Run in the connection thread and wait (the requests are fast, no roundtrip)
 template <typename Fn>
 void inWaylandThread(Fn fn)
 {
@@ -80,7 +80,7 @@ Status VirtualKeyboardInjector::setup()
     if (!m_manager)
         return Status::failure(QStringLiteral("cannot bind zwp_virtual_keyboard_manager_v1"));
 
-    // Раскладка US: KEY_V всегда «v», и Ctrl+V распознаётся при любой раскладке пользователя
+    // US layout: KEY_V is always "v", and Ctrl+V is recognized with any user layout
     std::unique_ptr<xkb_context, decltype(&xkb_context_unref)> ctx(xkb_context_new(XKB_CONTEXT_NO_FLAGS),
                                                                   xkb_context_unref);
     const xkb_rule_names names{"evdev", "pc105", "us", "", ""};
@@ -92,7 +92,7 @@ Status VirtualKeyboardInjector::setup()
     m_ctrlMask = ctrl == XKB_MOD_INVALID ? 0 : (1u << ctrl);
 
     std::unique_ptr<char, decltype(&free)> text(xkb_keymap_get_as_string(keymap.get(), XKB_KEYMAP_FORMAT_TEXT_V1), free);
-    const size_t size = std::strlen(text.get()) + 1;   // с завершающим нулём: так ждёт композитор
+    const size_t size = std::strlen(text.get()) + 1;   // with the terminating zero: the compositor expects it
     const int fd = memfd_create("markpaste-keymap", MFD_CLOEXEC);
     if (fd < 0 || ::write(fd, text.get(), size) != ssize_t(size)) {
         if (fd >= 0)
@@ -102,9 +102,9 @@ Status VirtualKeyboardInjector::setup()
 
     m_keyboard = zwp_virtual_keyboard_manager_v1_create_virtual_keyboard(m_manager, conn->seat());
     zwp_virtual_keyboard_v1_keymap(m_keyboard, kKeymapFormatXkbV1, fd, uint32_t(size));
-    ::close(fd);   // libwayland передал копию
-    // Композитор, не доверяющий клиенту, отвечает ошибкой протокола unauthorized и рвёт
-    // подключение; roundtrip показывает это сразу, а не на первой вставке.
+    ::close(fd);   // libwayland passed on a copy
+    // A compositor that does not trust the client answers with an unauthorized protocol error and drops
+    // the connection; the roundtrip shows it right away rather than on the first paste.
     if (!conn->roundtrip())
         return Status::failure(QStringLiteral("the compositor refused the virtual keyboard"));
     return Status::success();
@@ -123,7 +123,7 @@ QFuture<Status> VirtualKeyboardInjector::begin()
 
 QFuture<Status> VirtualKeyboardInjector::waitModifiersReleased(std::chrono::milliseconds timeout)
 {
-    // Состояние чужой клавиатуры без фокуса не узнать: просто ждём, как и с порталом
+    // The state of someone else's keyboard cannot be read without focus: just wait, as with the portal
     auto promise = std::make_shared<QPromise<Status>>();
     promise->start();
     QTimer::singleShot(int(timeout.count()), this, [promise] {
@@ -164,8 +164,8 @@ QFuture<Status> VirtualKeyboardInjector::sendPaste()
     if (!m_keyboard)
         return readyFuture(Status::failure(QStringLiteral("virtual keyboard is not set up")));
 
-    // Ctrl↓ (+модификаторы) V↓ V↑ Ctrl↑ (−модификаторы) с паузами, как и через портал:
-    // часть клиентов не успевает обработать модификатор в том же кадре.
+    // Ctrl↓ (+modifiers) V↓ V↑ Ctrl↑ (−modifiers) with pauses, as through the portal:
+    // some clients do not manage to process the modifier in the same frame.
     const std::function<void()> steps[] = {
         [this] { key(kKeyLeftCtrl, true); modifiers(true); },
         [this] { key(kKeyV, true); },

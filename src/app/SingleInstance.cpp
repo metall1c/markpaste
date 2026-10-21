@@ -28,15 +28,15 @@ bool SingleInstance::sendToRunning(const QString &command, int timeoutMs)
 
 bool SingleInstance::listen()
 {
-    // Сначала спрашиваем, жив ли первый экземпляр. На listen() полагаться нельзя:
-    // с UserAccessOption Qt 6 создаёт сокет во временном каталоге и переименовывает его
-    // поверх нужного пути, так что listen() «успешен» у каждого нового процесса (docs/problems.md).
+    // First ask whether the first instance is alive. listen() cannot be relied on:
+    // with UserAccessOption Qt 6 creates the socket in a temporary directory and renames it
+    // over the target path, so listen() "succeeds" for every new process (docs/problems.md).
     if (sendToRunning(QStringLiteral("ping"), 300))
         return false;
-    // Сокет мог остаться от упавшего процесса — никто не ответил, убираем.
+    // The socket may be left over from a crashed process: nobody answered, remove it.
     QLocalServer::removeServer(m_name);
     m_server = new QLocalServer(this);
-    // UserAccessOption не нужен: сокет лежит в $XDG_RUNTIME_DIR, доступном только владельцу.
+    // UserAccessOption is not needed: the socket lives in $XDG_RUNTIME_DIR, accessible only to its owner.
     if (!m_server->listen(m_name))
         return false;
     connect(m_server, &QLocalServer::newConnection, this, [this] {

@@ -25,10 +25,10 @@ class FlatButton;
 class MessageLabel;
 class ShotThumb;
 
-// Лента набора (ТЗ 5.3): миниатюры с буквой и числом комментариев, кнопки и счётчик.
-// На KDE/Sway — панель layer-shell у края экрана, которая не забирает фокус клавиатуры:
-// клик по «Вставить» не уводит фокус из окна чата. На Windows — окно без рамки и без
-// активации, к краю его ставим сами. Иначе — обычное окно.
+// The set strip (spec 5.3): thumbnails with a letter and the number of comments, buttons and a counter.
+// On KDE/Sway it is a layer-shell panel at the screen edge that does not take keyboard focus:
+// clicking "Paste" does not move focus away from the chat window. On Windows it is a frameless window without
+// activation that we place at the edge ourselves. Otherwise an ordinary window.
 class StripWindow : public QWidget
 {
     Q_OBJECT
@@ -37,21 +37,21 @@ public:
 
     void setStyle(const RenderStyle &style);
     void setCurrentShot(const QUuid &shotId);
-    // Главная кнопка вставляет набор (режим 1) или, где это недоступно, копирует его.
-    // hotkey — сочетание вставки для подписи на кнопке («Alt+V»), пустое — без подписи
+    // The primary button pastes the set (mode 1) or, where that is unavailable, copies it.
+    // hotkey is the paste shortcut for the button label ("Alt+V"); empty means no label
     void setPasteMode(bool sequential, const QString &hotkey);
-    // Сочетание захвата для подсказки в пустом наборе
+    // The capture shortcut for the hint in an empty set
     void setCaptureHotkey(const QString &hotkey);
     void showMessage(const QString &text, int timeoutMs = 4000);
-    void setProgress(int done, int total);   // total = 0 — вставка закончилась
+    void setProgress(int done, int total);   // total = 0 means the paste is over
 
-    // Для перетаскивания наружу файлы готовит контроллер (запекание + временные файлы)
+    // For dragging outside, the controller prepares the files (baking + temporary files)
     using DragProvider = std::function<QMimeData *(const QList<QUuid> &shots)>;
     void setDragProvider(DragProvider provider) { m_dragProvider = std::move(provider); }
 
-    // Показать у края экрана (layer-shell, если есть) в сохранённом положении
+    // Show at the screen edge (layer-shell if available) in the saved position
     void present();
-    // Переставить ленту (перенос мышью и отладочная команда debug-move-strip)
+    // Move the strip (mouse move and the debug-move-strip debug command)
     void moveTo(QScreen *screen, const PanelPlacement &placement);
 
 signals:
@@ -65,7 +65,7 @@ signals:
     void previewRequested();        // PST-6
     void saveToFolderRequested();   // APP-6
     void aboutRequested();
-    void hideRequested();   // «свернуть в трей»
+    void hideRequested();   // "hide to tray"
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -74,20 +74,20 @@ protected:
 private:
     friend class ShotThumb;
     friend class StripHeader;
-    // Перетаскивание за заголовок (STR-5): на layer-shell лента переезжает при отпускании
+    // Dragging by the header (STR-5): on layer-shell the strip moves on release
     void beginMove(const QPoint &posInStrip);
-    void updateMove(const QPoint &posInStrip);   // контур будущего положения
+    void updateMove(const QPoint &posInStrip);   // outline of the future position
     void finishMove(const QPoint &posInStrip);
-    // Куда встанет лента, если отпустить мышь в точке posInStrip
+    // Where the strip will go if the mouse is released at posInStrip
     void moveTarget(const QPoint &posInStrip, QScreen **screen, PanelPlacement *placement) const;
     QScreen *currentScreen() const;
-    // Левый верхний угол ленты при данном положении, в глобальных логических координатах.
-    // Положение поверхности layer-shell Qt не знает — считаем сами из края и отступов.
+    // Top-left corner of the strip at the given position, in global logical coordinates.
+    // Qt does not know the position of a layer-shell surface, so we compute it from the edge and margins.
     QPoint topLeftFor(QScreen *screen, const PanelPlacement &placement) const;
     QPoint assumedTopLeft() const { return topLeftFor(currentScreen(), m_placement); }
-    void snapToEdge();          // встать по m_placement
-    QRect placementArea(QScreen *screen) const;   // от чего отсчитываются край и отступ
-    void onMovedByUser();       // пользователь отпустил перетащенную ленту
+    void snapToEdge();          // move to m_placement
+    QRect placementArea(QScreen *screen) const;   // what the edge and offset are measured from
+    void onMovedByUser();       // the user released the dragged strip
     void loadPlacement();
     void savePlacement() const;
     void rebuild();
@@ -95,11 +95,11 @@ private:
     void startDrag(const QList<QUuid> &shots, QWidget *source);
 
 public:
-    // Перестановка перетаскиванием внутри ленты (STR-3). Публичны для тестов.
+    // Reordering by dragging within the strip (STR-3). Public for tests.
     static constexpr const char *kShotMime = "application/x-markpaste-shot";
     static QByteArray shotDragData(const QUuid &shotId);
     static QUuid draggedShot(const QMimeData *data);
-    int dropIndexAt(int yInList) const;      // место вставки 0…N по координате в списке
+    int dropIndexAt(int yInList) const;      // insert position 0…N by the coordinate in the list
     int dropLineY(int index) const;
     void moveShotTo(const QUuid &shotId, int insertIndex);
 
@@ -126,7 +126,7 @@ private:
     DragProvider m_dragProvider;
     bool m_roleApplied = false;
     bool m_layerShell = false;
-    bool m_snapToEdge = false;   // окно без рамки, к краю его ставим сами (Windows)
+    bool m_snapToEdge = false;   // a frameless window we place at the edge ourselves (Windows)
     PanelPlacement m_placement;
     QString m_screenName;
     QPoint m_movePress;

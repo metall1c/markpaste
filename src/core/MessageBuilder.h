@@ -7,25 +7,25 @@
 
 namespace mp {
 
-// Шаблон текста сообщения (PST-3, ТЗ разд. 10). Локализуется отдельно от интерфейса (NFR-10):
-// язык шаблона может не совпадать с языком UI.
+// Message text template (PST-3, spec section 10). Localized separately from the UI (NFR-10):
+// the template language may differ from the UI language.
 struct MessageTemplate {
     QString shotHeader;      // {letter} → A
-    QString markLine;        // {id} → A1, {text} → комментарий
-    QString intro;           // вводная фраза, может быть пустой
-    QString outro;           // заключительная фраза, может быть пустой
+    QString markLine;        // {id} → A1, {text} → the comment
+    QString intro;           // opening phrase, may be empty
+    QString outro;           // closing phrase, may be empty
     bool textBeforeImages = false;
 
     static MessageTemplate defaultFor(const QLocale &locale);
 };
 
-// Правила:
-// - метка без комментария строки не даёт (номера остальных — как на картинке);
-// - если ни у одного снимка нет комментариев — ни заголовков, ни строк меток
-//   (остаются только вводная и заключительная фразы из настроек, если заданы);
-// - если комментарии есть, снимок без комментариев даёт только заголовок;
-// - многострочный комментарий сохраняет переносы;
-// - между снимками — пустая строка.
+// Rules:
+// - a mark without a comment gives no line (the other numbers stay as on the image);
+// - if no shot has comments, there are no headers and no mark lines
+//   (only the opening and closing phrases from settings remain, if set);
+// - if there are comments, a shot without comments gives only its header;
+// - a multi-line comment keeps its line breaks;
+// - shots are separated by an empty line.
 QString buildMessage(const CaptureSet &set, const MessageTemplate &tpl);
 
 } // namespace mp

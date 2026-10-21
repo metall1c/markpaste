@@ -6,14 +6,14 @@
 
 namespace mp {
 
-// Временные картинки для режимов «файлы + текст» и перетаскивания (ТЗ разд. 10, 11).
-// Каталог: $XDG_RUNTIME_DIR/markpaste (Linux, в tmpfs, доступ только владельцу),
-// иначе <temp>/markpaste-<pid>. Права 0700. Очищается при очистке набора и при выходе.
+// Temporary images for the "files + text" modes and drag and drop (spec sections 10, 11).
+// Directory: $XDG_RUNTIME_DIR/markpaste (Linux, on tmpfs, owner-only access),
+// otherwise <temp>/markpaste-<pid>. Mode 0700. Cleared when the set is cleared and on exit.
 class TempFiles
 {
 public:
     static QString directory();
-    // Пишет файл и возвращает абсолютный путь; пустая строка — ошибка.
+    // Writes the file and returns its absolute path; an empty string means an error.
     static QString write(const QString &fileName, const QByteArray &data);
     static void clear();
 };

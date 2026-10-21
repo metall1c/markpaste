@@ -23,7 +23,7 @@ public:
                                 : QRect();
         if (local == m_rect && accent == m_accent)
             return;
-        // Перерисовываем только старое и новое место контура
+        // Repaint only the old and the new place of the outline
         const QRect dirty = m_rect.united(local).adjusted(-4, -4, 4, 4);
         m_rect = local;
         m_accent = accent;
@@ -88,7 +88,7 @@ void MoveGhost::show(const QRect &target, const QColor &accent)
 
 void MoveGhost::hide()
 {
-    // Слои удаляем: набор мониторов к следующему переносу мог измениться
+    // Delete the layers: the set of monitors may have changed by the next move
     for (const auto &l : std::as_const(m_layers))
         if (l) {
             l->hide();
