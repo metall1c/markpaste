@@ -45,6 +45,7 @@ void UpdateChecker::checkNow()
     m_busy = true;
     QNetworkRequest req(m_url);
     req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("Markpaste/%1").arg(m_current));
+    req.setRawHeader("Accept", "application/vnd.github+json");
     req.setTransferTimeout(15000);
     QNetworkReply *reply = m_net->get(req);
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
@@ -70,15 +71,25 @@ void UpdateChecker::onReply(const QByteArray &body, int httpStatus, const QStrin
     if (version.isEmpty() || s.value(QStringLiteral("updates/notifiedVersion")).toString() == version)
         return;
     s.setValue(QStringLiteral("updates/notifiedVersion"), version);
-    const QJsonObject o = QJsonDocument::fromJson(body).object();
-    QUrl page(o.value(QStringLiteral("_links")).toObject().value(QStringLiteral("self")).toString());
-    emit updateAvailable(version, page);
+    emit updateAvailable(version, releasePage(body));
+}
+
+QUrl UpdateChecker::releasePage(const QByteArray &json)
+{
+    const QJsonObject o = QJsonDocument::fromJson(json).object();
+    QString page = o.value(QStringLiteral("html_url")).toString();
+    if (page.isEmpty())
+        page = o.value(QStringLiteral("_links")).toObject().value(QStringLiteral("self")).toString();
+    const QUrl url(page);
+    return url.scheme() == u"https" ? url : QUrl();
 }
 
 QString UpdateChecker::newerVersion(const QByteArray &json, const QString &currentVersion)
 {
     const QJsonObject o = QJsonDocument::fromJson(json).object();
-    if (o.value(QStringLiteral("upcoming_release")).toBool())
+    // Черновики и предварительные выпуски GitHub, будущие релизы GitLab — не новая версия
+    if (o.value(QStringLiteral("upcoming_release")).toBool() || o.value(QStringLiteral("draft")).toBool()
+        || o.value(QStringLiteral("prerelease")).toBool())
         return {};
     QString tag = o.value(QStringLiteral("tag_name")).toString().trimmed();
     if (tag.startsWith(u'v') || tag.startsWith(u'V'))

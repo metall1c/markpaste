@@ -91,6 +91,10 @@
         <translation>Автор</translation>
     </message>
     <message>
+        <source>Email</source>
+        <translation>Почта</translation>
+    </message>
+    <message>
         <source>Co-author</source>
         <translation>Соавтор</translation>
     </message>

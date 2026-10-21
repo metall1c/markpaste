@@ -18,7 +18,8 @@
     </p>
   </description>
   <launchable type="desktop-id">@MARKPASTE_APP_ID@.desktop</launchable>
-  <url type="homepage">https://gitlab.525.su/che/main/markpaste</url>
+  <url type="homepage">@MARKPASTE_HOMEPAGE_URL@</url>
+  <url type="bugtracker">@MARKPASTE_HOMEPAGE_URL@/issues</url>
   <developer id="su.525">
     <name>Andrey</name>
   </developer>

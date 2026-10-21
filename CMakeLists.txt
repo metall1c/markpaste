@@ -1,19 +1,22 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(Markpaste VERSION 0.1.5 LANGUAGES C CXX)
+project(Markpaste VERSION 0.2.0 LANGUAGES C CXX)
 
 # Название и идентификатор — в одном месте: имя проекта рабочее (ТЗ, разд. 14).
 # Идентификатор после релиза не меняется: от него зависят разрешения порталов.
 set(MARKPASTE_APP_NAME "Markpaste")
 set(MARKPASTE_APP_ID "su._525.Markpaste")
-# Проверка новой версии (APP-7): API последнего релиза GitLab. Пустая строка — проверки нет
-# (например, для сборок дистрибутивов, которые обновляются своим путём).
-set(MARKPASTE_UPDATE_URL "https://gitlab.525.su/api/v4/projects/che%2Fmain%2Fmarkpaste/releases/permalink/latest"
-    CACHE STRING "URL of the latest release JSON (GitLab API); empty disables update checks")
-set(MARKPASTE_RELEASES_URL "https://gitlab.525.su/che/main/markpaste/-/releases"
+# Дом проекта — GitHub (docs/decisions/0024-github-releases.md): страница, релизы и проверка
+# новой версии (APP-7) берутся из одного «владелец/имя».
+set(MARKPASTE_GITHUB_REPO "metall1c/markpaste" CACHE STRING "GitHub repository owner/name")
+# API последнего релиза GitHub. Пустая строка — проверки нет (например, для сборок
+# дистрибутивов, которые обновляются своим путём).
+set(MARKPASTE_UPDATE_URL "https://api.github.com/repos/${MARKPASTE_GITHUB_REPO}/releases/latest"
+    CACHE STRING "URL of the latest release JSON (GitHub API); empty disables update checks")
+set(MARKPASTE_RELEASES_URL "https://github.com/${MARKPASTE_GITHUB_REPO}/releases"
     CACHE STRING "Releases page shown in the update notification")
-# Страница проекта — в окне «О программе»
-set(MARKPASTE_HOMEPAGE_URL "https://gitlab.525.su/che/main/markpaste"
+# Страница проекта — в окне «О программе», в пакетах и в AppStream
+set(MARKPASTE_HOMEPAGE_URL "https://github.com/${MARKPASTE_GITHUB_REPO}"
     CACHE STRING "Project page shown in the About window")
 set(MARKPASTE_EXECUTABLE "markpaste")
 
@@ -140,12 +143,12 @@ endif()
 # находят сами по связанным .so; вручную — только то, что нужно во время работы.
 set(CPACK_PACKAGE_NAME ${MARKPASTE_EXECUTABLE})
 set(CPACK_PACKAGE_VENDOR "Markpaste")
-set(CPACK_PACKAGE_CONTACT "Andrey <a@525.su>")
+set(CPACK_PACKAGE_CONTACT "Andrey Che <metallicvrn@gmail.com>")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Capture, mark and paste screenshots with comments into any chat")
 set(CPACK_PACKAGE_DESCRIPTION "Press a hotkey, select an area, put numbered marks A1, A2... on it and
 comment each one. One more hotkey pastes the whole set - images and text -
 into any chat or AI assistant.")
-set(CPACK_PACKAGE_HOMEPAGE_URL "https://gitlab.525.su/che/main/markpaste")
+set(CPACK_PACKAGE_HOMEPAGE_URL ${MARKPASTE_HOMEPAGE_URL})
 set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE)
 set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 set(CPACK_STRIP_FILES ON)

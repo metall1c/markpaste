@@ -27,6 +27,19 @@ TEST(UpdateChecker, ComparesTagWithCurrentVersion)
     EXPECT_TRUE(UpdateChecker::newerVersion("<html>404</html>", QStringLiteral("0.1.0")).isEmpty());
 }
 
+TEST(UpdateChecker, ReadsGitHubReleaseResponse)
+{
+    const QByteArray github = R"({"tag_name": "v0.3.0", "html_url": "https://github.com/o/markpaste/releases/tag/v0.3.0",
+                                  "draft": false, "prerelease": false})";
+    EXPECT_EQ(UpdateChecker::newerVersion(github, QStringLiteral("0.2.0")), QStringLiteral("0.3.0"));
+    EXPECT_EQ(UpdateChecker::releasePage(github), QUrl(QStringLiteral("https://github.com/o/markpaste/releases/tag/v0.3.0")));
+    EXPECT_TRUE(UpdateChecker::newerVersion(R"({"tag_name": "v0.3.0", "prerelease": true})", QStringLiteral("0.2.0")).isEmpty());
+    EXPECT_TRUE(UpdateChecker::newerVersion(R"({"tag_name": "v0.3.0", "draft": true})", QStringLiteral("0.2.0")).isEmpty());
+    // GitLab по-прежнему понятен; не-https адрес не открываем
+    EXPECT_EQ(UpdateChecker::releasePage(R"({"_links": {"self": "https://gitlab.example/r"}})"), QUrl(QStringLiteral("https://gitlab.example/r")));
+    EXPECT_TRUE(UpdateChecker::releasePage(R"({"html_url": "file:///etc/passwd"})").isEmpty());
+}
+
 TEST(LogFile, RotationKeepsLimitedNumberOfFiles)
 {
     QTemporaryDir tmp;

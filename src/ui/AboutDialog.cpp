@@ -106,6 +106,7 @@ AboutDialog::AboutDialog(const AboutInfo &info, QWidget *parent)
     const QString link = anchor(info.homepage, QString(info.homepage).remove(QStringLiteral("https://")));
     layout->addWidget(infoCard(tr("Authors"), {
         {tr("Author"), QStringLiteral("Andrey Che")},
+        {tr("Email"), anchor(QStringLiteral("mailto:metallicvrn@gmail.com"), QStringLiteral("metallicvrn@gmail.com"))},
         {tr("Co-author"), tr("Claude Opus 5.5 (Anthropic) — the code and documentation were written together "
                              "with the AI assistant in Claude Code")},
     }));

@@ -91,6 +91,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Email</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Co-author</source>
         <translation type="unfinished"></translation>
     </message>

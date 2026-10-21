@@ -13,7 +13,8 @@ namespace mp {
 // Это единственный сетевой запрос программы, отключается в настройках (NFR-4).
 // Обновление — через пакетный менеджер, программа сама ничего не скачивает.
 //
-// Источник — GitLab: GET <api>/projects/<id>/releases/permalink/latest → {"tag_name": "v0.2.0", …}.
+// Источник — GitHub: GET api.github.com/repos/<владелец>/<имя>/releases/latest →
+// {"tag_name": "v0.2.0", "html_url": …}. Ответ GitLab (`_links.self`) тоже понимаем.
 // Адрес задаётся при сборке (MARKPASTE_UPDATE_URL), пустой — проверка выключена в сборке.
 class UpdateChecker : public QObject
 {
@@ -28,6 +29,8 @@ public:
 
     // Разбор ответа и сравнение версий — для тестов. Пустая строка — новее нет.
     static QString newerVersion(const QByteArray &json, const QString &currentVersion);
+    // Страница релиза из ответа: html_url (GitHub) или _links.self (GitLab)
+    static QUrl releasePage(const QByteArray &json);
 
 signals:
     // Сообщается один раз на версию: повтор после перезапуска не надоедает
