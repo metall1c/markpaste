@@ -3,6 +3,7 @@
 
 #include <QApplication>
 #include <QLineEdit>
+#include <QPushButton>
 #include <QSignalSpy>
 #include <QTest>
 
@@ -152,4 +153,36 @@ TEST(SetupWizard, ShotToStripKeyIsOptional)
     // Not assigned is not a warning
     w.setTriggers({{Action::Capture, QStringLiteral("Print")}, {Action::PasteSet, QStringLiteral("Ctrl+Alt+V")}});
     EXPECT_EQ(w.hotkeyResult(), SetupWizard::Result::Ok);
+}
+
+TEST(SetupWizard, OffersToFreeKeyTakenByDesktop)
+{
+    Platform platform;
+    auto hk = std::make_unique<FakeHotkeys>();
+    FakeHotkeys *hotkeys = hk.get();
+    hotkeys->desktopHolders.insert(QStringLiteral("Print"), QStringLiteral("the GNOME screenshot tool"));
+    platform.hotkeys = std::move(hk);
+    platform.environment = QStringLiteral("Test");
+    SetupWizard wizard(&platform, QStringLiteral("su._525.MarkpasteTest"));
+    wizard.setTriggers({{Action::Capture, QStringLiteral("Print")}, {Action::PasteSet, QStringLiteral("Ctrl+Alt+V")}});
+
+    QPushButton *give = nullptr;
+    for (QPushButton *b : wizard.findChildren<QPushButton *>())
+        if (b->text() == u"Give Print to Markpaste")
+            give = b;
+    ASSERT_NE(give, nullptr);
+    EXPECT_FALSE(give->isHidden());
+
+    QSignalSpy restart(&wizard, &SetupWizard::restartRequested);
+    give->click();
+    EXPECT_EQ(hotkeys->released, QStringList{QStringLiteral("Print")});
+    EXPECT_EQ(restart.count(), 1);
+
+    // A key that has fired is ours: no offer
+    hotkeys->desktopHolders.insert(QStringLiteral("Print"), QStringLiteral("the GNOME screenshot tool"));
+    SetupWizard again(&platform, QStringLiteral("su._525.MarkpasteTest"));
+    again.setTriggers({{Action::Capture, QStringLiteral("Print")}});
+    again.hotkeyActivated(Action::Capture);
+    for (QPushButton *b : again.findChildren<QPushButton *>())
+        EXPECT_FALSE(b->text().startsWith(u"Give ") && !b->isHidden());
 }

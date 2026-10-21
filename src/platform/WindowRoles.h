@@ -4,6 +4,7 @@
 
 class QWidget;
 class QScreen;
+class QPoint;
 
 namespace mp {
 
@@ -45,6 +46,12 @@ bool movePanel(QWidget *widget, QScreen *screen, const PanelPlacement &placement
 // once, not on every move. false: this is not possible; the window manager moves the window
 // and the program does not touch its position.
 bool watchPanelMoves(QWidget *widget, std::function<void()> onMoveFinished);
+
+// The system window menu of an ordinary window (GNOME: "Always on Top", which a program cannot set itself
+// on Wayland). Call from a mouse press handler of that window: the compositor checks the input event.
+// false: not available (layer-shell, Windows, X11, Qt 6.4).
+bool canShowWindowMenu(QWidget *widget);
+bool showWindowMenu(QWidget *widget, const QPoint &posInWidget);
 
 // Program windows appear and disappear without system animations. Before a capture the program hides
 // its windows: on Windows a window fades for ~200 ms, and the half-transparent editor got into the shot.

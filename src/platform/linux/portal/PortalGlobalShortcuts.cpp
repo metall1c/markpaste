@@ -1,6 +1,7 @@
 #include "PortalGlobalShortcuts.h"
 
 #include "PortalBus.h"
+#include "platform/linux/GnomeKeybindings.h"
 
 #include <QDBusArgument>
 #include <QDBusMessage>
@@ -155,6 +156,27 @@ QString PortalGlobalShortcuts::displayTrigger(const QString &description)
     if (!key.isEmpty())
         out << key;
     return out.join(u'+');
+}
+
+QString PortalGlobalShortcuts::desktopKeyHolder(const QString &trigger) const
+{
+    const auto list = GnomeKeybindings::holders(trigger);
+    return list.isEmpty() ? QString() : list.first().description;
+}
+
+Status PortalGlobalShortcuts::releaseDesktopKey(const QString &trigger)
+{
+    return GnomeKeybindings::release(trigger);
+}
+
+bool PortalGlobalShortcuts::canRestoreDesktopKeys() const
+{
+    return GnomeKeybindings::hasReleased();
+}
+
+Status PortalGlobalShortcuts::restoreDesktopKeys()
+{
+    return GnomeKeybindings::restore();
 }
 
 QFuture<Status> PortalGlobalShortcuts::ensureSession()

@@ -35,6 +35,33 @@
     </message>
 </context>
 <context>
+    <name>GnomeKeybindings</name>
+    <message>
+        <source>the GNOME screenshot tool</source>
+        <translation>инструмент снимков экрана GNOME</translation>
+    </message>
+    <message>
+        <source>the GNOME screen screenshot</source>
+        <translation>снимок всего экрана в GNOME</translation>
+    </message>
+    <message>
+        <source>the GNOME window screenshot</source>
+        <translation>снимок окна в GNOME</translation>
+    </message>
+    <message>
+        <source>the GNOME screen recording</source>
+        <translation>запись экрана GNOME</translation>
+    </message>
+    <message>
+        <source>the GNOME screenshot</source>
+        <translation>снимок экрана GNOME</translation>
+    </message>
+    <message>
+        <source>the GNOME area screenshot</source>
+        <translation>снимок области в GNOME</translation>
+    </message>
+</context>
+<context>
     <name>ShotThumb</name>
     <message>
         <source>Click — edit · Drag — into a chat as a file or within the strip to reorder · Right click — menu</source>
@@ -66,6 +93,10 @@
     <message>
         <source>Drag to move the strip to another edge or screen</source>
         <translation>Перетащите, чтобы перенести ленту к другому краю или на другой экран</translation>
+    </message>
+    <message>
+        <source>Drag to move the strip. Right-click for the window menu: “Always on Top” keeps the strip above other windows</source>
+        <translation>Перетащите, чтобы переместить ленту. Правый клик — меню окна: «Поверх всех окон» держит ленту над другими окнами</translation>
     </message>
 </context>
 <context>
@@ -188,6 +219,10 @@
     <message>
         <source>Markpaste runs under XWayland: global hotkeys and capture will not work.</source>
         <translation>Markpaste запущен через XWayland: глобальные клавиши и захват работать не будут.</translation>
+    </message>
+    <message>
+        <source>Restart Markpaste to apply the change</source>
+        <translation>Перезапустите Markpaste, чтобы изменение заработало</translation>
     </message>
     <message>
         <source>Markpaste is in the tray. Press %1 to capture an area.</source>
@@ -529,6 +564,22 @@
     <message>
         <source>Change shortcuts…</source>
         <translation>Изменить сочетания…</translation>
+    </message>
+    <message>
+        <source>Give the freed keys back to the system</source>
+        <translation>Вернуть освобождённые клавиши системе</translation>
+    </message>
+    <message>
+        <source>The setup check took these keys from the system shortcuts (for example, Print from the GNOME screenshot tool). The system gets them back at once.</source>
+        <translation>Проверка настройки забрала эти клавиши у системных сочетаний (например, Print у инструмента снимков экрана GNOME). Система получит их обратно сразу.</translation>
+    </message>
+    <message>
+        <source>The keys are back in the system</source>
+        <translation>Клавиши возвращены системе</translation>
+    </message>
+    <message>
+        <source>Could not give the keys back: %1</source>
+        <translation>Не удалось вернуть клавиши: %1</translation>
     </message>
     <message>
         <source>Confirm the area on mouse release (otherwise — Enter)</source>
@@ -886,6 +937,14 @@
         <translation>не назначена</translation>
     </message>
     <message>
+        <source>%1 is taken by %2, so Markpaste does not get it.</source>
+        <translation>Клавишу %1 перехватывает %2, поэтому Markpaste её не получает.</translation>
+    </message>
+    <message>
+        <source>The button frees the key in the system settings and restarts Markpaste; the program settings can give it back.</source>
+        <translation>Кнопка освободит клавишу в настройках системы и перезапустит Markpaste; вернуть её можно в настройках программы.</translation>
+    </message>
+    <message>
         <source>%1 — works</source>
         <translation>%1 — работает</translation>
     </message>
@@ -896,6 +955,14 @@
     <message>
         <source>press %1 to test</source>
         <translation>нажмите %1 для проверки</translation>
+    </message>
+    <message>
+        <source>Give %1 to Markpaste</source>
+        <translation>Отдать %1 программе Markpaste</translation>
+    </message>
+    <message>
+        <source>Could not free %1: %2</source>
+        <translation>Не удалось освободить %1: %2</translation>
     </message>
     <message>
         <source>Pasting… do not switch windows</source>

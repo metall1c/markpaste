@@ -115,3 +115,13 @@ TEST(AboutDialog, DetailsCarryVersionAndSystem)
     EXPECT_TRUE(author);
     EXPECT_TRUE(homepage);
 }
+
+TEST(AppIconFile, SvgIsRecognizedByContent)
+{
+    // Content sniffing (shared-mime-info, glycin in GNOME 49+) looks for "<svg" in the first 256 bytes.
+    // Later than that the file is application/xml, and GNOME shows an empty icon (problems.md 2026-10-21).
+    QFile f(QStringLiteral(MARKPASTE_SOURCE_DIR "/data/icons/app.svg"));
+    ASSERT_TRUE(f.open(QIODevice::ReadOnly));
+    const qsizetype at = f.read(256).indexOf("<svg");
+    EXPECT_GE(at, 0);
+}

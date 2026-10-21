@@ -33,6 +33,10 @@ public:
     bool canOpenSystemSettings() const override;
     void openSystemSettings() override;
     bool systemAssignsTriggers() const override { return true; }
+    QString desktopKeyHolder(const QString &trigger) const override;
+    Status releaseDesktopKey(const QString &trigger) override;
+    bool canRestoreDesktopKeys() const override;
+    Status restoreDesktopKeys() override;
 
     static QString shortcutId(Action action);
     static bool actionFromId(const QString &id, Action *action);

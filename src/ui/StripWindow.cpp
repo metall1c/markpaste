@@ -10,6 +10,7 @@
 #include <QDragEnterEvent>
 #include <QDragLeaveEvent>
 #include <QDropEvent>
+#include <QGraphicsOpacityEffect>
 #include <QGuiApplication>
 #include <QLabel>
 #include <QMenu>
@@ -420,12 +421,19 @@ public:
         : m_strip(strip)
     {
         setCursor(Qt::OpenHandCursor);
-        setToolTip(tr("Drag to move the strip to another edge or screen"));
+        if (!canShowWindowMenu(this))
+            setToolTip(tr("Drag to move the strip to another edge or screen"));
+        else
+            setToolTip(tr("Drag to move the strip. Right-click for the window menu: "
+                          "“Always on Top” keeps the strip above other windows"));
     }
 
 protected:
     void mousePressEvent(QMouseEvent *e) override
     {
+        // GNOME: the system window menu with "Always on Top" (the program cannot set it on Wayland itself)
+        if (e->button() == Qt::RightButton && showWindowMenu(this, e->position().toPoint()))
+            return;
         if (e->button() != Qt::LeftButton)
             return;
         // The window manager moves the window itself and takes the pointer: there is no release for us,
@@ -819,6 +827,41 @@ void StripWindow::present()
     show();
 }
 
+void StripWindow::hideForCapture()
+{
+    const bool compositorPlaces = m_roleApplied && !m_layerShell && !m_snapToEdge
+                                  && QGuiApplication::platformName().startsWith(QStringLiteral("wayland"));
+    if (!compositorPlaces) {
+        hide();
+        return;
+    }
+    // The window is transparent (frameless, WA_TranslucentBackground): without the background and with
+    // fully transparent children nothing of it is left on the screen
+    m_veiled = true;
+    for (QWidget *w : findChildren<QWidget *>(Qt::FindDirectChildrenOnly)) {
+        if (w->isWindow())
+            continue;
+        auto *effect = new QGraphicsOpacityEffect(w);
+        effect->setOpacity(0);
+        w->setGraphicsEffect(effect);
+    }
+    repaint();
+}
+
+void StripWindow::showAfterCapture()
+{
+    if (!m_veiled) {
+        present();
+        return;
+    }
+    m_veiled = false;
+    for (QWidget *w : findChildren<QWidget *>(Qt::FindDirectChildrenOnly))
+        if (!w->isWindow())
+            w->setGraphicsEffect(nullptr);
+    adjustSize();   // a new shot may have been added meanwhile
+    update();
+}
+
 void StripWindow::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
@@ -832,7 +875,7 @@ void StripWindow::paintEvent(QPaintEvent *)
 {
     // A transparent window (layer-shell, Windows, a frameless one on GNOME/X11): we paint the background with rounded corners and a border ourselves.
     // For an opaque one (an ordinary window with a system frame) Qt paints the background.
-    if (!testAttribute(Qt::WA_TranslucentBackground))
+    if (!testAttribute(Qt::WA_TranslucentBackground) || m_veiled)
         return;
     const UiColors c = UiColors::from(palette());
     QPainter p(this);

@@ -113,6 +113,22 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
         row->addStretch();
         kf->addRow(row);
     }
+    // The setup wizard took a key from the desktop (GNOME Print): a way back
+    if (platform.hotkeys && platform.hotkeys->canRestoreDesktopKeys()) {
+        auto *back = dialogButton(tr("Give the freed keys back to the system"));
+        back->setToolTip(tr("The setup check took these keys from the system shortcuts (for example, Print from "
+                            "the GNOME screenshot tool). The system gets them back at once."));
+        IHotkeys *hk = platform.hotkeys.get();
+        connect(back, &QPushButton::clicked, this, [hk, back] {
+            const Status st = hk->restoreDesktopKeys();
+            back->setEnabled(!st.ok);
+            back->setText(st.ok ? tr("The keys are back in the system") : tr("Could not give the keys back: %1").arg(st.error));
+        });
+        auto *row = new QHBoxLayout;
+        row->addWidget(back);
+        row->addStretch();
+        kf->addRow(row);
+    }
     m_quick = new QCheckBox(tr("Confirm the area on mouse release (otherwise — Enter)"));
     m_quick->setChecked(settings.quickCapture);
     m_clearOnNext = new QCheckBox(tr("Start a new set on the next capture"));

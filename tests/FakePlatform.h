@@ -117,6 +117,17 @@ public:
         return readyFuture(r);
     }
     QString name() const override { return QStringLiteral("fake hotkeys"); }
+
+    // The desktop takes these keys first: key → who
+    QHash<QString, QString> desktopHolders;
+    QStringList released;
+    QString desktopKeyHolder(const QString &trigger) const override { return desktopHolders.value(trigger); }
+    Status releaseDesktopKey(const QString &trigger) override
+    {
+        released << trigger;
+        desktopHolders.remove(trigger);
+        return Status::success();
+    }
 };
 
 } // namespace mp::test

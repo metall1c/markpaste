@@ -343,3 +343,35 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Cause:** `layerShellAvailable()` checked only that Qt runs on Wayland, not that the compositor has `zwlr_layer_shell_v1` (the comment said PlatformFactory checks it, but nothing used that result). Mutter has no layer-shell, LayerShellQt silently made an ordinary decorated window, and the program treated it as a panel: the outline instead of `startSystemMove()`, `movePanel()` with no effect. The capture overlay went the same wrong way instead of its "ordinary full-screen window" branch.
 - **Solution:** `layerShellAvailable()` also asks our Wayland connection for `zwlr_layer_shell_v1`. Without layer-shell the strip is frameless and transparent, our header calls `startSystemMove()`, and the cursor does not stay "grabbing" (the compositor takes the pointer, the release does not come to us). ADR 0004 is updated.
 - **Status:** solved in the 0.2.1 test build, the build and tests pass, KDE behavior is unchanged by design; waiting for a check on Ubuntu 26.04 GNOME (the strip and the capture overlay).
+
+## 2026-10-21 · GNOME: the strip returns to the middle of the screen after a capture
+
+- **Environment:** Ubuntu 26.04 GNOME, Wayland, 0.2.1 test build.
+- **Symptom:** the strip moved to the right corner comes back in the middle of the screen, over the shot editor, after each capture.
+- **Cause:** before a capture the program hid its windows with `hide()`. On Wayland Qt destroys the `xdg_toplevel`, and `show()` creates a new window that Mutter places itself (Ubuntu centers new windows). A program cannot set the position.
+- **Solution:** without layer-shell on Wayland the strip is not hidden for a capture but made fully transparent (`StripWindow::hideForCapture()`, ADR 0026).
+- **Status:** solved in the 0.2.1 test build, waiting for a check on GNOME.
+
+## 2026-10-21 · GNOME: the strip is covered by other windows
+
+- **Environment:** the same.
+- **Symptom:** any window covers the strip.
+- **Cause:** Mutter has no layer-shell and no protocol for "keep above"; `Qt::WindowStaysOnTopHint` does nothing on Wayland. Expected by the spec (STR-1).
+- **Solution:** a right click on the strip header opens the GNOME window menu (`xdg_toplevel.show_window_menu`), where the user ticks "Always on Top" (ADR 0026). It lasts while the strip window exists.
+- **Status:** implemented; the request is sent from a frameless Qt window; not checked on GNOME or KWin yet (`markpaste-pastetest --window-menu` is a probe for that).
+
+## 2026-10-21 · GNOME: no program icon in the app grid
+
+- **Environment:** Ubuntu 26.04 GNOME, the ubuntu26.04 .deb.
+- **Symptom:** the app grid shows an empty place above "Markpaste", not even the generic icon.
+- **Cause:** `su._525.Markpaste.svg` began with a long comment; `<svg` was at byte 416. shared-mime-info finds SVG by `<svg` within the first 256 bytes, so by content the file was `application/xml` (`gio info` on a copy without the extension). The icon cache had the icon (checked in an `ubuntu:26.04` container), and librsvg draws the file, so the loader is the likely point of failure: GNOME 49+ loads images with glycin, which picks the decoder by content. Not confirmed on GNOME itself.
+- **Solution:** the comment moved after the `<svg>` tag; the test `AppIconFile.SvgIsRecognizedByContent`.
+- **Status:** solved in the 0.2.1 test build, waiting for a check on GNOME.
+
+## 2026-10-21 · GNOME: Print opens the GNOME screenshot tool, not Markpaste
+
+- **Environment:** Ubuntu 26.04 GNOME, GlobalShortcuts portal.
+- **Symptom:** the portal bound Print to "Capture with editor", but Print opens the GNOME screenshot UI; in the log the capture hotkey never activates (Ctrl+Print and Ctrl+Alt+V do).
+- **Cause:** GNOME Shell's own binding `org.gnome.shell.keybindings show-screenshot-ui = ['Print']` takes the key first. Expected by the spec (section 9).
+- **Solution:** the setup wizard detects it and offers "Give Print to Markpaste": the key is removed from the GNOME setting with gsettings, the old value is saved, the program restarts; the settings can give it back (ADR 0026). Checked with `pastetest --gnome-keys Print --gnome-action release|restore` on a local copy of the schema.
+- **Status:** implemented, waiting for a check on GNOME (whether GNOME passes Print to the portal shortcut after the restart).

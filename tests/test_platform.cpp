@@ -54,6 +54,7 @@ TEST(Autostart, WritesAndRemovesRunKey)
 
 #ifdef Q_OS_LINUX
 #include "platform/linux/FdIo.h"
+#include "platform/linux/GnomeKeybindings.h"
 #include "platform/linux/portal/PortalGlobalShortcuts.h"
 
 #include <QEventLoop>
@@ -120,6 +121,28 @@ TEST(PortalGlobalShortcuts, DisplayTriggerFromGnomeAndKde)
     EXPECT_EQ(PortalGlobalShortcuts::displayTrigger(QStringLiteral("Press <Control>Print")), QStringLiteral("Ctrl+Print"));
     EXPECT_EQ(PortalGlobalShortcuts::displayTrigger(QStringLiteral("Ctrl+Alt+V")), QStringLiteral("Ctrl+Alt+V"));
     EXPECT_EQ(PortalGlobalShortcuts::displayTrigger(QString()), QString());
+}
+
+TEST(GnomeKeybindings, CanonicalFormMatchesGtkAndPortalTriggers)
+{
+    using namespace lx::GnomeKeybindings;
+    EXPECT_EQ(canonical(QStringLiteral("Print")), QStringLiteral("print"));
+    EXPECT_EQ(canonical(QStringLiteral("Ctrl+Print")), canonical(QStringLiteral("<Control>Print")));
+    EXPECT_EQ(canonical(QStringLiteral("Primary+Print")), canonical(QStringLiteral("<Primary>Print")));
+    EXPECT_EQ(canonical(QStringLiteral("Ctrl+Alt+V")), canonical(QStringLiteral("<Alt><Control>v")));
+    EXPECT_NE(canonical(QStringLiteral("Print")), canonical(QStringLiteral("<Shift>Print")));
+    EXPECT_EQ(canonical(QStringLiteral("<Super><Shift>s")), QStringLiteral("meta+shift+s"));
+}
+
+TEST(GnomeKeybindings, GVariantStringArrays)
+{
+    using namespace lx::GnomeKeybindings;
+    EXPECT_EQ(parseStrv(QStringLiteral("['Print', '<Shift>Print']")),
+              (QStringList{QStringLiteral("Print"), QStringLiteral("<Shift>Print")}));
+    EXPECT_TRUE(parseStrv(QStringLiteral("@as []")).isEmpty());
+    EXPECT_EQ(formatStrv({}), QStringLiteral("@as []"));
+    EXPECT_EQ(formatStrv({QStringLiteral("<Shift>Print")}), QStringLiteral("['<Shift>Print']"));
+    EXPECT_EQ(parseStrv(formatStrv({QStringLiteral("a'b")})), QStringList{QStringLiteral("a'b")});
 }
 
 TEST(PortalGlobalShortcuts, EveryActionHasOwnId)

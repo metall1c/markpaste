@@ -48,11 +48,15 @@ public slots:
 
 signals:
     void openSettingsRequested();
+    // The desktop gave up a key (GNOME Print): binding it needs a new portal session, i.e. a restart
+    void restartRequested();
 
 private:
     void setStatus(StatusLine *label, Result result, const QString &text);
     void updateHotkeys();
     void finishPaste(const Status &status, const QString &expected);
+    void updateDesktopKeys();   // "Print is taken by the GNOME screenshot tool" + the button
+    void releaseDesktopKeys();
 
     Platform *m_platform;
     QString m_appId;
@@ -64,6 +68,10 @@ private:
     StatusLine *m_captureStatus;
     QPushButton *m_captureButton;
     StatusLine *m_hotkeyStatus;
+    StatusLine *m_desktopKeyStatus;
+    QPushButton *m_desktopKeyButton;
+    QStringList m_heldKeys;                    // bound keys the desktop takes first
+    QHash<QString, QString> m_keyHolders;      // key → who holds it ("" = nobody); gsettings once per key
     StatusLine *m_pasteStatus;
     QPushButton *m_pasteButton;
     QLineEdit *m_pasteField;

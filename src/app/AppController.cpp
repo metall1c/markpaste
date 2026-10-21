@@ -6,6 +6,7 @@
 #include "core/SetStorage.h"
 #include "paste/TempFiles.h"
 #include "platform/Autostart.h"
+#include "platform/Process.h"
 #include "platform/WindowRoles.h"
 #include "platform/Memory.h"
 #include "ui/AboutDialog.h"
@@ -264,6 +265,17 @@ void AppController::handleCommand(const QString &command)
         showStrip();
 }
 
+void AppController::restart(const QStringList &args)
+{
+    // The same as "Quit" in the tray, then a new start
+    if (!restartWhenExited(args)) {
+        notify(tr("Restart Markpaste to apply the change"));
+        return;
+    }
+    qCInfo(lcApp) << "restarting with" << args;
+    QApplication::quit();
+}
+
 void AppController::handleStartup(const QString &command)
 {
     // Normal start (autostart included): with an empty set only the tray icon shows,
@@ -297,13 +309,13 @@ void AppController::hideOwnWindows()
     if (m_editorWasVisible)
         m_editor->hide();
     if (m_stripWasVisible)
-        m_strip->hide();
+        m_strip->hideForCapture();
 }
 
 void AppController::restoreOwnWindows()
 {
     if (m_stripWasVisible)
-        m_strip->present();
+        m_strip->showAfterCapture();
     if (m_editorWasVisible)
         m_editor->show();
 }
@@ -570,6 +582,7 @@ void AppController::showSetupWizard()
         m_wizard->setWindowIcon(appIcon());
         m_wizard->setTriggers(m_boundTriggers);
         connect(m_wizard, &SetupWizard::openSettingsRequested, this, &AppController::showSettings);
+        connect(m_wizard, &SetupWizard::restartRequested, this, [this] { restart({QStringLiteral("--setup")}); });
     }
     m_wizard->show();
     m_wizard->raise();

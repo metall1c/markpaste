@@ -7,6 +7,8 @@
 #include "platform/linux/kde/KWinScreenshot.h"
 #include "platform/linux/portal/PortalBus.h"
 #include "platform/linux/portal/PortalClipboard.h"
+#include "platform/linux/GnomeKeybindings.h"
+#include "platform/linux/wayland/XdgWindowMenu.h"
 #include "platform/linux/portal/PortalScreenshot.h"
 #include "platform/linux/portal/PortalRemoteDesktop.h"
 #include "platform/linux/wayland/DataControlClipboard.h"
@@ -23,7 +25,9 @@
 #include <QFile>
 #include <QApplication>
 #include <QClipboard>
+#include <QLabel>
 #include <QLineEdit>
+#include <QMouseEvent>
 #include <QImage>
 #include <QPainter>
 #include <QProcess>
@@ -238,6 +242,51 @@ int runPortalClipboard(bool forgetToken)
     return 0;
 }
 
+// GNOME keys that take ours first: who holds the key, release it, give it back (problems.md 2026-10-21)
+int runGnomeKeys(const QString &key, const QString &action)
+{
+    namespace G = lx::GnomeKeybindings;
+    say(QStringLiteral("GNOME: %1").arg(G::isGnome() ? QStringLiteral("yes") : QStringLiteral("no")));
+    if (action == u"release") {
+        const Status st = G::release(key);
+        say(QStringLiteral("release: %1").arg(st.ok ? QStringLiteral("ok") : st.error));
+    } else if (action == u"restore") {
+        const Status st = G::restore();
+        say(QStringLiteral("restore: %1").arg(st.ok ? QStringLiteral("ok") : st.error));
+    }
+    for (const auto &h : G::holders(key))
+        say(QStringLiteral("held by %1 (%2 %3 = %4)").arg(h.description, h.schema, h.key, G::formatStrv(h.accels)));
+    say(QStringLiteral("released keys saved: %1").arg(G::hasReleased() ? QStringLiteral("yes") : QStringLiteral("no")));
+    return 0;
+}
+
+// The compositor's window menu for an ordinary window (GNOME "Always on Top"): right-click the window
+int runWindowMenu()
+{
+    class Probe : public QLabel
+    {
+    public:
+        Probe() : QLabel(QStringLiteral("Right-click: the compositor's window menu should open.\nClose the window to finish."))
+        {
+            setMargin(40);
+            setWindowFlag(Qt::FramelessWindowHint);
+        }
+
+    protected:
+        void mousePressEvent(QMouseEvent *e) override
+        {
+            if (e->button() == Qt::RightButton)
+                say(QStringLiteral("show_window_menu sent: %1")
+                        .arg(lx::showXdgWindowMenu(windowHandle(), e->position().toPoint()) ? QStringLiteral("yes")
+                                                                                            : QStringLiteral("no")));
+        }
+    };
+    say(QStringLiteral("available: %1").arg(lx::canShowXdgWindowMenu() ? QStringLiteral("yes") : QStringLiteral("no")));
+    Probe probe;
+    probe.show();
+    return QApplication::exec();
+}
+
 // X11 global hotkeys: grab Print and Ctrl+Alt+V, press them via xdotool (XTEST),
 // check activated/released. holdMs > 0 keeps the grab (to check "taken").
 int runX11Hotkeys(int holdMs)
@@ -335,11 +384,24 @@ int main(int argc, char **argv)
     QCommandLineOption holdOpt(QStringLiteral("hold"), QStringLiteral("With --x11-hotkeys: only grab and hold, ms"),
                                QStringLiteral("ms"), QStringLiteral("0"));
     cli.addOptions({x11HotkeysOpt, holdOpt});
+    QCommandLineOption windowMenuOpt(QStringLiteral("window-menu"),
+                                     QStringLiteral("Open the compositor's window menu from a frameless window"));
+    cli.addOption(windowMenuOpt);
+    QCommandLineOption gnomeKeysOpt(QStringLiteral("gnome-keys"),
+                                    QStringLiteral("Who in GNOME holds the key; with --gnome-action release|restore"),
+                                    QStringLiteral("key"));
+    QCommandLineOption gnomeActionOpt(QStringLiteral("gnome-action"), QStringLiteral("release or restore"),
+                                      QStringLiteral("action"));
+    cli.addOptions({gnomeKeysOpt, gnomeActionOpt});
     cli.addOptions({captureOpt, outOpt, inProcessOpt, receiverOpt, selfTestOpt, checkOpt, modeOpt, delayOpt, settleOpt, countdownOpt, textOpt, noRestoreOpt, forgetOpt, onlyTextOpt});
     cli.process(app);
 
     if (cli.isSet(checkOpt))
         return runCheck();
+    if (cli.isSet(gnomeKeysOpt))
+        return runGnomeKeys(cli.value(gnomeKeysOpt), cli.value(gnomeActionOpt));
+    if (cli.isSet(windowMenuOpt))
+        return runWindowMenu();
     if (cli.isSet(x11HotkeysOpt))
         return runX11Hotkeys(cli.value(holdOpt).toInt());
     if (cli.isSet(portalClipboardOpt))

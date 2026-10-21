@@ -79,6 +79,8 @@ WAYLAND_DISPLAY=wayland-1 QT_QPA_PLATFORM=wayland ./build/tools/pastetest/markpa
 The portals here stay KDE's (the shared session bus), so only Wayland protocols are checked this way: data-control, virtual-keyboard, layer-shell.
 
 - `pastetest --portal-clipboard` checks the Clipboard portal: it writes through the portal and reads back through data-control and through our own `QClipboard` (step 5b, a paste into our own window), then shows what is left in the clipboard after the session closes. The first time KDE asks for permission.
+- `pastetest --window-menu` opens a frameless window; a right click sends `xdg_toplevel.show_window_menu` (the GNOME "Always on Top" path of the strip, ADR 0026).
+- `pastetest --gnome-keys Print [--gnome-action release|restore]` shows which GNOME setting holds the key, frees it or gives it back. Without GNOME: a local schema copy with `GSETTINGS_SCHEMA_DIR`, `GSETTINGS_BACKEND=keyfile`, `XDG_CONFIG_HOME` and `XDG_CURRENT_DESKTOP=GNOME`.
 - Variables for checking the fallback paths on KDE: `MARKPASTE_CLIPBOARD=portal` (clipboard through the portal), `MARKPASTE_INPUT=portal` (Ctrl+V only through RemoteDesktop).
 
 ## Checking X11 without an X11 session
@@ -189,4 +191,5 @@ tools/dev/winvm/vm.sh tests                                   # three test suite
 - **Controlling a running instance:** `markpaste --capture | --capture-to-strip | --paste | --copy | --show | --settings | --setup | --about | --clear | --quit`. `--capture-to-strip` is a shot straight to the strip, without the editor (ADR 0022).
 - **`pkill -f build/src/app/markpaste` kills the shell itself** if the path is in its command line. Use `pkill -x markpaste`.
 - **Translations:** strings are updated with `cmake --build build --target update_translations` (lupdate), the files are `i18n/*.ts`. The `.qm` files are embedded into the program under `:/i18n`. Attach each `.ts` via `qt_add_translations` to one target only, otherwise parallel lupdate runs corrupt the file (docs/problems.md); tests use `qt_add_lrelease`.
+- **Private Qt Gui headers** (`Qt6::GuiPrivate`, packages `qt6-qtbase-private-devel` / `qt6-base-private-dev`) are used for one call: Qt's `xdg_toplevel` for the GNOME window menu (ADR 0026). Without them the build goes on without the window menu.
 - **No Qt API newer than 6.4.** Fedora has 6.11, so the compiler will not catch newer calls. The protection is the Ubuntu 24.04 (Qt 6.4.2) build in CI and in the release containers. Only what exists in 6.4 is used: `QFuture::then/unwrap`, `QPromise`, `qt_add_translations`.

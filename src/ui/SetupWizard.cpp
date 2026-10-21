@@ -148,6 +148,19 @@ SetupWizard::SetupWizard(Platform *platform, const QString &appId, QWidget *pare
     layout->addWidget(section(3, tr("Hotkeys"), l));
     m_hotkeyStatus = new StatusLine;
     l->addWidget(m_hotkeyStatus);
+    // GNOME: Print is taken by its screenshot tool (spec section 9, problems.md 2026-10-21)
+    m_desktopKeyStatus = new StatusLine;
+    m_desktopKeyStatus->hide();
+    l->addWidget(m_desktopKeyStatus);
+    m_desktopKeyButton = wizardButton(QString());
+    m_desktopKeyButton->hide();
+    connect(m_desktopKeyButton, &QPushButton::clicked, this, &SetupWizard::releaseDesktopKeys);
+    {
+        auto *row = new QHBoxLayout;
+        row->addWidget(m_desktopKeyButton);
+        row->addStretch();
+        l->addLayout(row);
+    }
     if (platform->hotkeys && platform->hotkeys->canOpenSystemSettings()) {
         auto *sys = wizardButton(tr("Change in system settings…"));
         connect(sys, &QPushButton::clicked, this, [this] { m_platform->hotkeys->openSystemSettings(); });
@@ -315,6 +328,49 @@ void SetupWizard::updateHotkeys()
     }
     const Result r = anyMissing ? Result::Warning : allPressed ? Result::Ok : Result::Pending;
     setStatus(m_hotkeyStatus, r, lines.join(QStringLiteral(" · ")));
+    updateDesktopKeys();
+}
+
+void SetupWizard::updateDesktopKeys()
+{
+    m_heldKeys.clear();
+    QStringList holders;
+    if (m_platform->hotkeys) {
+        for (Action a : {Action::Capture, Action::PasteSet, Action::CaptureToStrip}) {
+            const QString trigger = m_triggers.value(a);
+            if (trigger.isEmpty() || m_pressed.value(a) || m_heldKeys.contains(trigger))
+                continue;   // a key that has fired is ours
+            if (!m_keyHolders.contains(trigger))
+                m_keyHolders.insert(trigger, m_platform->hotkeys->desktopKeyHolder(trigger));
+            const QString holder = m_keyHolders.value(trigger);
+            if (holder.isEmpty())
+                continue;
+            m_heldKeys << trigger;
+            holders << tr("%1 is taken by %2, so Markpaste does not get it.").arg(trigger, holder);
+        }
+    }
+    const bool show = !m_heldKeys.isEmpty();
+    m_desktopKeyStatus->setVisible(show);
+    m_desktopKeyButton->setVisible(show);
+    if (!show)
+        return;
+    m_desktopKeyStatus->setState(StatusLine::State::Warning,
+                                 holders.join(u' ') + u' '
+                                     + tr("The button frees the key in the system settings and restarts Markpaste; "
+                                          "the program settings can give it back."));
+    m_desktopKeyButton->setText(tr("Give %1 to Markpaste").arg(m_heldKeys.join(QStringLiteral(", "))));
+}
+
+void SetupWizard::releaseDesktopKeys()
+{
+    for (const QString &key : std::as_const(m_heldKeys)) {
+        const Status st = m_platform->hotkeys->releaseDesktopKey(key);
+        if (!st.ok) {
+            m_desktopKeyStatus->setState(StatusLine::State::Failed, tr("Could not free %1: %2").arg(key, st.error));
+            return;
+        }
+    }
+    emit restartRequested();
 }
 
 void SetupWizard::checkPaste()

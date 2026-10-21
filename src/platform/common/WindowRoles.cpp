@@ -5,6 +5,10 @@
 #include <QWidget>
 #include <QWindow>
 
+#ifdef Q_OS_LINUX
+#include "platform/linux/wayland/XdgWindowMenu.h"
+#endif
+
 #ifdef MARKPASTE_HAVE_LAYERSHELLQT
 #include "platform/linux/wayland/WaylandConnection.h"
 
@@ -276,6 +280,30 @@ public:
 };
 } // namespace
 #endif
+
+bool canShowWindowMenu(QWidget *widget)
+{
+#ifdef Q_OS_LINUX
+    return widget && !layerShellAvailable() && lx::canShowXdgWindowMenu();
+#else
+    Q_UNUSED(widget);
+    return false;
+#endif
+}
+
+bool showWindowMenu(QWidget *widget, const QPoint &posInWidget)
+{
+#ifdef Q_OS_LINUX
+    QWidget *window = widget ? widget->window() : nullptr;
+    if (!canShowWindowMenu(widget) || !window->windowHandle())
+        return false;
+    return lx::showXdgWindowMenu(window->windowHandle(), widget->mapTo(window, posInWidget));
+#else
+    Q_UNUSED(widget);
+    Q_UNUSED(posInWidget);
+    return false;
+#endif
+}
 
 void disableWindowAnimations()
 {

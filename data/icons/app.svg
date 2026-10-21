@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Значок Markpaste. Повторяет src/app/AppIcon.cpp (там он рисуется кодом для трея и окон):
-     рамка выделения акцентного цвета и значок метки «A1». Цвет значка — акцент #FF5A1F,
-     затемнённый до контраста 4.5:1 с белым (ADR 0003). -->
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- The Markpaste icon. Repeats src/app/AppIcon.cpp (where it is drawn in code for the tray and windows):
+       an accent-colored selection frame and the "A1" mark badge. The badge color is the accent #FF5A1F
+       darkened to 4.5:1 contrast with white (ADR 0003).
+       Keep this comment after the <svg> tag: content sniffing looks for "<svg" in the first 256 bytes,
+       otherwise the file is application/xml and GNOME shows no icon (problems.md 2026-10-21). -->
   <rect x="46.08" y="56.32" width="184.32" height="158.72" rx="15.36" ry="15.36"
         fill="none" stroke="#FF5A1F" stroke-width="23.04"/>
   <circle cx="64" cy="69.12" r="53.76" fill="#CC4819" stroke="#FFFFFF" stroke-width="8.96"/>

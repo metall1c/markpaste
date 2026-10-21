@@ -51,7 +51,26 @@ if(MARKPASTE_LINUX)
     markpaste_wayland_protocol(markpaste_platform
         ${CMAKE_CURRENT_SOURCE_DIR}/linux/wayland/protocols/virtual-keyboard-unstable-v1.xml)
 
+    # The compositor's window menu for our own Qt windows (GNOME "Always on Top"): Qt's xdg_toplevel comes
+    # from QPlatformNativeInterface, so private Qt Gui headers; only the request header of xdg-shell is needed,
+    # the interface symbols are Qt's
+    set(QT_NO_PRIVATE_MODULE_WARNING ON)   # ADR 0026: one call, rebuilt with each distribution Qt
+    find_package(Qt6 QUIET OPTIONAL_COMPONENTS GuiPrivate)
+    if(TARGET Qt6::GuiPrivate)
+        set(xdg_shell_header ${CMAKE_CURRENT_BINARY_DIR}/xdg-shell-client-protocol.h)
+        add_custom_command(OUTPUT ${xdg_shell_header}
+            COMMAND ${WAYLAND_SCANNER} client-header ${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml ${xdg_shell_header}
+            DEPENDS ${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml VERBATIM)
+        target_sources(markpaste_platform PRIVATE ${xdg_shell_header})
+        target_link_libraries(markpaste_platform PRIVATE Qt6::GuiPrivate)
+        target_compile_definitions(markpaste_platform PRIVATE MARKPASTE_HAVE_XDG_WINDOW_MENU)
+    else()
+        message(STATUS "Qt6::GuiPrivate not found: no window menu for the strip on GNOME")
+    endif()
+
     target_sources(markpaste_platform PRIVATE
+        linux/wayland/XdgWindowMenu.h linux/wayland/XdgWindowMenu.cpp
+        linux/GnomeKeybindings.h linux/GnomeKeybindings.cpp
         linux/FdIo.h linux/FdIo.cpp
         linux/portal/PortalBus.h linux/portal/PortalBus.cpp
         linux/portal/PortalRemoteDesktop.h linux/portal/PortalRemoteDesktop.cpp

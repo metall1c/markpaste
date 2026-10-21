@@ -54,6 +54,12 @@ public:
     // Move the strip (mouse move and the debug-move-strip debug command)
     void moveTo(QScreen *screen, const PanelPlacement &placement);
 
+    // Before a capture the strip must not get into the shot. Where the compositor places windows itself
+    // (Wayland without layer-shell, GNOME) a hidden window comes back where the compositor wants (in the middle),
+    // and loses "Always on Top": there the strip stays shown but fully transparent.
+    void hideForCapture();
+    void showAfterCapture();
+
 signals:
     void shotActivated(const QUuid &shotId);
     void newShotRequested();
@@ -132,6 +138,7 @@ private:
     QString m_screenName;
     QPoint m_movePress;
     bool m_moving = false;
+    bool m_veiled = false;   // transparent for a capture, see hideForCapture()
     class MoveGhost *m_ghost = nullptr;
 
     struct CachedThumb {

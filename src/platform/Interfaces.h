@@ -40,6 +40,14 @@ public:
     // true: the shortcut from the program settings is only suggested at the first binding, and after that
     // the system keeps and changes it (GlobalShortcuts portal). The settings field is then read-only.
     virtual bool systemAssignsTriggers() const { return false; }
+    // The desktop's own shortcut gets this key first (GNOME: Print opens its screenshot tool), so ours never
+    // fires. Returns who holds it, for the user; empty: nobody known. trigger is the bound one ("Print").
+    virtual QString desktopKeyHolder(const QString &trigger) const { Q_UNUSED(trigger); return {}; }
+    // Take the key away from the desktop. The old value is kept for restoreDesktopKeys().
+    // A new binding is needed afterwards: on Wayland that is a new portal session, i.e. a restart.
+    virtual Status releaseDesktopKey(const QString &trigger) { Q_UNUSED(trigger); return Status::failure(QStringLiteral("not supported")); }
+    virtual bool canRestoreDesktopKeys() const { return false; }
+    virtual Status restoreDesktopKeys() { return Status::success(); }
     virtual QString name() const = 0;
 
 signals:

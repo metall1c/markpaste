@@ -35,6 +35,33 @@
     </message>
 </context>
 <context>
+    <name>GnomeKeybindings</name>
+    <message>
+        <source>the GNOME screenshot tool</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>the GNOME screen screenshot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>the GNOME window screenshot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>the GNOME screen recording</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>the GNOME screenshot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>the GNOME area screenshot</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ShotThumb</name>
     <message>
         <source>Click — edit · Drag — into a chat as a file or within the strip to reorder · Right click — menu</source>
@@ -65,6 +92,10 @@
     <name>StripHeader</name>
     <message>
         <source>Drag to move the strip to another edge or screen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Drag to move the strip. Right-click for the window menu: “Always on Top” keeps the strip above other windows</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -187,6 +218,10 @@
     </message>
     <message>
         <source>Markpaste runs under XWayland: global hotkeys and capture will not work.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Restart Markpaste to apply the change</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -527,6 +562,22 @@
     </message>
     <message>
         <source>Change shortcuts…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Give the freed keys back to the system</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The setup check took these keys from the system shortcuts (for example, Print from the GNOME screenshot tool). The system gets them back at once.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The keys are back in the system</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not give the keys back: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -884,6 +935,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>%1 is taken by %2, so Markpaste does not get it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The button frees the key in the system settings and restarts Markpaste; the program settings can give it back.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>%1 — works</source>
         <translation type="unfinished"></translation>
     </message>
@@ -893,6 +952,14 @@
     </message>
     <message>
         <source>press %1 to test</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Give %1 to Markpaste</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not free %1: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
