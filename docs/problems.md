@@ -404,8 +404,9 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Environment:** Ubuntu 26.04 GNOME, Clipboard portal; checked in the VM with a test page in Firefox.
 - **Symptom:** "ORIGINAL-CLIPBOARD" copied in Firefox, then Ctrl+Alt+V pastes the set correctly (A 16462 bytes, B 7865 bytes, the text; every transfer served in ~1 ms), but a Ctrl+V afterwards pastes nothing: the clipboard is empty.
 - **Cause:** the program saves the clipboard (`saved clipboard: text/plain…`) and writes it back through the portal before closing the session (`restoring clipboard … SetSelection`), but Mutter drops a selection set in a RemoteDesktop session when the session closes. On KDE the previous content comes back instead (ADR 0010).
-- **Possible solutions (not done):** keep the RemoteDesktop session open after a paste until someone else takes the clipboard or for a few minutes (GNOME shows the remote control indicator meanwhile); or accept it and say so in the help.
-- **Status:** open, a product decision.
+- **Possible solutions:** keep the RemoteDesktop session open after a paste until someone else takes the clipboard or for a few minutes (GNOME shows the remote control indicator meanwhile); or accept it and say so in the help.
+- **Decision (the user, 2026-10-21):** accepted as a GNOME limitation for now, described in README "On GNOME".
+- **Status:** known limitation.
 
 ## 2026-10-21 · Firefox puts pasted pieces out of order (test page only)
 
@@ -419,3 +420,11 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Symptom:** clicks on items of the tray menu (an AppIndicator menu drawn by GNOME Shell) did nothing.
 - **Cause:** `ydotool mousemove --absolute` first moves the pointer to (0, 0), the Activities hot corner, which closes Shell menus. Qt's own menus are not affected.
 - **Workaround:** inside a Shell menu move relatively (`ydotool mousemove -x DX -y DY`).
+
+## 2026-10-21 · GNOME: a left click on the tray icon opens the menu, not the strip
+
+- **Environment:** Ubuntu 26.04 GNOME, the `ubuntu-appindicators@ubuntu.com` extension (StatusNotifierItem host).
+- **Symptom:** on KDE a left click on the tray icon shows or hides the strip; on Ubuntu it opens the menu.
+- **Cause:** the extension's `indicatorStatusIcon.js`: a single primary click on an item with a menu toggles the menu (after the double-click time), a double click calls `Activate` (our `QSystemTrayIcon::Trigger`), a middle click calls `SecondaryActivate`. Our item reports `ItemIsMenu = false`; the extension has no setting for a single-click activation.
+- **Solution:** none in the program; a double click shows or hides the strip (checked in the VM). Described in README "On GNOME".
+- **Status:** known difference.

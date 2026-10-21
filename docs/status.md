@@ -51,7 +51,7 @@ On 2026-10-20 the shot window and the strip were redone after an approved mock-u
 | NFR-8 reliability | 🟡 | Errors are shown, but failure scenarios (declining a portal dialog, a KWin crash) were not checked |
 | NFR-9 keyboard accessibility | 🟡 | The strip has no keyboard (by design, so as not to take focus); everything is reachable with hotkeys and the tray |
 | NFR-12 one-command build | ✅ | One CMake command in clean Fedora 44, Ubuntu 24.04 (Qt 6.4), Ubuntu 26.04 and Debian 13 containers, tests pass (2026-10-21, docs/build.md) |
-| Log file with rotation (sections 7, 11) | ✅ | `~/.local/share/markpaste/logs/markpaste.log`, 1 MB × 3 files, plus journald ([ADR 0014](decisions/0014-logs-and-update-check.md)) |
+| Log file with rotation (sections 7, 11) | ✅ | `~/.local/share/markpaste/markpaste/logs/markpaste.log`, 1 MB × 3 files, plus journald ([ADR 0014](decisions/0014-logs-and-update-check.md)) |
 
 ## Other Linux environments
 

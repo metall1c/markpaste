@@ -54,7 +54,7 @@ Open source, for Linux (KDE Plasma on Wayland first) and Windows 10/11. No netwo
 | Fedora 44 KDE Plasma 6, Wayland | ✅ The main platform: checked in daily use |
 | Other KDE Plasma 6 distributions on Wayland | ✅ Expected to work the same (needs Qt 6.4+, xdg-desktop-portal) |
 | Sway, Hyprland | 🟡 Sequential paste works in tests; bind `markpaste --capture` in the compositor config (Sway has no global shortcuts portal) |
-| GNOME 48+ on Wayland | 🟡 Implemented (the Clipboard portal), not checked on a live GNOME yet |
+| GNOME 48+ on Wayland | 🟡 Checked on Ubuntu 26.04 (GNOME, Wayland): capture, marks, sequential paste, "Copy set", drag-and-drop. See [On GNOME](#on-gnome) for the differences |
 | X11 (KDE, Xfce…) | 🟡 Global hotkeys and paste work in tests (Xvfb); not checked in a real X11 session |
 | Windows 11 x64 | ✅ Checked in daily use; the installer is not signed yet |
 | Windows 10 x64 | 🟡 Expected to work the same, not checked yet |
@@ -162,7 +162,7 @@ Shots pile up in the strip at the screen edge: A, B, C… up to Z. Each thumbnai
 
 ### 4. Paste into a chat
 
-Click into the chat's input field and press **Ctrl+Alt+V** (Paste the set). Markpaste puts the images into the clipboard one by one and presses Ctrl+V for you, then pastes the text. The strip shows the progress; **Stop** interrupts. After the paste your previous clipboard content is restored.
+Click into the chat's input field and press **Ctrl+Alt+V** (Paste the set). Markpaste puts the images into the clipboard one by one and presses Ctrl+V for you, then pastes the text. The strip shows the progress; **Stop** interrupts. After the paste your previous clipboard content is restored (not on GNOME, see [On GNOME](#on-gnome)).
 
 You can also press **Paste set** in the strip: on KDE and Windows the strip does not take focus from the chat, so the button pastes the same way.
 
@@ -243,7 +243,7 @@ markpaste --show | --settings | --setup | --about | --clear | --quit
 - No telemetry and no accounts. The only network request is the once-a-day check for a new version on GitHub; turn it off in **Settings → System**.
 - On KDE the pasted entries are hidden from the Klipper history; on Windows from the Win+V history and cloud clipboard.
 - The set is kept in memory. Only with "Keep the set after restart" on is it stored on disk, in `~/.local/share/markpaste/session` (owner-only access). Note that this copy keeps the original pixels under the blur.
-- The log (`~/.local/share/markpaste/logs/`) has events only, never shot contents or comments.
+- The log (`~/.local/share/markpaste/markpaste/logs/`) has events only, never shot contents or comments.
 
 ## Troubleshooting
 
@@ -252,7 +252,16 @@ markpaste --show | --settings | --setup | --about | --clear | --quit
 - **The shortcut I typed in settings does not work.** On Wayland the desktop owns the shortcuts: change them with **Change shortcuts…** (KDE) or in the system keyboard settings.
 - **Nothing is pasted, the strip says to click into the chat first.** A Markpaste window (settings, preview) was active; click into the chat's input field and press the paste shortcut again.
 - **Capture became slow and a dialog appears after an update.** The program file was replaced while it was running; restart Markpaste.
-- **Logs:** `~/.local/share/markpaste/logs/markpaste.log` (Windows: `%LOCALAPPDATA%\markpaste\markpaste\logs`). **About → Copy details** copies the version and system info for a bug report.
+- **Logs:** `~/.local/share/markpaste/markpaste/logs/markpaste.log` (Windows: `%LOCALAPPDATA%\markpaste\markpaste\logs`). **About → Copy details** copies the version and system info for a bug report.
+
+### On GNOME
+
+GNOME on Wayland gives programs less control than KDE, so some things work differently:
+
+- **The tray icon** (Ubuntu's AppIndicator extension): a single left click opens the menu, a **double click** shows or hides the strip. On KDE a single click does that.
+- **Print opens the GNOME screenshot tool.** GNOME takes the key first. The setup check offers **Give Print to Markpaste**; **Settings → Capture → Give the freed keys back to the system** returns it.
+- **The strip is an ordinary window.** GNOME places it and may put other windows over it. Drag it by its header anywhere; **right-click the header** and choose **Always on Top** in the GNOME window menu to keep it above other windows (until the strip is hidden or Markpaste restarts).
+- **The clipboard is not restored after a paste.** After **Ctrl+Alt+V** the clipboard is empty instead of holding what you copied before: GNOME clears what was put into the clipboard during the paste when the paste ends.
 
 Report problems in [GitHub Issues](https://github.com/metall1c/markpaste/issues) with your OS, desktop, X11 or Wayland, and the chat.
 
