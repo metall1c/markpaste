@@ -1,0 +1,37 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Markpaste version
+      description: "About → Copy details gives the version and the system in one go."
+      placeholder: "0.2.0"
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: OS and desktop
+      placeholder: "Fedora 44, KDE Plasma 6.7, Wayland"
+    validations:
+      required: true
+  - type: input
+    id: chat
+    attributes:
+      label: Chat or program you pasted into
+      placeholder: "ChatGPT in Firefox, Telegram Desktop (Flatpak)…"
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: "Lines from ~/.local/share/markpaste/logs/markpaste.log (Windows: %LOCALAPPDATA%\\markpaste\\markpaste\\logs). The log has no shot contents or comments."
+      render: text

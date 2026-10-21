@@ -131,6 +131,34 @@ endif()
 
 install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
+if(MARKPASTE_LINUX)
+    # Man page, Debian copyright and changelog: lintian requires them, rpmlint warns without a man page.
+    # Compressed at configure time (file(ARCHIVE_CREATE ... FORMAT raw)), as packages expect.
+    configure_file(data/markpaste.1 ${CMAKE_BINARY_DIR}/data/${MARKPASTE_EXECUTABLE}.1 @ONLY)
+    configure_file(data/copyright.in ${CMAKE_BINARY_DIR}/data/copyright @ONLY)
+    string(TIMESTAMP MARKPASTE_CHANGELOG_DATE "%a, %d %b %Y %H:%M:%S +0000" UTC)
+    # A package with a Debian revision (0.2.0-1~ubuntu24.04, set by tools/package/build-in-container.sh)
+    # is not "native" for lintian and needs changelog.Debian.gz with the same version
+    if(CPACK_DEBIAN_PACKAGE_RELEASE)
+        set(MARKPASTE_CHANGELOG_VERSION "${PROJECT_VERSION}-${CPACK_DEBIAN_PACKAGE_RELEASE}")
+        set(MARKPASTE_CHANGELOG_NAME changelog.Debian)
+    else()
+        set(MARKPASTE_CHANGELOG_VERSION "${PROJECT_VERSION}")
+        set(MARKPASTE_CHANGELOG_NAME changelog)
+    endif()
+    file(WRITE ${CMAKE_BINARY_DIR}/data/${MARKPASTE_CHANGELOG_NAME}
+        "${MARKPASTE_EXECUTABLE} (${MARKPASTE_CHANGELOG_VERSION}) unstable; urgency=medium\n\n"
+        "  * Release ${PROJECT_VERSION}: ${MARKPASTE_RELEASES_URL}/tag/v${PROJECT_VERSION}\n\n"
+        " -- Andrey Che <metallicvrn@gmail.com>  ${MARKPASTE_CHANGELOG_DATE}\n")
+    foreach(f ${MARKPASTE_EXECUTABLE}.1 ${MARKPASTE_CHANGELOG_NAME})
+        file(ARCHIVE_CREATE OUTPUT ${CMAKE_BINARY_DIR}/data/${f}.gz PATHS ${CMAKE_BINARY_DIR}/data/${f}
+             FORMAT raw COMPRESSION GZip COMPRESSION_LEVEL 9)
+    endforeach()
+    install(FILES ${CMAKE_BINARY_DIR}/data/${MARKPASTE_EXECUTABLE}.1.gz DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+    install(FILES ${CMAKE_BINARY_DIR}/data/copyright ${CMAKE_BINARY_DIR}/data/${MARKPASTE_CHANGELOG_NAME}.gz
+            DESTINATION ${CMAKE_INSTALL_DOCDIR})
+endif()
+
 if(WIN32)
     # Qt root for Windows: the directory above lib/cmake/Qt6
     get_filename_component(MARKPASTE_QT_PREFIX "${Qt6_DIR}/../../.." ABSOLUTE)
@@ -184,7 +212,9 @@ if(MARKPASTE_RPMBUILD AND NOT WIN32)
         ${CMAKE_INSTALL_FULL_DATADIR}/icons/hicolor
         ${CMAKE_INSTALL_FULL_DATADIR}/icons/hicolor/scalable
         ${CMAKE_INSTALL_FULL_DATADIR}/icons/hicolor/scalable/apps
-        ${CMAKE_INSTALL_FULL_DATADIR}/doc)
+        ${CMAKE_INSTALL_FULL_DATADIR}/doc
+        ${CMAKE_INSTALL_FULL_MANDIR}
+        ${CMAKE_INSTALL_FULL_MANDIR}/man1)
 endif()
 
 if(MARKPASTE_DPKG_SHLIBDEPS AND NOT WIN32)
@@ -192,7 +222,6 @@ if(MARKPASTE_DPKG_SHLIBDEPS AND NOT WIN32)
     set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
     set(CPACK_DEBIAN_PACKAGE_SECTION "graphics")
-    set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}\n${CPACK_PACKAGE_DESCRIPTION}")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "xdg-desktop-portal")
     set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "xdg-desktop-portal-kde | xdg-desktop-portal-gnome")
 endif()

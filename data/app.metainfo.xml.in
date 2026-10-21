@@ -24,7 +24,25 @@
     <name>Andrey</name>
   </developer>
   <content_rating type="oars-1.1"/>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Marks with comments in the shot editor</caption>
+      <image>https://raw.githubusercontent.com/@MARKPASTE_GITHUB_REPO@/main/docs/images/en/editor.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The strip with the set of shots</caption>
+      <image>https://raw.githubusercontent.com/@MARKPASTE_GITHUB_REPO@/main/docs/images/en/strip-set.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Preview of what goes to the chat</caption>
+      <image>https://raw.githubusercontent.com/@MARKPASTE_GITHUB_REPO@/main/docs/images/en/preview.png</image>
+    </screenshot>
+  </screenshots>
   <releases>
-    <release version="@PROJECT_VERSION@" date="2026-10-19"/>
+    <release version="0.2.0" date="2026-10-21">
+      <description>
+        <p>The first public release.</p>
+      </description>
+    </release>
   </releases>
 </component>

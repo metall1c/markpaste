@@ -41,6 +41,30 @@ static LayerShellQt::Window *layerWindow(QWidget *widget)
     widget->createWinId();
     return LayerShellQt::Window::get(widget->windowHandle());
 }
+
+// The output of the layer surface. LayerShellQt before 6.4 has no Window::setScreen and reads
+// QWindow::screen() (ScreenFromQWindow, its default).
+static void setLayerScreen(LayerShellQt::Window *lw, QWidget *widget, QScreen *screen)
+{
+#ifdef MARKPASTE_LAYERSHELL_SET_SCREEN
+    Q_UNUSED(widget);
+    lw->setScreen(screen);
+#else
+    Q_UNUSED(lw);
+    widget->windowHandle()->setScreen(screen);
+#endif
+}
+
+static QScreen *layerScreen(LayerShellQt::Window *lw, QWidget *widget)
+{
+#ifdef MARKPASTE_LAYERSHELL_SET_SCREEN
+    Q_UNUSED(widget);
+    return lw->screen();
+#else
+    Q_UNUSED(lw);
+    return widget->windowHandle()->screen();
+#endif
+}
 #endif
 
 bool applyOverlayRole(QWidget *widget, QScreen *screen)
@@ -57,7 +81,7 @@ bool applyOverlayRole(QWidget *widget, QScreen *screen)
     lw->setExclusiveZone(-1);   // do not move because of panels
     lw->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityExclusive);
     lw->setScope(QStringLiteral("markpaste-overlay"));
-    lw->setScreen(screen);
+    setLayerScreen(lw, widget, screen);
     widget->setGeometry(screen->geometry());
     return true;
 #else
@@ -84,7 +108,7 @@ bool applyGhostRole(QWidget *widget, QScreen *screen)
     lw->setExclusiveZone(-1);
     lw->setKeyboardInteractivity(W::KeyboardInteractivityNone);
     lw->setScope(QStringLiteral("markpaste-ghost"));
-    lw->setScreen(screen);
+    setLayerScreen(lw, widget, screen);
     widget->setGeometry(screen->geometry());
     return true;
 #else
@@ -140,7 +164,7 @@ bool applyPanelRole(QWidget *widget, QScreen *screen, const PanelPlacement &plac
     lw->setExclusiveZone(0);
     lw->setKeyboardInteractivity(W::KeyboardInteractivityNone);
     lw->setScope(QStringLiteral("markpaste-strip"));
-    lw->setScreen(screen);
+    setLayerScreen(lw, widget, screen);
     setPlacement(lw, placement);
     return true;
 #else
@@ -159,12 +183,12 @@ bool movePanel(QWidget *widget, QScreen *screen, const PanelPlacement &placement
     auto *lw = LayerShellQt::Window::get(widget->windowHandle());
     if (!lw)
         return false;
-    const bool screenChanged = lw->screen() != screen;
+    const bool screenChanged = layerScreen(lw, widget) != screen;
     if (screenChanged) {
         // The surface output is set when it is created: recreate it
         const bool visible = widget->isVisible();
         widget->hide();
-        lw->setScreen(screen);
+        setLayerScreen(lw, widget, screen);
         setPlacement(lw, placement);
         if (visible)
             widget->show();

@@ -23,6 +23,11 @@ target_link_libraries(markpaste_platform PUBLIC markpaste_platform_api Qt6::Gui 
 if(LayerShellQt_FOUND)
     target_link_libraries(markpaste_platform PRIVATE LayerShellQt::Interface)
     target_compile_definitions(markpaste_platform PRIVATE MARKPASTE_HAVE_LAYERSHELLQT)
+    # Window::setScreen appeared in LayerShellQt 6.4; older ones (Debian 13 has 6.3) take the
+    # output from QWindow::screen()
+    if(LayerShellQt_VERSION VERSION_GREATER_EQUAL 6.4)
+        target_compile_definitions(markpaste_platform PRIVATE MARKPASTE_LAYERSHELL_SET_SCREEN)
+    endif()
 endif()
 
 if(MARKPASTE_LINUX)

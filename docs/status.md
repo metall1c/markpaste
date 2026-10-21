@@ -46,11 +46,11 @@ On 2026-10-20 the shot window and the strip were redone after an approved mock-u
 | --- | --- | --- |
 | NFR-1 speed | 🟡 | To the overlay: a median of 220 ms by the log of real shots (2×1080p, KWin). Pasting 5 4K shots up to the last Ctrl+V: 1.77 s (`markpaste-bench`). The overlay on 4K was not measured, there is no such monitor ([platform-matrix.md](platform-matrix.md#memory-and-speed-measurements-nfr-1-nfr-2)) |
 | NFR-2 memory | 🟡 | 26 4K shots with the strip and the editor: 170 MB, the paste peak 460 MB (target 600). "Stuck" memory after a paste was found and fixed (750 → 165 MB, `malloc_trim`). CPU in the background: 0. In a live session: own memory in the background 48 MB (PSS 52, target 60), after pasting 3 shots back to 108 MB RSS within 6 s ([platform-matrix.md](platform-matrix.md#memory-and-speed-measurements-nfr-1-nfr-2)) |
-| NFR-3 package sizes | 🟡 | 0.2.0 packages: see docs/release.md and platform-matrix.md. The Windows installer is 23.8 MB (below 40) |
+| NFR-3 package sizes | ✅ | 0.2.0: .rpm 0.6 MB, each .deb 0.7 MB (target 5 MB), the Windows installer 23.8 MB (target 40 MB); the portable ZIP is 35 MB ([ADR 0025](decisions/0025-release-packages-in-containers.md)) |
 | NFR-5 "survive a restart" | 🟡 | A checkbox in settings, off by default; `~/.local/share/markpaste/session`, 0700 ([ADR 0013](decisions/0013-set-on-disk.md)). Format and permission tests; a restart in a live session was not checked |
 | NFR-8 reliability | 🟡 | Errors are shown, but failure scenarios (declining a portal dialog, a KWin crash) were not checked |
 | NFR-9 keyboard accessibility | 🟡 | The strip has no keyboard (by design, so as not to take focus); everything is reachable with hotkeys and the tray |
-| NFR-12 one-command build | 🟡 | On Fedora, yes; Ubuntu 24.04 (Qt 6.4): see the 0.2.0 .deb build in docs/build.md |
+| NFR-12 one-command build | ✅ | One CMake command in clean Fedora 44, Ubuntu 24.04 (Qt 6.4), Ubuntu 26.04 and Debian 13 containers, tests pass (2026-10-21, docs/build.md) |
 | Log file with rotation (sections 7, 11) | ✅ | `~/.local/share/markpaste/logs/markpaste.log`, 1 MB × 3 files, plus journald ([ADR 0014](decisions/0014-logs-and-update-check.md)) |
 
 ## Other Linux environments
@@ -75,10 +75,10 @@ On 2026-10-20 the shot window and the strip were redone after an approved mock-u
 
 | What | Status |
 | --- | --- |
-| .rpm and .deb packages (CPack) | 🟡 — built for 0.2.0 (docs/release.md); not installed on a clean system |
+| .rpm and .deb packages (CPack) | ✅ — 0.2.0: .rpm for Fedora 44, .deb for Ubuntu 24.04, Ubuntu 26.04 and Debian 13, built in containers; each installs in a clean container of its release, lintian clean, rpmlint 0/0 (docs/release.md). Not checked on a live desktop of those systems except Fedora 44 KDE |
 | Installing the .desktop file, icon and metainfo with `cmake --install` | ✅ — the icon `data/icons/app.svg` repeats the one drawn in code |
 | Autostart (`~/.config/autostart`) | 🟡 — a checkbox in settings ("System" tab), the file is written and deleted (a test); logging in with autostart was not checked |
-| CI: build on Fedora 44 and Ubuntu 24.04, tests, portals via python-dbusmock | 🟡 — GitHub Actions build and tests on Fedora 44 and Ubuntu 24.04 (`.github/workflows/ci.yml`); no portal tests |
+| CI: build on Fedora 44 and Ubuntu 24.04, tests, portals via python-dbusmock | 🟡 — GitHub Actions: build, tests and packages for Fedora 44, Ubuntu 24.04/26.04, Debian 13 and the Windows cross-build (`.github/workflows/ci.yml`); no portal tests |
 | LICENSE, README, CONTRIBUTING | 🟡 — LICENSE (GPL-3.0-or-later), README in English and Russian with a user guide; no CONTRIBUTING |
 
 ## Windows (started 2026-10-20)
@@ -115,6 +115,6 @@ The order was suggested on 2026-10-19; the user may change it.
 5. 🟡 **GNOME 50**: the Clipboard portal for mode 1 was implemented on 2026-10-19 and checked on KDE on 2026-10-20 (`pastetest --portal-clipboard`); GNOME 50 is left; checking the fallback modes and overlay focus needs a GNOME system. **Sway and Hyprland**: `virtual-keyboard-v1` is done, the self-test in a nested Sway passes (ADR 0010).
 6. 🟡 **X11**, done on 2026-10-19 (ADR 0011), checked on Xvfb. Left: a real X11 session, a 4K capture measurement.
 7. **The KDE notification "Remote control session started" on every paste**: open; the solution (keep the RemoteDesktop session for a few minutes) is described in docs/problems.md (2026-10-20), not implemented yet.
-8. 🟡 **Building packages in containers** (the user's decision on 2026-10-20: after the Linux features are done). `tools/package/build-in-container.sh <image>` → `build-pkg/<system>/`; Fedora 44 and Ubuntu 24.04 are done for 0.2.0 (docs/build.md), Debian 12 is left. The Ubuntu build with Qt 6.4 checks that the code uses no newer API (spec section 7).
+8. ✅ **Building packages in containers** (the user's decision on 2026-10-20), done on 2026-10-21: `tools/package/build-in-container.sh <fedora:44|ubuntu:24.04|ubuntu:26.04|debian:13|windows>` → `dist/` ([ADR 0025](decisions/0025-release-packages-in-containers.md), docs/release.md). The Ubuntu build with Qt 6.4 checks that the code uses no newer API (spec section 7). No Debian 12 package.
 9. **Windows** (the user's decision on 2026-10-20: the Linux version is ready, moving on to Windows). Done: the platform (capture, hotkeys, clipboard, Ctrl+V, strip, autostart), cross-compilation on Fedora, tests and an end-to-end check under Wine, the portable ZIP ([ADR 0016](decisions/0016-windows-platform.md), [ADR 0017](decisions/0017-windows-cross-build.md)). Setup.exe on NSIS ([ADR 0023](decisions/0023-windows-installer-nsis.md)). Next: checking on real Windows 10/11 (ZIP and Setup.exe), Ctrl+V interception, delay profiles, CAP-5, a Snipping Tool hint, auto-update (Velopack), CI on Windows.
 10. **Publishing on GitHub** (2026-10-21): the repository `github.com/metall1c/markpaste`, documentation and code comments in English, README in English and Russian, the first release 0.2.0 ([ADR 0024](decisions/0024-github-home-and-releases.md), docs/release.md).

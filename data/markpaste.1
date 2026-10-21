@@ -1,0 +1,63 @@
+.TH MARKPASTE 1 "2026-10-21" "Markpaste @PROJECT_VERSION@" "User Commands"
+.SH NAME
+markpaste \- capture, mark and paste screenshots with comments into any chat
+.SH SYNOPSIS
+.B markpaste
+[\fIcommand\fR]
+.SH DESCRIPTION
+.B markpaste
+runs in the background with a tray icon. A global hotkey captures a screen area;
+numbered marks A1, A2\&... with comments are put on the shot in the editor.
+Another hotkey pastes the whole set, images one by one and then the message text,
+into the active chat window.
+.PP
+Started again while running, it passes the command to the running instance and exits.
+This lets the commands below be bound to keys in desktops without global shortcuts.
+.SH COMMANDS
+.TP
+.B \-\-capture
+Capture with editor: select an area, then add marks and comments.
+.TP
+.B \-\-capture\-to\-strip
+Capture without editor: the selected area goes straight to the strip.
+.TP
+.B \-\-paste
+Paste the set into the active window.
+.TP
+.B \-\-copy
+Copy the set (files and text) to the clipboard.
+.TP
+.B \-\-show
+Show the set strip.
+.TP
+.B \-\-settings
+Open the settings.
+.TP
+.B \-\-setup
+Open the setup check (capture, hotkeys, paste).
+.TP
+.B \-\-about
+Show the version and the authors.
+.TP
+.B \-\-clear
+Clear the set.
+.TP
+.B \-\-quit
+Quit the running instance.
+.TP
+.B \-\-help, \-\-version
+Show the help or the version.
+.SH FILES
+.TP
+.I ~/.config/markpaste/markpaste.conf
+Settings.
+.TP
+.I ~/.local/share/markpaste/logs/
+The log (events only, no shot contents or comments).
+.TP
+.I ~/.local/share/markpaste/session/
+The set kept between restarts, if this is turned on in the settings.
+.SH SEE ALSO
+@MARKPASTE_HOMEPAGE_URL@
+.SH AUTHOR
+Andrey Che <metallicvrn@gmail.com>

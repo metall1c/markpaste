@@ -128,6 +128,18 @@ The MinGW cross-build, Qt 6.11.2. **This is not Windows**: Wine has no DXGI, UIP
 | Portable ZIP | `cpack` | ✅ | 2026-10-20 | The directory from the ZIP starts without Qt paths: capture and the overlay work |
 | Setup.exe (ADR 0023) | NSIS 3.11, per-user | ✅ | 2026-10-20 | A clean Wine prefix: `/S` and the wizard (Russian with `LANG=ru_RU`) install into `%LOCALAPPDATA%\Programs\Markpaste`, a Start menu shortcut, an entry in `HKCU\…\Uninstall`, the program starts. Installing over a running program closes it (`command: quit` in the log). Uninstalling closes the program and removes the files, the shortcut, the entry and autostart. Not checked on Windows 11 |
 
+## Release packages (0.2.0, 2026-10-21)
+
+Built with `tools/package/build-in-container.sh` (ADR 0025), checked in clean containers: the package installs with the system package manager and `markpaste --version` prints the version (offscreen). This checks dependencies and files, not the desktop session.
+
+| Package | Built on | Installs on | Does not install on | Checks |
+| --- | --- | --- | --- | --- |
+| `markpaste-0.2.0-1.fc44.x86_64.rpm` | fedora:44 (Qt 6.11.2, LayerShellQt 6.7) | Fedora 44 | — | rpmlint 0 errors, 0 warnings; the main platform for daily use |
+| `markpaste_0.2.0-1~ubuntu24.04_amd64.deb` | ubuntu:24.04 (Qt 6.4.2, no Qt 6 LayerShellQt) | Ubuntu 24.04 | Ubuntu 25.10, 26.04, Debian 12, 13 | lintian clean |
+| `markpaste_0.2.0-1~ubuntu26.04_amd64.deb` | ubuntu:26.04 (LayerShellQt for Qt 6) | Ubuntu 26.04 | — | lintian clean |
+| `markpaste_0.2.0-1~debian13_amd64.deb` | debian:13 (Qt 6.8, LayerShellQt 6.3) | Debian 13 | — | lintian clean |
+| `Markpaste-0.2.0-win64-setup.exe` | fedora:44, MinGW 16.2.1, Qt 6.11.2 | a clean Wine 11 prefix (`/S`) | — | installs into `%LOCALAPPDATA%\Programs\Markpaste`, the "Apps" entry has version 0.2.0 and the GitHub URL; the same toolchain as the build tested under Wine (core 71, UI 44, windows 11 tests) |
+
 ## Chat compatibility
 
 | Chat | Environment | Mode | Started by | Result | Date | Note |

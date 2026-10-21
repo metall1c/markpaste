@@ -4,6 +4,30 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 
 ---
 
+## 2026-10-21 · Debian 13: the build fails with LayerShellQt 6.3
+
+- **Environment:** `debian:13` container, Qt 6.8, LayerShellQt 6.3.4 (`liblayershellqtinterface-dev`). Found by the first release build for Debian (ADR 0025).
+- **Symptom:** `WindowRoles.cpp:60: error: 'class LayerShellQt::Window' has no member named 'setScreen'; did you mean 'setScope'?`
+- **Cause:** `Window::setScreen` and `Window::screen` appeared in LayerShellQt 6.4. Fedora 44 has 6.7, so it was never noticed. Older versions take the surface output from `QWindow::screen()` (`ScreenFromQWindow`, their default).
+- **Solution:** CMake defines `MARKPASTE_LAYERSHELL_SET_SCREEN` for LayerShellQt 6.4+; otherwise `setLayerScreen`/`layerScreen` in `platform/common/WindowRoles.cpp` use `QWindow::setScreen`/`QWindow::screen`. The Debian 13 package builds and passes the tests. The overlay and the strip on a real Debian 13 KDE session were not checked.
+- **Status:** solved in the build, not checked on a live Debian 13.
+
+## 2026-10-21 · A .deb does not install on other Ubuntu and Debian releases
+
+- **Environment:** the .deb built on Ubuntu 24.04; clean `ubuntu:25.10`, `ubuntu:26.04`, `debian:12`, `debian:13` containers.
+- **Symptom:** `apt install ./markpaste_0.2.0_amd64.deb` fails: "Depends: libqt6concurrent6t64 (>= 6.1.2) but none of the choices are installable" (Ubuntu 26.04, Debian 13), "Depends: libqt6widgets6t64 … is not installable" (Debian 12).
+- **Cause:** `dpkg-shlibdeps` writes the library package names of the build system, and they differ between releases: Ubuntu 24.04 renamed the Qt libraries for the 64-bit time_t transition (`…t64`), Debian 12 has the old names, and later releases changed them again.
+- **Solution:** one .deb per release (Ubuntu 24.04, Ubuntu 26.04, Debian 13) with the release in the Debian revision, `markpaste_0.2.0-1~ubuntu24.04_amd64.deb`; each installs in a clean container of its release. lintian then wanted `changelog.Debian.gz` instead of `changelog.gz` (a package with a revision is not "native"), which is now generated.
+- **Status:** solved. No package for Debian 12.
+
+## 2026-10-21 · lintian errors in the first .deb
+
+- **Environment:** lintian in `ubuntu:24.04`, the CPack .deb.
+- **Symptom:** `E: description-synopsis-is-duplicated`, `E: no-copyright-file`, `E: no-changelog`, `W: no-manual-page`.
+- **Cause:** `CPACK_DEBIAN_PACKAGE_DESCRIPTION` repeated the summary that CPack already uses as the synopsis; the package had no Debian `copyright`, changelog or man page.
+- **Solution:** the explicit description is removed; `data/markpaste.1`, `data/copyright.in` (DEP-5) and a generated changelog are installed, compressed with `file(ARCHIVE_CREATE … FORMAT raw COMPRESSION GZip)`. lintian is clean, rpmlint gives 0 errors and 0 warnings (the man page also removed its only warning).
+- **Status:** solved.
+
 ## 2026-10-21 · English UI on a Russian system: sizes in the preview are in Russian ("79,7 кБ")
 
 - **Environment:** Fedora 44, `LANG=ru_RU.UTF-8`, the interface language set to English in settings. Found while making the English README screenshots.
