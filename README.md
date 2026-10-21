@@ -30,6 +30,7 @@ Open source, for Linux (KDE Plasma on Wayland first) and Windows 10/11. No netwo
 - [Troubleshooting](#troubleshooting)
 - [Building from source](#building-from-source)
 - [Documentation](#documentation)
+- [Support the project](#support-the-project)
 - [License and authors](#license-and-authors)
 
 ## What it does
@@ -278,6 +279,14 @@ Packages (.rpm, .deb), the Windows cross-build and checks: [docs/build.md](docs/
 - [docs/architecture/overview.md](docs/architecture/overview.md): how the program is built.
 - [docs/problems.md](docs/problems.md): problems found and how they were solved.
 - [TZ.md](TZ.md): the original specification; [docs/deviations.md](docs/deviations.md): where the implementation differs.
+
+## Support the project
+
+Markpaste is free and has no ads. If it saves you time, you can support its development on Boosty:
+
+[![Support on Boosty](https://img.shields.io/badge/Boosty-support-F15F2C?logo=boosty&logoColor=white)](https://boosty.to/andrey_che_metallic)
+
+Boosty may decline some cards issued outside Russia; other ways to donate will be added later. A star on GitHub, a bug report or a word to a friend helps too.
 
 ## License and authors
 
