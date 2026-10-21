@@ -92,6 +92,7 @@ private:
     // Qt does not know the position of a layer-shell surface, so we compute it from the edge and margins.
     QPoint topLeftFor(QScreen *screen, const PanelPlacement &placement) const;
     QPoint assumedTopLeft() const { return topLeftFor(currentScreen(), m_placement); }
+    void unveil();              // undo hideForCapture()
     void snapToEdge();          // move to m_placement
     QRect placementArea(QScreen *screen) const;   // what the edge and offset are measured from
     void onMovedByUser();       // the user released the dragged strip
@@ -138,7 +139,7 @@ private:
     QString m_screenName;
     QPoint m_movePress;
     bool m_moving = false;
-    bool m_veiled = false;   // transparent for a capture, see hideForCapture()
+    bool m_veiled = false;   // transparent for a capture, see hideForCapture(); present() undoes it
     class MoveGhost *m_ghost = nullptr;
 
     struct CachedThumb {

@@ -326,7 +326,7 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Symptom:** "Test paste" in the setup wizard: "Ctrl+V was sent, but the text did not appear". The log: `RemoteDesktop session started, devices = 1 clipboard = true`, then `QWaylandDataOffer: timeout reading from pipe` and `error reading data for mimeType text/plain;charset=utf-8`, the same for `text/plain`. Step 5b on 0.2.0: `own QClipboard reads (2002 ms): ""`.
 - **Cause:** the paste target is our own window. Qt reads the Wayland offer synchronously in the main thread and polls the pipe. The data for the pipe comes only after the portal's `SelectionTransfer` signal → `SelectionWrite`, and that slot ran in the same main thread, so it could not run until Qt gave up. Pasting into other programs was not affected. The same deadlock was solved for data-control in ADR 0002; the portal path missed it.
 - **Solution:** `PortalSelectionServer` (`src/platform/linux/portal/PortalClipboard.h`) lives in its own thread and serves `SelectionTransfer` there (QtDBus delivers the signal in the receiver's thread; the `SelectionWrite` call blocks only that thread). Step 5b after the fix: 1 ms, the text arrives.
-- **Status:** solved in 0.2.1 and checked on KDE through the portal path; waiting for a recheck on Ubuntu 26.04 GNOME.
+- **Status:** solved, checked on Ubuntu 26.04 GNOME on 2026-10-21: "Ctrl+V reached the window", the text is in the field.
 
 ## 2026-10-21 · GNOME: "press Press Print to test" in the setup wizard
 
@@ -334,7 +334,7 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Symptom:** the wizard showed "Shot with editor: press Press Print to test", "Paste set: Press <Control><Alt>v — works".
 - **Cause:** GNOME's `trigger_description` is "Press " plus a GTK accelerator (`Press <Control><Alt>v`); KDE gives `Ctrl+Alt+V`.
 - **Solution:** `PortalGlobalShortcuts::displayTrigger` drops "Press " and turns the accelerator into `Ctrl+Alt+V`. Unit test `PortalGlobalShortcuts.DisplayTriggerFromGnomeAndKde`. A localized GNOME (not "Press ") would still show its own prefix.
-- **Status:** solved in 0.2.1, waiting for a recheck on GNOME.
+- **Status:** solved, checked on Ubuntu 26.04 GNOME on 2026-10-21 ("press Print to test", "Ctrl+Alt+V").
 
 ## 2026-10-21 · GNOME: two strip headers, ours does not move the strip; the overlay was not full screen either
 
@@ -342,15 +342,15 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Symptom:** the strip has the GNOME title bar ("Markpaste — se…") above our header. The window moves only by the GNOME bar (anywhere on the screen, no cursor change). Dragging our header shows only the outline of the future position, and the strip stays in place.
 - **Cause:** `layerShellAvailable()` checked only that Qt runs on Wayland, not that the compositor has `zwlr_layer_shell_v1` (the comment said PlatformFactory checks it, but nothing used that result). Mutter has no layer-shell, LayerShellQt silently made an ordinary decorated window, and the program treated it as a panel: the outline instead of `startSystemMove()`, `movePanel()` with no effect. The capture overlay went the same wrong way instead of its "ordinary full-screen window" branch.
 - **Solution:** `layerShellAvailable()` also asks our Wayland connection for `zwlr_layer_shell_v1`. Without layer-shell the strip is frameless and transparent, our header calls `startSystemMove()`, and the cursor does not stay "grabbing" (the compositor takes the pointer, the release does not come to us). ADR 0004 is updated.
-- **Status:** solved in the 0.2.1 test build, the build and tests pass, KDE behavior is unchanged by design; waiting for a check on Ubuntu 26.04 GNOME (the strip and the capture overlay).
+- **Status:** solved, checked on Ubuntu 26.04 GNOME on 2026-10-21: one header, dragging it moves the strip anywhere; the capture overlay covers the whole screen and opens 548 ms after Print.
 
 ## 2026-10-21 · GNOME: the strip returns to the middle of the screen after a capture
 
 - **Environment:** Ubuntu 26.04 GNOME, Wayland, 0.2.1 test build.
 - **Symptom:** the strip moved to the right corner comes back in the middle of the screen, over the shot editor, after each capture.
 - **Cause:** before a capture the program hid its windows with `hide()`. On Wayland Qt destroys the `xdg_toplevel`, and `show()` creates a new window that Mutter places itself (Ubuntu centers new windows). A program cannot set the position.
-- **Solution:** without layer-shell on Wayland the strip is not hidden for a capture but made fully transparent (`StripWindow::hideForCapture()`, ADR 0026).
-- **Status:** solved in the 0.2.1 test build, waiting for a check on GNOME.
+- **Solution:** without layer-shell on Wayland the strip is not hidden for a capture but made fully transparent (`StripWindow::hideForCapture()`, ADR 0026). The first version left the strip transparent after a successful capture: that path shows the strip with `present()`, not `showAfterCapture()`; now `present()` removes the transparency.
+- **Status:** solved, checked on Ubuntu 26.04 GNOME on 2026-10-21 (remotely, see below): the strip moved to the top-right corner stays there after a capture, with "Always on Top", and is not in the captured frame.
 
 ## 2026-10-21 · GNOME: the strip is covered by other windows
 
@@ -358,7 +358,7 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Symptom:** any window covers the strip.
 - **Cause:** Mutter has no layer-shell and no protocol for "keep above"; `Qt::WindowStaysOnTopHint` does nothing on Wayland. Expected by the spec (STR-1).
 - **Solution:** a right click on the strip header opens the GNOME window menu (`xdg_toplevel.show_window_menu`), where the user ticks "Always on Top" (ADR 0026). It lasts while the strip window exists.
-- **Status:** implemented; the request is sent from a frameless Qt window; not checked on GNOME or KWin yet (`markpaste-pastetest --window-menu` is a probe for that).
+- **Status:** solved, checked on Ubuntu 26.04 GNOME on 2026-10-21: the right click opens the GNOME window menu (Take Screenshot, Hide, Maximize, Move, Resize, Always on Top, …); with "Always on Top" the strip stays above the active editor window.
 
 ## 2026-10-21 · GNOME: no program icon in the app grid
 
@@ -366,7 +366,7 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Symptom:** the app grid shows an empty place above "Markpaste", not even the generic icon.
 - **Cause:** `su._525.Markpaste.svg` began with a long comment; `<svg` was at byte 416. shared-mime-info finds SVG by `<svg` within the first 256 bytes, so by content the file was `application/xml` (`gio info` on a copy without the extension). The icon cache had the icon (checked in an `ubuntu:26.04` container), and librsvg draws the file, so the loader is the likely point of failure: GNOME 49+ loads images with glycin, which picks the decoder by content. Not confirmed on GNOME itself.
 - **Solution:** the comment moved after the `<svg>` tag; the test `AppIconFile.SvgIsRecognizedByContent`.
-- **Status:** solved in the 0.2.1 test build, waiting for a check on GNOME.
+- **Status:** solved, checked on Ubuntu 26.04 GNOME on 2026-10-21: the app search shows the icon.
 
 ## 2026-10-21 · GNOME: Print opens the GNOME screenshot tool, not Markpaste
 
@@ -374,4 +374,11 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Symptom:** the portal bound Print to "Capture with editor", but Print opens the GNOME screenshot UI; in the log the capture hotkey never activates (Ctrl+Print and Ctrl+Alt+V do).
 - **Cause:** GNOME Shell's own binding `org.gnome.shell.keybindings show-screenshot-ui = ['Print']` takes the key first. Expected by the spec (section 9).
 - **Solution:** the setup wizard detects it and offers "Give Print to Markpaste": the key is removed from the GNOME setting with gsettings, the old value is saved, the program restarts; the settings can give it back (ADR 0026). Checked with `pastetest --gnome-keys Print --gnome-action release|restore` on a local copy of the schema.
-- **Status:** implemented, waiting for a check on GNOME (whether GNOME passes Print to the portal shortcut after the restart).
+- **Status:** solved, checked on Ubuntu 26.04 GNOME on 2026-10-21: the wizard showed the warning, the button set `show-screenshot-ui` to `@as []` and restarted the program with the wizard, and Print then activated our capture ("Print — works"). "Give the keys back" in the settings was not clicked on GNOME.
+
+## 2026-10-21 · Remote testing of the Ubuntu VM from the host
+
+- **Environment:** VirtualBox 7.2.18 on the Fedora host, the VM `Ubuntu26.04-test` (Ubuntu 26.04 live session, GNOME, Wayland, bridged network). The Guest Additions in the VM are the kernel's own (6.0, no VBoxService), so `VBoxManage guestcontrol` does not work.
+- **How:** screenshots with `VBoxManage controlvm Ubuntu26.04-test screenshotpng`; commands over SSH as root (the user installed openssh-server); commands in the GNOME session as `ubuntu` with the environment of `gnome-shell` (`/usr/local/bin/insession` in the VM, plus `WAYLAND_DISPLAY=wayland-0`); mouse and keys with `ydotool` (`ydotoold` as root, uinput) after `gsettings set org.gnome.desktop.peripherals.mouse accel-profile flat`, then `ydotool mousemove --absolute` hits screen pixels exactly.
+- **Pitfall:** Escape sent to close the app grid also closes a Markpaste dialog that has just got focus.
+- **Status:** works; the live session loses all of it on reboot.

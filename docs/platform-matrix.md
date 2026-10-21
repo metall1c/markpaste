@@ -43,15 +43,16 @@ System: Ubuntu 26.04, GNOME (Mutter), the user's test machine; component version
 | Capability | Mechanism | Status | Date | Note |
 | --- | --- | --- | --- | --- |
 | ext-data-control-v1 | | ❌ | 2026-10-21 | Not offered by Mutter, as the spec expected |
-| Screen capture | Screenshot portal | ⚠️ | 2026-10-21 | 1 screen 1600×900 in 86 ms; the desktop may show its own dialog on each capture |
+| Screen capture | Screenshot portal | ✅ | 2026-10-21 | 1 screen 1600×900: the wizard test 86 ms, real captures 547–728 ms from the key to the overlay, no dialog. The wizard warns that a dialog may appear |
+| Capture overlay | an ordinary full-screen window | ✅ | 2026-10-21 | Covers the whole screen including the top bar; the selection opens the editor |
 | Global hotkeys | GlobalShortcuts portal | ✅ | 2026-10-21 | Print, Ctrl+Alt+V, Ctrl+Print bound and activated |
 | RemoteDesktop session with clipboard | RemoteDesktop + Clipboard portal | ✅ | 2026-10-21 | `devices = 1 clipboard = true`, restore token received |
-| Strip: one header, moving | ordinary window, `startSystemMove()` | ❌ → fixed in 0.2.1 | 2026-10-21 | Two headers, ours did not move the strip: the program took the decorated window for a layer-shell panel (problems.md 2026-10-21). Recheck needed |
-| Strip position after a capture | the strip stays mapped and transparent | ❌ → fixed in 0.2.1 | 2026-10-21 | Came back in the middle of the screen (problems.md). Recheck needed |
-| Strip above other windows | GNOME window menu "Always on Top" (right click on the header) | ❌ → implemented in 0.2.1 | 2026-10-21 | No "on top" on Mutter for Wayland clients (STR-1). Recheck needed |
-| Program icon in the app grid | `hicolor/scalable` SVG | ❌ → fixed in 0.2.1 | 2026-10-21 | The SVG was sniffed as `application/xml` (problems.md). Recheck needed |
-| Print for Markpaste | GlobalShortcuts portal + releasing `show-screenshot-ui` | ❌ → implemented in 0.2.1 | 2026-10-21 | GNOME's screenshot tool takes Print first; the wizard frees it. Recheck needed |
-| Paste test into the wizard field | Clipboard portal + RemoteDesktop | ❌ → fixed in 0.2.1 | 2026-10-21 | Our own window could not read the selection (problems.md 2026-10-21). Recheck needed; pasting into other apps not checked yet |
+| Strip: one header, moving | ordinary window, `startSystemMove()` | ✅ | 2026-10-21 | Before: two headers, ours did not move the strip (problems.md). Now one header, the strip moves anywhere |
+| Strip position after a capture | the strip stays mapped and transparent | ✅ | 2026-10-21 | Before: came back in the middle of the screen (problems.md). After the fix the strip stays where it was moved and is not in the captured frame |
+| Strip above other windows | GNOME window menu "Always on Top" (right click on the header) | ✅ | 2026-10-21 | Right click on the strip header → the GNOME window menu → "Always on Top"; survives captures. Lost when the strip is hidden |
+| Program icon in the app grid | `hicolor/scalable` SVG | ✅ | 2026-10-21 | Before: the SVG was sniffed as `application/xml` (problems.md); shown after the fix |
+| Print for Markpaste | GlobalShortcuts portal + releasing `show-screenshot-ui` | ✅ | 2026-10-21 | GNOME's screenshot tool takes Print first; the wizard button frees it and restarts the program, then Print starts our capture |
+| Paste test into the wizard field | Clipboard portal + RemoteDesktop | ✅ | 2026-10-21 | Before: our own window could not read the selection (problems.md). Now "Ctrl+V reached the window". Pasting into chats not checked yet |
 
 ## Memory and speed measurements (NFR-1, NFR-2)
 

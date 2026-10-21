@@ -806,6 +806,9 @@ void StripWindow::startDrag(const QList<QUuid> &shots, QWidget *source)
 
 void StripWindow::present()
 {
+    // After a capture the strip is shown by present() too (a new shot), not only by showAfterCapture()
+    if (m_veiled)
+        unveil();
     if (!m_roleApplied) {
         m_roleApplied = true;
         loadPlacement();
@@ -850,15 +853,15 @@ void StripWindow::hideForCapture()
 
 void StripWindow::showAfterCapture()
 {
-    if (!m_veiled) {
-        present();
-        return;
-    }
+    present();
+}
+
+void StripWindow::unveil()
+{
     m_veiled = false;
     for (QWidget *w : findChildren<QWidget *>(Qt::FindDirectChildrenOnly))
         if (!w->isWindow())
             w->setGraphicsEffect(nullptr);
-    adjustSize();   // a new shot may have been added meanwhile
     update();
 }
 
