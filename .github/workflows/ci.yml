@@ -1,5 +1,6 @@
-# Build, tests and packages on every push and pull request (docs/release.md).
-# The same script builds the release packages locally: tools/package/build-in-container.sh.
+# Build, tests and packages on every push and pull request; on a vX.Y.Z tag also a draft
+# GitHub release with all packages (docs/release.md, ADR 0025).
+# The same script builds the packages locally: tools/package/build-in-container.sh.
 name: CI
 
 on:
@@ -36,3 +37,39 @@ jobs:
           name: ${{ steps.name.outputs.value }}
           path: dist/
           if-no-files-found: error
+
+  release:
+    # A tag vX.Y.Z: the packages of all targets go into a draft release, published by hand
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: packages
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: The tag matches the version in CMakeLists.txt and CHANGELOG.md
+        run: |
+          version=$(sed -n 's/^project(Markpaste VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          [ "v$version" = "$TAG" ] || { echo "tag $TAG, but CMakeLists.txt has $version" >&2; exit 1; }
+          tools/package/release-notes.sh "$version" > "$RUNNER_TEMP/notes.md"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: packages-*
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
+      - name: Draft release
+        run: |
+          if draft=$(gh release view "$TAG" --json isDraft -q .isDraft 2>/dev/null); then
+            # Never replace the files of a published release: their checksums are already out
+            [ "$draft" = true ] || { echo "$TAG is already published" >&2; exit 1; }
+            # A draft (e.g. after moving the tag): replace the files, keep its text
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --draft --verify-tag \
+              --title "Markpaste ${TAG#v}" --notes-file "$RUNNER_TEMP/notes.md"
+          fi

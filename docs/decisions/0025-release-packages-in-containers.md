@@ -1,6 +1,6 @@
-# 0025. Release packages are built in containers by one script; the release is published by hand
+# 0025. Release packages are built in containers by one script; GitHub Actions makes a draft release from a tag
 
-- Status: accepted (2026-10-21)
+- Status: accepted (2026-10-21); the CI release job added the same day at the user's request
 - Spec items: section 11 (packages, releases from CI with SHA-256 checksums), section 12 (building in a Fedora 44 container, Setup.exe on a clean Windows image), section 7 (Qt 6.4 minimum checked by a CI build on Ubuntu 24.04), NFR-3, NFR-12
 
 ## Context
@@ -12,12 +12,14 @@ The first public release 0.2.0 needs .rpm, .deb, a Linux archive and the Windows
 - **One script, `tools/package/build-in-container.sh <fedora:44|ubuntu:24.04|ubuntu:26.04|debian:13|windows>`**, builds in a clean container from the read-only sources, runs the core and UI tests (Linux), and puts the packages into `dist/`. `windows` is the MinGW cross-build (ADR 0017) in `fedora:44`, with the portable ZIP and the NSIS installer (ADR 0023).
 - **One .deb per release: Ubuntu 24.04, Ubuntu 26.04, Debian 13.** Library package names differ between releases, and the Ubuntu 24.04 package does not install on Ubuntu 25.10/26.04 or Debian 12/13 (checked 2026-10-21). The release goes into the Debian revision: `markpaste_0.2.0-1.ubuntu24.04_amd64.deb`. The Ubuntu 24.04 build with its Qt 6.4.2 also checks that no newer Qt API is used; for 0.2.0 it passed on the first try. The Debian 13 build found that LayerShellQt 6.3 has no `Window::setScreen` (fixed, docs/problems.md).
 - **CI** (`.github/workflows/ci.yml`, GitHub Actions) runs the same script for all five targets on every push, tag and pull request and keeps the packages as artifacts.
-- **The release is published by hand** as a draft (`gh release create --draft`) from packages built and checked locally (lintian, rpmlint, installation in clean containers, Windows tests under Wine), then published after a look at the page. Steps: `docs/release.md`.
+- **A tag builds the release on GitHub.** The `release` job of the CI runs after the packages of a `vX.Y.Z` tag: it checks that the tag matches `CMakeLists.txt` and has a `CHANGELOG.md` section (`tools/package/release-notes.sh`), computes `SHA256SUMS` and creates a draft release with all files. Publishing stays a manual click after a look at the draft. A moved tag replaces the files of a draft; a published release is never touched. Steps: `docs/release.md`.
+- The first files of 0.2.0 were built and checked locally (lintian, rpmlint, installation in clean containers, Windows tests under Wine) before the release job existed; the job then rebuilt the same commit on GitHub.
 - Debian packaging requirements found by lintian are part of the build: a man page (`data/markpaste.1`), a DEP-5 `copyright` file (`data/copyright.in`), a Debian changelog generated from the version (`changelog.Debian.gz` for a package with a Debian revision), no duplicated description synopsis.
 
 ## Options considered
 
-- **Publishing the release from CI on a tag** (the spec's "releases are built only in CI"). Postponed: the first release needs a manual check of every file, and a tag-triggered job would create a second release next to the manual one. Can be switched on later by adding a job that uploads the CI artifacts to a draft release.
+- **Publishing right away from CI, without a draft.** Rejected: a release is visible to the update check of every user at once, so a person looks at it first.
+- **Building releases only locally.** That was the first plan for 0.2.0; the user asked for GitHub to build them, which also matches the spec ("releases are built only in CI").
 - **One .deb for all Debian-based systems.** Impossible with system Qt: the dependency names differ (see above). A self-contained package with a bundled Qt would contradict NFR-3 (up to 5 MB) and the spec's "system Qt on Linux". Debian 12 (Qt 6.4, no `t64` names) can be added as one more script target if needed.
 - **Building on the developer machine as before.** Packages would depend on the local system state, and the Qt 6.4 check would stay manual.
 - **The Windows release on a Windows CI image with MSVC and the official Qt** (spec section 7). Still the plan for size (NFR-3) and signing, but not done yet; the MinGW cross-build is what was checked on Windows 11 (ADR 0016, 0017).

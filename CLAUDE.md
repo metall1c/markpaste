@@ -48,4 +48,4 @@ The spec describes intentions, not what came out. As the implementation goes, re
 - Before committing: the build has no errors, the `markpaste_core_tests` and `markpaste_ui_tests` tests pass, the documentation is updated per the rules above.
 - Commit messages are in English (since 2026-10-21, in both repositories): the first line says what was done, below it why, with links to spec requirement IDs and docs/.
 - Program version: after each code change (not documentation only), bump the version in `project(Markpaste VERSION …)` in the root `CMakeLists.txt` in the same commit: the last digit by default (0.1.1 → 0.1.2); the middle one for a notable new feature if the user says so. Mention the new version in the commit message.
-- Releases: tag `vX.Y.Z` on `main`, push the tag to both remotes, publish a GitHub release with the packages (`docs/release.md`).
+- Releases: tag `vX.Y.Z` on `main` and push it to both remotes; GitHub Actions builds a draft release with all packages, the user publishes it (`docs/release.md`).
