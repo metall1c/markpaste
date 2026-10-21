@@ -41,6 +41,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Delete shot</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Edit</source>
         <translation type="unfinished"></translation>
     </message>

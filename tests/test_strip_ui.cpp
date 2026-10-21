@@ -2,6 +2,7 @@
 #include "core/CaptureSetModel.h"
 #include "ui/StripWindow.h"
 
+#include <QAbstractButton>
 #include <QApplication>
 #include <QDropEvent>
 #include <QLayout>
@@ -120,6 +121,26 @@ TEST(StripUi, ThumbMenuDeleteDoesNotCrash)
     StripFixture f;
     chooseFromThumbMenu(f, 1, QStringLiteral("Delete"));
     EXPECT_EQ(f.order(), (QList<QUuid>{f.ids[0], f.ids[2]}));
+}
+
+// Корзина на миниатюре удаляет снимок сразу, без подтверждения; отменяется одним шагом
+TEST(StripUi, ThumbTrashButtonDeletesShot)
+{
+    StripFixture f;
+    QWidget *thumb = f.list()->layout()->itemAt(1)->widget();
+    ASSERT_NE(thumb, nullptr);
+    QAbstractButton *trash = nullptr;
+    for (auto *b : thumb->findChildren<QAbstractButton *>())
+        if (b->text() == QStringLiteral("Delete shot"))
+            trash = b;
+    ASSERT_NE(trash, nullptr);
+    EXPECT_TRUE(trash->isVisible());
+    EXPECT_GT(trash->x(), thumb->width() / 2);   // в правом верхнем углу
+    QTest::mouseClick(trash, Qt::LeftButton);
+    QTest::qWait(20);
+    EXPECT_EQ(f.order(), (QList<QUuid>{f.ids[0], f.ids[2]}));
+    f.model.undoStack()->undo();
+    EXPECT_EQ(f.order(), f.ids);
 }
 
 TEST(StripUi, ThumbMenuMoveDoesNotCrash)

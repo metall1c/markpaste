@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(Markpaste VERSION 0.1.4 LANGUAGES C CXX)
+project(Markpaste VERSION 0.1.5 LANGUAGES C CXX)
 
 # Название и идентификатор — в одном месте: имя проекта рабочее (ТЗ, разд. 14).
 # Идентификатор после релиза не меняется: от него зависят разрешения порталов.

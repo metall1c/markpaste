@@ -41,6 +41,10 @@
         <translation>Клик — редактировать · Перетащить — в чат файлом или в ленте, чтобы поменять порядок · Правый клик — меню</translation>
     </message>
     <message>
+        <source>Delete shot</source>
+        <translation>Удалить снимок</translation>
+    </message>
+    <message>
         <source>Edit</source>
         <translation>Редактировать</translation>
     </message>

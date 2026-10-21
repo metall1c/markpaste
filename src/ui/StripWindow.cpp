@@ -34,6 +34,37 @@ constexpr int kThumbWidth = 212;
 constexpr int kThumbMaxHeight = 130;
 } // namespace
 
+// Корзина на миниатюре: удалить снимок одним щелчком, без подтверждения (удаление идёт через
+// undo-стек модели, его можно отменить в редакторе). Лежит поверх картинки, поэтому
+// своя тёмная подложка, как у счётчика комментариев: на светлом снимке значок не теряется.
+class ThumbDeleteButton : public QToolButton
+{
+public:
+    explicit ThumbDeleteButton(const QString &text, QWidget *parent) : QToolButton(parent)
+    {
+        setText(text);
+        setToolTip(text);
+        setAccessibleName(text);
+        setAttribute(Qt::WA_Hover);
+        setFocusPolicy(Qt::NoFocus);
+        setCursor(Qt::PointingHandCursor);
+        setFixedSize(24, 24);
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        const UiColors c = UiColors::from(palette());
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(Qt::NoPen);
+        p.setBrush(isDown() ? c.danger.darker(130) : underMouse() ? c.danger : QColor(0, 0, 0, 160));
+        p.drawRoundedRect(QRectF(rect()), 6, 6);
+        p.drawPixmap(QPointF((width() - 16) / 2.0, (height() - 16) / 2.0),
+                     iconPixmap(Icon::Trash, Qt::white, 16, devicePixelRatioF()));
+    }
+};
+
 // Миниатюра снимка: клик — открыть в редакторе, перетаскивание — наружу как файл (STR-6).
 class ShotThumb : public QWidget
 {
@@ -49,9 +80,14 @@ public:
         setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
         setCursor(Qt::PointingHandCursor);
         setToolTip(tr("Click — edit · Drag — into a chat as a file or within the strip to reorder · Right click — menu"));
+        // Миниатюра удаляется отложенно (rebuild → deleteLater), так что удалять из её же кнопки безопасно
+        m_delete = new ThumbDeleteButton(tr("Delete shot"), this);
+        connect(m_delete, &QToolButton::clicked, this, [this] { m_strip->m_model->removeShot(m_id); });
     }
 
 protected:
+    void resizeEvent(QResizeEvent *) override { m_delete->move(width() - 8 - m_delete->width(), 8); }
+
     void paintEvent(QPaintEvent *) override
     {
         const UiColors c = UiColors::from(palette());
@@ -155,6 +191,7 @@ private:
     int m_marks;
     bool m_current;
     QPoint m_pressPos;
+    ThumbDeleteButton *m_delete;
 };
 
 // Список миниатюр — цель перетаскивания внутри ленты (STR-3): снимок, брошенный между
