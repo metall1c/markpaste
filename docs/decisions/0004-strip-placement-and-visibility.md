@@ -18,7 +18,7 @@ If the strip grew and went below the screen bottom, it moves up by itself.
 
 **Outline while moving** (added 2026-10-19 at the user's request). While the button is held, the strip stays in place, so the pointer position on the screen is known exactly. During the drag a transparent layer-shell layer appears on every monitor (`LayerOverlay`, `Qt::WindowTransparentForInput`: an empty input region, no keyboard). It draws a dashed outline of the strip where it will end up after the release: already flush with the edge, at the right height and on the right monitor. The computation is shared with the move itself (`StripWindow::moveTarget`), so the outline and the result match. Only the old and new places of the outline are repainted. The layers are deleted after the release: the set of monitors may change by the next move. Debugging: the socket command `debug-ghost <x> <y> <w> <h>`.
 
-Without layer-shell (GNOME) the strip is an ordinary window, and moving is `QWindow::startSystemMove()` done by the window manager.
+Without layer-shell (GNOME) the strip is an ordinary window, and moving is `QWindow::startSystemMove()` done by the window manager. Since 2026-10-21 that window is frameless and transparent, as on Windows: with the system title bar GNOME showed two headers, and only the system one moved the window (problems.md 2026-10-21). The strip can be dropped anywhere there, without snapping to an edge and without the outline: Wayland gives the program no window positions, and the user agreed to keep it so on GNOME.
 
 **Visibility.**
 - A start without a command and with an empty set shows only the tray icon (if "hide when the set is empty" is on); on the first start there is a "press Print" notification.

@@ -75,7 +75,8 @@ private:
     friend class ShotThumb;
     friend class StripHeader;
     // Dragging by the header (STR-5): on layer-shell the strip moves on release
-    void beginMove(const QPoint &posInStrip);
+    // true: the window manager moves the window (no layer-shell) and the drag is no longer ours
+    bool beginMove(const QPoint &posInStrip);
     void updateMove(const QPoint &posInStrip);   // outline of the future position
     void finishMove(const QPoint &posInStrip);
     // Where the strip will go if the mouse is released at posInStrip

@@ -335,3 +335,11 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Cause:** GNOME's `trigger_description` is "Press " plus a GTK accelerator (`Press <Control><Alt>v`); KDE gives `Ctrl+Alt+V`.
 - **Solution:** `PortalGlobalShortcuts::displayTrigger` drops "Press " and turns the accelerator into `Ctrl+Alt+V`. Unit test `PortalGlobalShortcuts.DisplayTriggerFromGnomeAndKde`. A localized GNOME (not "Press ") would still show its own prefix.
 - **Status:** solved in 0.2.1, waiting for a recheck on GNOME.
+
+## 2026-10-21 · GNOME: two strip headers, ours does not move the strip; the overlay was not full screen either
+
+- **Environment:** Ubuntu 26.04 GNOME, Wayland, Markpaste 0.2.1 test build (the ubuntu26.04 .deb, built with LayerShellQt for Qt 6).
+- **Symptom:** the strip has the GNOME title bar ("Markpaste — se…") above our header. The window moves only by the GNOME bar (anywhere on the screen, no cursor change). Dragging our header shows only the outline of the future position, and the strip stays in place.
+- **Cause:** `layerShellAvailable()` checked only that Qt runs on Wayland, not that the compositor has `zwlr_layer_shell_v1` (the comment said PlatformFactory checks it, but nothing used that result). Mutter has no layer-shell, LayerShellQt silently made an ordinary decorated window, and the program treated it as a panel: the outline instead of `startSystemMove()`, `movePanel()` with no effect. The capture overlay went the same wrong way instead of its "ordinary full-screen window" branch.
+- **Solution:** `layerShellAvailable()` also asks our Wayland connection for `zwlr_layer_shell_v1`. Without layer-shell the strip is frameless and transparent, our header calls `startSystemMove()`, and the cursor does not stay "grabbing" (the compositor takes the pointer, the release does not come to us). ADR 0004 is updated.
+- **Status:** solved in the 0.2.1 test build, the build and tests pass, KDE behavior is unchanged by design; waiting for a check on Ubuntu 26.04 GNOME (the strip and the capture overlay).

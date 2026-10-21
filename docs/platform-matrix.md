@@ -46,6 +46,7 @@ System: Ubuntu 26.04, GNOME (Mutter), the user's test machine; component version
 | Screen capture | Screenshot portal | ⚠️ | 2026-10-21 | 1 screen 1600×900 in 86 ms; the desktop may show its own dialog on each capture |
 | Global hotkeys | GlobalShortcuts portal | ✅ | 2026-10-21 | Print, Ctrl+Alt+V, Ctrl+Print bound and activated |
 | RemoteDesktop session with clipboard | RemoteDesktop + Clipboard portal | ✅ | 2026-10-21 | `devices = 1 clipboard = true`, restore token received |
+| Strip: one header, moving | ordinary window, `startSystemMove()` | ❌ → fixed in 0.2.1 | 2026-10-21 | Two headers, ours did not move the strip: the program took the decorated window for a layer-shell panel (problems.md 2026-10-21). Recheck needed |
 | Paste test into the wizard field | Clipboard portal + RemoteDesktop | ❌ → fixed in 0.2.1 | 2026-10-21 | Our own window could not read the selection (problems.md 2026-10-21). Recheck needed; pasting into other apps not checked yet |
 
 ## Memory and speed measurements (NFR-1, NFR-2)

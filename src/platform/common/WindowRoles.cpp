@@ -6,6 +6,8 @@
 #include <QWindow>
 
 #ifdef MARKPASTE_HAVE_LAYERSHELLQT
+#include "platform/linux/wayland/WaylandConnection.h"
+
 #include <LayerShellQt/Window>
 #endif
 
@@ -24,9 +26,16 @@ namespace mp {
 bool layerShellAvailable()
 {
 #ifdef MARKPASTE_HAVE_LAYERSHELLQT
-    // LayerShellQt works only on top of Qt's native Wayland client.
-    // PlatformFactory checks that the compositor has zwlr_layer_shell_v1.
-    return QGuiApplication::platformName().startsWith(QStringLiteral("wayland"));
+    // LayerShellQt works only on top of Qt's native Wayland client, and only if the compositor has
+    // zwlr_layer_shell_v1. Without the protocol (GNOME/Mutter) LayerShellQt silently gives an ordinary
+    // decorated toplevel, and the program would treat it as a panel (problems.md 2026-10-21).
+    static const bool available = [] {
+        if (!QGuiApplication::platformName().startsWith(QStringLiteral("wayland")))
+            return false;
+        const lx::WaylandConnection *wl = lx::WaylandConnection::instance();
+        return wl && wl->hasGlobal("zwlr_layer_shell_v1");
+    }();
+    return available;
 #else
     return false;
 #endif

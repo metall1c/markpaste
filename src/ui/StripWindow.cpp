@@ -428,8 +428,10 @@ protected:
     {
         if (e->button() != Qt::LeftButton)
             return;
-        setCursor(Qt::ClosedHandCursor);
-        m_strip->beginMove(mapTo(m_strip, e->position().toPoint()));
+        // The window manager moves the window itself and takes the pointer: there is no release for us,
+        // so the cursor is not switched to the "grabbing" one
+        if (!m_strip->beginMove(mapTo(m_strip, e->position().toPoint())))
+            setCursor(Qt::ClosedHandCursor);
     }
     void mouseMoveEvent(QMouseEvent *e) override
     {
@@ -801,9 +803,13 @@ void StripWindow::present()
         loadPlacement();
         m_layerShell = applyPanelRole(this, currentScreen(), m_placement);
         if (!m_layerShell) {
-            // An ordinary window: on GNOME "on top" and position are unavailable (STR-1), the window manager moves it
+            // An ordinary window: on GNOME "on top" and position are unavailable (STR-1), the window manager moves it.
+            // Frameless: the system title bar would be a second header above ours (problems.md 2026-10-21);
+            // our header moves the window through startSystemMove(). Transparent for the rounded corners.
             setWindowFlag(Qt::WindowStaysOnTopHint);
             setWindowFlag(Qt::Tool);
+            setWindowFlag(Qt::FramelessWindowHint);
+            setAttribute(Qt::WA_TranslucentBackground);
             m_snapToEdge = watchPanelMoves(this, [this] { onMovedByUser(); });
         }
     }
@@ -824,7 +830,7 @@ void StripWindow::resizeEvent(QResizeEvent *event)
 
 void StripWindow::paintEvent(QPaintEvent *)
 {
-    // A transparent window (layer-shell, Windows): we paint the background with rounded corners and a border ourselves.
+    // A transparent window (layer-shell, Windows, a frameless one on GNOME/X11): we paint the background with rounded corners and a border ourselves.
     // For an opaque one (an ordinary window with a system frame) Qt paints the background.
     if (!testAttribute(Qt::WA_TranslucentBackground))
         return;
@@ -885,12 +891,13 @@ QPoint StripWindow::topLeftFor(QScreen *screen, const PanelPlacement &pl) const
     return {x, y};
 }
 
-void StripWindow::beginMove(const QPoint &posInStrip)
+bool StripWindow::beginMove(const QPoint &posInStrip)
 {
     m_movePress = posInStrip;
     m_moving = false;
     if (!m_layerShell && windowHandle())
-        windowHandle()->startSystemMove();   // an ordinary window is moved by the window manager
+        return windowHandle()->startSystemMove();   // an ordinary window is moved by the window manager
+    return false;
 }
 
 void StripWindow::moveTarget(const QPoint &posInStrip, QScreen **screen, PanelPlacement *placement) const
