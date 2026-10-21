@@ -78,7 +78,7 @@ WAYLAND_DISPLAY=wayland-1 QT_QPA_PLATFORM=wayland ./build/tools/pastetest/markpa
 
 The portals here stay KDE's (the shared session bus), so only Wayland protocols are checked this way: data-control, virtual-keyboard, layer-shell.
 
-- `pastetest --portal-clipboard` checks the Clipboard portal: it writes through the portal and reads back through data-control, then shows what is left in the clipboard after the session closes. The first time KDE asks for permission.
+- `pastetest --portal-clipboard` checks the Clipboard portal: it writes through the portal and reads back through data-control and through our own `QClipboard` (step 5b, a paste into our own window), then shows what is left in the clipboard after the session closes. The first time KDE asks for permission.
 - Variables for checking the fallback paths on KDE: `MARKPASTE_CLIPBOARD=portal` (clipboard through the portal), `MARKPASTE_INPUT=portal` (Ctrl+V only through RemoteDesktop).
 
 ## Checking X11 without an X11 session

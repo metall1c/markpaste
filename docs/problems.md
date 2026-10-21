@@ -319,3 +319,19 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Cause:** KWin lets a process into ScreenShot2 if its executable matches `Exec` from the .desktop file. The program was rebuilt while it was running (a user gets the same on a package update through dnf): `/proc/<pid>/exe` points to `… (deleted)`, and the comparison fails.
 - **Solution:** the shot is still taken through the portal (the fallback). If `/proc/self/exe` ends with ` (deleted)`, the program says: "Markpaste was updated while running. Restart it to capture without delays and dialogs".
 - **Status:** solved; the notification has not been checked in a live session.
+
+## 2026-10-21 · GNOME: the setup wizard paste test fails, "QWaylandDataOffer: timeout reading from pipe"
+
+- **Environment:** Ubuntu 26.04 GNOME, Wayland, Markpaste 0.2.0 (the ubuntu26.04 .deb). No ext-data-control-v1: the clipboard goes through the Clipboard portal in a RemoteDesktop session. Reproduced on Fedora 44 KDE (Qt 6.11.2, xdg-desktop-portal-kde 6.7.5) through the same portal code: `markpaste-pastetest --portal-clipboard`, step 5b.
+- **Symptom:** "Test paste" in the setup wizard: "Ctrl+V was sent, but the text did not appear". The log: `RemoteDesktop session started, devices = 1 clipboard = true`, then `QWaylandDataOffer: timeout reading from pipe` and `error reading data for mimeType text/plain;charset=utf-8`, the same for `text/plain`. Step 5b on 0.2.0: `own QClipboard reads (2002 ms): ""`.
+- **Cause:** the paste target is our own window. Qt reads the Wayland offer synchronously in the main thread and polls the pipe. The data for the pipe comes only after the portal's `SelectionTransfer` signal → `SelectionWrite`, and that slot ran in the same main thread, so it could not run until Qt gave up. Pasting into other programs was not affected. The same deadlock was solved for data-control in ADR 0002; the portal path missed it.
+- **Solution:** `PortalSelectionServer` (`src/platform/linux/portal/PortalClipboard.h`) lives in its own thread and serves `SelectionTransfer` there (QtDBus delivers the signal in the receiver's thread; the `SelectionWrite` call blocks only that thread). Step 5b after the fix: 1 ms, the text arrives.
+- **Status:** solved in 0.2.1 and checked on KDE through the portal path; waiting for a recheck on Ubuntu 26.04 GNOME.
+
+## 2026-10-21 · GNOME: "press Press Print to test" in the setup wizard
+
+- **Environment:** Ubuntu 26.04 GNOME, GlobalShortcuts portal.
+- **Symptom:** the wizard showed "Shot with editor: press Press Print to test", "Paste set: Press <Control><Alt>v — works".
+- **Cause:** GNOME's `trigger_description` is "Press " plus a GTK accelerator (`Press <Control><Alt>v`); KDE gives `Ctrl+Alt+V`.
+- **Solution:** `PortalGlobalShortcuts::displayTrigger` drops "Press " and turns the accelerator into `Ctrl+Alt+V`. Unit test `PortalGlobalShortcuts.DisplayTriggerFromGnomeAndKde`. A localized GNOME (not "Press ") would still show its own prefix.
+- **Status:** solved in 0.2.1, waiting for a recheck on GNOME.

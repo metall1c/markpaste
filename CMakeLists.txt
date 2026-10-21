@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(Markpaste VERSION 0.2.0 LANGUAGES C CXX)
+project(Markpaste VERSION 0.2.1 LANGUAGES C CXX)
 
 # Name and ID live in one place: the project name is a working one (spec, section 14).
 # The ID never changes after a release: portal permissions depend on it.

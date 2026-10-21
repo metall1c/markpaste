@@ -7,9 +7,10 @@
 #include <QDBusMessage>
 #include <QDBusPendingCallWatcher>
 #include <QDBusPendingReply>
+#include <QDBusReply>
 #include <QDBusUnixFileDescriptor>
 #include <QLoggingCategory>
-#include <QtConcurrent>
+#include <QMutexLocker>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -41,11 +42,15 @@ bool PortalClipboard::isAvailable()
 }
 
 PortalClipboard::PortalClipboard(PortalRemoteDesktop *session, QObject *parent)
-    : IClipboard(parent), m_session(session)
+    : IClipboard(parent), m_session(session), m_server(std::make_unique<PortalSelectionServer>())
 {
     session->setRequestClipboard(true);
+    m_serverThread.setObjectName(QStringLiteral("PortalSelectionServer"));
+    m_server->moveToThread(&m_serverThread);
+    m_serverThread.start();
     QDBusConnection bus = PortalBus::instance().connection();
-    bus.connect(PortalBus::kService, PortalBus::kPath, kIface, QStringLiteral("SelectionTransfer"), this,
+    // QtDBus delivers the signal in the receiver's thread, i.e. in m_serverThread
+    bus.connect(PortalBus::kService, PortalBus::kPath, kIface, QStringLiteral("SelectionTransfer"), m_server.get(),
                 SLOT(onSelectionTransfer(QDBusObjectPath, QString, uint)));
     bus.connect(PortalBus::kService, PortalBus::kPath, kIface, QStringLiteral("SelectionOwnerChanged"), this,
                 SLOT(onSelectionOwnerChanged(QDBusObjectPath, QVariantMap)));
@@ -53,10 +58,19 @@ PortalClipboard::PortalClipboard(PortalRemoteDesktop *session, QObject *parent)
     connect(session, &PortalRemoteDesktop::sessionClosed, this, [this] {
         m_owner = false;
         m_selectionMimes.clear();
+        m_server->clear();
     });
 }
 
-PortalClipboard::~PortalClipboard() = default;
+PortalClipboard::~PortalClipboard()
+{
+    PortalBus::instance().connection().disconnect(PortalBus::kService, PortalBus::kPath, kIface,
+                                                  QStringLiteral("SelectionTransfer"), m_server.get(),
+                                                  SLOT(onSelectionTransfer(QDBusObjectPath, QString, uint)));
+    m_serverThread.quit();
+    m_serverThread.wait();
+    m_server.reset();   // the thread has stopped: safe to delete here
+}
 
 QString PortalClipboard::sessionHandle() const
 {
@@ -75,49 +89,61 @@ QFuture<Status> PortalClipboard::write(const ClipboardPayload &payload, Clipboar
     if (flags & ClipboardFlag::ExcludeFromHistory)   // Klipper does not keep such entries (spec section 10)
         m_payload.entries.append({QStringLiteral("x-kde-passwordManagerHint"), QByteArrayLiteral("secret")});
     m_owner = true;
+    m_server->setSelection(session, m_payload);
     return PortalBus::instance().call(
         kIface, QStringLiteral("SetSelection"),
         {QVariant::fromValue(QDBusObjectPath(session)),
          QVariantMap{{QStringLiteral("mime_types"), m_payload.mimeTypes()}}});
 }
 
-void PortalClipboard::onSelectionTransfer(const QDBusObjectPath &session, const QString &mimeType, uint serial)
+void PortalSelectionServer::setSelection(const QString &session, const ClipboardPayload &payload)
 {
-    if (session.path() != sessionHandle())
-        return;
-    QDBusConnection bus = PortalBus::instance().connection();
-    auto done = [session, serial](bool ok) {
-        QDBusMessage m = QDBusMessage::createMethodCall(PortalBus::kService, PortalBus::kPath, kIface,
-                                                        QStringLiteral("SelectionWriteDone"));
-        m << QVariant::fromValue(session) << serial << ok;
-        PortalBus::instance().connection().asyncCall(m);
-    };
-    const ClipboardEntry *entry = m_owner ? m_payload.find(mimeType) : nullptr;
-    if (!entry) {
-        done(false);
-        return;
+    QMutexLocker lock(&m_mutex);
+    m_session = session;
+    m_payload = payload;
+}
+
+void PortalSelectionServer::clear()
+{
+    // The session is kept: a request for a selection that is no longer ours still gets SelectionWriteDone(false)
+    QMutexLocker lock(&m_mutex);
+    m_payload = {};
+}
+
+void PortalSelectionServer::onSelectionTransfer(const QDBusObjectPath &session, const QString &mimeType, uint serial)
+{
+    // Runs in the server thread and blocks only it: the main thread may be waiting for this very data
+    QByteArray data;
+    bool have = false;
+    {
+        QMutexLocker lock(&m_mutex);
+        if (m_session.isEmpty() || session.path() != m_session)
+            return;
+        if (const ClipboardEntry *entry = m_payload.find(mimeType)) {
+            data = entry->data;
+            have = true;
+        }
     }
-    const QByteArray data = entry->data;
-    QDBusMessage m = QDBusMessage::createMethodCall(PortalBus::kService, PortalBus::kPath, kIface,
-                                                    QStringLiteral("SelectionWrite"));
-    m << QVariant::fromValue(session) << serial;
-    auto *watcher = new QDBusPendingCallWatcher(bus.asyncCall(m), this);
-    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, data, done, mimeType](QDBusPendingCallWatcher *w) {
-        const QDBusPendingReply<QDBusUnixFileDescriptor> reply = *w;
-        w->deleteLater();
-        const int fd = reply.isError() ? -1 : takeFd(reply.value());
+    QDBusConnection bus = PortalBus::instance().connection();
+    bool ok = false;
+    if (have) {
+        QDBusMessage m = QDBusMessage::createMethodCall(PortalBus::kService, PortalBus::kPath, kIface,
+                                                        QStringLiteral("SelectionWrite"));
+        m << QVariant::fromValue(session) << serial;
+        const QDBusReply<QDBusUnixFileDescriptor> reply = bus.call(m, QDBus::Block, 3000);
+        const int fd = reply.isValid() ? takeFd(reply.value()) : -1;
         if (fd < 0) {
             qCWarning(lcPortal) << "SelectionWrite failed:" << reply.error().message();
-            done(false);
-            return;
-        }
-        // The receiver reads at its own pace: write in the thread pool, not in the main thread
-        QtConcurrent::run([fd, data] { return writeAllAndClose(fd, data, 3000); }).then(this, [done, mimeType](bool ok) {
+        } else {
+            ok = writeAllAndClose(fd, data, 3000);
             if (!ok)
                 qCWarning(lcPortal) << "clipboard transfer of" << mimeType << "was not completed";
-            done(ok);
-        });
-    });
+        }
+    }
+    QDBusMessage done = QDBusMessage::createMethodCall(PortalBus::kService, PortalBus::kPath, kIface,
+                                                       QStringLiteral("SelectionWriteDone"));
+    done << QVariant::fromValue(session) << serial << ok;
+    bus.call(done, QDBus::NoBlock);
 }
 
 void PortalClipboard::onSelectionOwnerChanged(const QDBusObjectPath &session, const QVariantMap &options)
@@ -126,6 +152,7 @@ void PortalClipboard::onSelectionOwnerChanged(const QDBusObjectPath &session, co
         return;
     if (!options.value(QStringLiteral("session_is_owner")).toBool()) {
         m_owner = false;
+        m_server->clear();
         m_selectionMimes = options.value(QStringLiteral("mime_types")).toStringList();
     }
 }

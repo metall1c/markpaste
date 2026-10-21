@@ -121,6 +121,42 @@ QString PortalGlobalShortcuts::toPortalTrigger(const QString &portable)
     return out.join(u'+');
 }
 
+QString PortalGlobalShortcuts::displayTrigger(const QString &description)
+{
+    QString d = description.trimmed();
+    if (d.startsWith(QStringLiteral("Press "), Qt::CaseInsensitive))
+        d = d.mid(6).trimmed();
+    if (!d.contains(u'<'))
+        return d;
+    // GTK accelerator: <Control><Alt>v
+    static const QList<QPair<QString, QString>> mods{
+        {QStringLiteral("control"), QStringLiteral("Ctrl")}, {QStringLiteral("primary"), QStringLiteral("Ctrl")},
+        {QStringLiteral("ctrl"), QStringLiteral("Ctrl")},    {QStringLiteral("alt"), QStringLiteral("Alt")},
+        {QStringLiteral("shift"), QStringLiteral("Shift")},  {QStringLiteral("super"), QStringLiteral("Meta")},
+        {QStringLiteral("meta"), QStringLiteral("Meta")},    {QStringLiteral("logo"), QStringLiteral("Meta")}};
+    QStringList out;
+    int i = 0;
+    while (i < d.size() && d[i] == u'<') {
+        const int close = d.indexOf(u'>', i);
+        if (close < 0)
+            break;
+        const QString mod = d.mid(i + 1, close - i - 1).toLower();
+        QString name = mod;
+        for (const auto &[gtk, qt] : mods)
+            if (mod == gtk)
+                name = qt;
+        if (!out.contains(name))
+            out << name;
+        i = close + 1;
+    }
+    QString key = d.mid(i).trimmed();
+    if (key.size() == 1)
+        key = key.toUpper();
+    if (!key.isEmpty())
+        out << key;
+    return out.join(u'+');
+}
+
 QFuture<Status> PortalGlobalShortcuts::ensureSession()
 {
     if (m_sessionStarted)
@@ -193,7 +229,7 @@ QFuture<QHash<Action, BindResult>> PortalGlobalShortcuts::bindAll(const QHash<Ac
                         Action a;
                         if (!actionFromId(sc.id, &a))
                             continue;
-                        const QString trigger = sc.properties.value(QStringLiteral("trigger_description")).toString();
+                        const QString trigger = displayTrigger(sc.properties.value(QStringLiteral("trigger_description")).toString());
                         result.insert(a, BindResult{Status::success(), trigger});
                         qCInfo(lcPortal) << "shortcut" << sc.id << "bound to" << (trigger.isEmpty() ? QStringLiteral("<none>") : trigger);
                     }
@@ -242,7 +278,7 @@ void PortalGlobalShortcuts::onShortcutsChanged(const QDBusMessage &message)
         Action a;
         if (!actionFromId(sc.id, &a))
             continue;
-        const QString trigger = sc.properties.value(QStringLiteral("trigger_description")).toString();
+        const QString trigger = displayTrigger(sc.properties.value(QStringLiteral("trigger_description")).toString());
         qCInfo(lcPortal) << "shortcut" << sc.id << "changed to" << (trigger.isEmpty() ? QStringLiteral("<none>") : trigger);
         emit triggerChanged(a, trigger);
     }

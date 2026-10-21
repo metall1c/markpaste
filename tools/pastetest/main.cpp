@@ -22,6 +22,8 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QApplication>
+#include <QClipboard>
+#include <QLineEdit>
 #include <QImage>
 #include <QPainter>
 #include <QProcess>
@@ -208,6 +210,22 @@ int runPortalClipboard(bool forgetToken)
         t.restart();
         const ClipboardPayload back = await(dc->snapshot());
         say(QStringLiteral("5. data-control reads (%1 ms): \"%2\"").arg(t.elapsed()).arg(textOf(back)));
+    }
+    {
+        // Pasting into our own window (the setup wizard test): Qt reads the offer synchronously in the main
+        // thread, so SelectionTransfer must be served in another thread (problems.md, 2026-10-21)
+        QLineEdit field;
+        field.setWindowTitle(QStringLiteral("pastetest: own field"));
+        field.show();
+        field.activateWindow();
+        field.setFocus();
+        sleepMs(700);   // keyboard focus, otherwise Qt has no selection offer
+        t.restart();
+        const QString own = QApplication::clipboard()->text();
+        say(QStringLiteral("5b. own QClipboard reads (%1 ms, focus %2): \"%3\"")
+                .arg(t.elapsed())
+                .arg(field.hasFocus() ? QStringLiteral("yes") : QStringLiteral("no"))
+                .arg(own));
     }
 
     rd.end();

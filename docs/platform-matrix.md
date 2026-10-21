@@ -36,6 +36,18 @@ System: Plasma 6.7.5, KWin 6.7.5, Qt 6.11.2, xdg-desktop-portal 1.22.1 + xdg-des
 | Registering the app id | `org.freedesktop.host.portal.Registry` | ⚠️ | 2026-10-19 | Works only if the .desktop file is installed and the binary from `Exec` exists (see problems.md) |
 | Passing files into a sandbox | FileTransfer portal | ❌ | 2026-10-19 | No such interface in xdg-desktop-portal 1.22.1 |
 
+## Ubuntu 26.04 GNOME, Wayland
+
+System: Ubuntu 26.04, GNOME (Mutter), the user's test machine; component versions not recorded. Markpaste 0.2.0 from `markpaste_0.2.0-1.ubuntu26.04_amd64.deb`, checked with the setup wizard on 2026-10-21.
+
+| Capability | Mechanism | Status | Date | Note |
+| --- | --- | --- | --- | --- |
+| ext-data-control-v1 | | ❌ | 2026-10-21 | Not offered by Mutter, as the spec expected |
+| Screen capture | Screenshot portal | ⚠️ | 2026-10-21 | 1 screen 1600×900 in 86 ms; the desktop may show its own dialog on each capture |
+| Global hotkeys | GlobalShortcuts portal | ✅ | 2026-10-21 | Print, Ctrl+Alt+V, Ctrl+Print bound and activated |
+| RemoteDesktop session with clipboard | RemoteDesktop + Clipboard portal | ✅ | 2026-10-21 | `devices = 1 clipboard = true`, restore token received |
+| Paste test into the wizard field | Clipboard portal + RemoteDesktop | ❌ → fixed in 0.2.1 | 2026-10-21 | Our own window could not read the selection (problems.md 2026-10-21). Recheck needed; pasting into other apps not checked yet |
+
 ## Memory and speed measurements (NFR-1, NFR-2)
 
 2026-10-20, Fedora 44, Qt 6.11.2, the `build/` build (RelWithDebInfo, the default in CMakeLists.txt, optimized).

@@ -38,6 +38,9 @@ public:
     static bool actionFromId(const QString &id, Action *action);
     // Primary+Shift+V → CTRL+SHIFT+v (XDG shortcuts specification format)
     static QString toPortalTrigger(const QString &portable);
+    // trigger_description for the UI: GNOME gives "Press <Control><Alt>v" → "Ctrl+Alt+V";
+    // KDE's "Ctrl+Alt+V" stays as is
+    static QString displayTrigger(const QString &description);
 
 private slots:
     void onActivated(const QDBusObjectPath &session, const QString &id, qulonglong timestamp, const QVariantMap &options);

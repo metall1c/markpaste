@@ -4,12 +4,40 @@
 
 #include <QDBusObjectPath>
 #include <QHash>
+#include <QMutex>
 #include <QPointer>
 #include <QStringList>
+#include <QThread>
+
+#include <memory>
 
 namespace mp::lx {
 
 class PortalRemoteDesktop;
+
+// Serves SelectionTransfer requests while our selection is set. Lives in its own thread.
+//
+// Why a thread: when the paste target is our own window (the setup wizard test field, a mark
+// comment), Qt reads the Wayland offer synchronously in the main thread and waits on the pipe.
+// The data for that pipe comes only after SelectionTransfer → SelectionWrite, and if those were
+// handled in the main thread too, both sides would wait until Qt's read timeout and the paste
+// would come out empty ("QWaylandDataOffer: timeout reading from pipe", see docs/problems.md).
+class PortalSelectionServer : public QObject
+{
+    Q_OBJECT
+public:
+    // Both are thread-safe. clear() drops the data when the selection is no longer ours.
+    void setSelection(const QString &session, const ClipboardPayload &payload);
+    void clear();
+
+private slots:
+    void onSelectionTransfer(const QDBusObjectPath &session, const QString &mimeType, uint serial);
+
+private:
+    QMutex m_mutex;
+    QString m_session;
+    ClipboardPayload m_payload;
+};
 
 // Clipboard via the Clipboard portal (spec sections 9, 10). A fallback for environments without
 // ext-data-control-v1, above all GNOME (Mutter).
@@ -37,7 +65,6 @@ public:
     QString name() const override { return QStringLiteral("xdg-desktop-portal Clipboard"); }
 
 private slots:
-    void onSelectionTransfer(const QDBusObjectPath &session, const QString &mimeType, uint serial);
     void onSelectionOwnerChanged(const QDBusObjectPath &session, const QVariantMap &options);
 
 private:
@@ -47,6 +74,8 @@ private:
     QPointer<PortalRemoteDesktop> m_session;
     ClipboardPayload m_payload;      // what we serve while the selection is ours
     bool m_owner = false;
+    QThread m_serverThread;
+    std::unique_ptr<PortalSelectionServer> m_server;
     QStringList m_selectionMimes;    // types of the current foreign selection (SelectionOwnerChanged)
 };
 

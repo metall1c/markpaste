@@ -112,6 +112,16 @@ TEST(PortalGlobalShortcuts, TriggerInXdgFormat)
     EXPECT_EQ(PortalGlobalShortcuts::toPortalTrigger(QStringLiteral("Primary+Alt+V")), QStringLiteral("CTRL+ALT+v"));
 }
 
+TEST(PortalGlobalShortcuts, DisplayTriggerFromGnomeAndKde)
+{
+    using lx::PortalGlobalShortcuts;
+    EXPECT_EQ(PortalGlobalShortcuts::displayTrigger(QStringLiteral("Press Print")), QStringLiteral("Print"));
+    EXPECT_EQ(PortalGlobalShortcuts::displayTrigger(QStringLiteral("Press <Control><Alt>v")), QStringLiteral("Ctrl+Alt+V"));
+    EXPECT_EQ(PortalGlobalShortcuts::displayTrigger(QStringLiteral("Press <Control>Print")), QStringLiteral("Ctrl+Print"));
+    EXPECT_EQ(PortalGlobalShortcuts::displayTrigger(QStringLiteral("Ctrl+Alt+V")), QStringLiteral("Ctrl+Alt+V"));
+    EXPECT_EQ(PortalGlobalShortcuts::displayTrigger(QString()), QString());
+}
+
 TEST(PortalGlobalShortcuts, EveryActionHasOwnId)
 {
     using lx::PortalGlobalShortcuts;
