@@ -1,28 +1,28 @@
-# 0001. Главная платформа Linux — Fedora 44 KDE Plasma на Wayland
+# 0001. The main Linux platform is Fedora 44 KDE Plasma on Wayland
 
-- Статус: принято (2026-10-19)
-- Требования ТЗ: раздел 2 («Linux — упор на Wayland»), раздел 9 («Приоритет: Wayland на Fedora 44»), раздел 13 (этапы)
+- Status: accepted (2026-10-19)
+- Spec items: section 2 ("Linux: focus on Wayland"), section 9 ("Priority: Wayland on Fedora 44"), section 13 (stages)
 
-## Контекст
+## Context
 
-ТЗ называет эталоном три редакции Fedora 44 на Wayland (GNOME 50, KDE Plasma 6.6, Sway) и считает самой важной и сложной GNOME. Пользователь уточнил приоритет: главная платформа — Fedora 44 KDE Plasma на Wayland. Машина разработки — та же система.
+The spec names three Fedora 44 editions on Wayland as the reference (GNOME 50, KDE Plasma 6.6, Sway) and considers GNOME the most important and the hardest. The user refined the priority: the main platform is Fedora 44 KDE Plasma on Wayland. The development machine runs the same system.
 
-## Решение
+## Decision
 
-- Linux-реализация сначала делается и проверяется на KDE Plasma (Wayland). Потом GNOME и Sway, X11 — последним.
-- Работу начинаем с Linux, а не с Windows (в ТЗ этап «Ядро и Windows» шёл первым). Ядро и UI всё равно пишем без привязки к ОС (NFR-11).
-- Фактическая версия Plasma на машине — 6.7.5, а не 6.6 из ТЗ: Fedora 44 получила обновление.
+- The Linux implementation is built and checked on KDE Plasma (Wayland) first. Then GNOME and Sway, X11 last.
+- Work starts with Linux, not Windows (in the spec the "Core and Windows" stage came first). The core and the UI are still written without OS ties (NFR-11).
+- The actual Plasma version on the machine is 6.7.5, not 6.6 as in the spec: Fedora 44 received an update.
 
-## Что проверено сразу (2026-10-19, Plasma 6.7.5, KWin 6.7.5, Qt 6.11.2, xdg-desktop-portal 1.22.1)
+## Checked right away (2026-10-19, Plasma 6.7.5, KWin 6.7.5, Qt 6.11.2, xdg-desktop-portal 1.22.1)
 
-- KWin отдаёт обычным клиентам `ext_data_control_manager_v1` (v1), так что программа может менять буфер обмена из фона. Гипотеза ТЗ для KDE подтверждена на уровне протокола.
-- `zwp_virtual_keyboard_manager_v1` KWin обычным клиентам **не** отдаёт. Ctrl+V эмулируем через портал RemoteDesktop.
-- Порталы: Screenshot v2, ScreenCast v5, GlobalShortcuts v2, RemoteDesktop v2, Clipboard v1, InputCapture v2. Есть `org.freedesktop.host.portal.Registry`. FileTransfer **нет**.
-- `org.kde.KWin.ScreenShot2` v5 есть, доступен только «доверенным» программам: в .desktop-файле должно быть `X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2` (так сделано у Spectacle).
-- `zwlr_layer_shell_v1` v5 есть, LayerShellQt 6.7.5 есть в репозитории.
+- KWin offers `ext_data_control_manager_v1` (v1) to ordinary clients, so the program can change the clipboard from the background. The spec's hypothesis for KDE is confirmed at the protocol level.
+- KWin does **not** offer `zwp_virtual_keyboard_manager_v1` to ordinary clients. Ctrl+V is emulated through the RemoteDesktop portal.
+- Portals: Screenshot v2, ScreenCast v5, GlobalShortcuts v2, RemoteDesktop v2, Clipboard v1, InputCapture v2. `org.freedesktop.host.portal.Registry` is present. FileTransfer is **not**.
+- `org.kde.KWin.ScreenShot2` v5 is present and available only to "trusted" programs: the .desktop file must contain `X-KDE-DBUS-Restricted-Interfaces=org.kde.KWin.ScreenShot2` (Spectacle does this).
+- `zwlr_layer_shell_v1` v5 is present, LayerShellQt 6.7.5 is in the repository.
 
-## Последствия
+## Consequences
 
-- На KDE режим 1 (последовательная вставка) основной: data-control для буфера плюс RemoteDesktop для Ctrl+V.
-- Быстрый захват на KDE — через KWin ScreenShot2, запасной — портал Screenshot.
-- Решения, которые подходят только для KDE, держим за платформенными интерфейсами и `capabilities()`, чтобы GNOME и Sway добавлялись без правок ядра.
+- On KDE mode 1 (sequential paste) is the main one: data-control for the clipboard plus RemoteDesktop for Ctrl+V.
+- Fast capture on KDE goes through KWin ScreenShot2, the fallback is the Screenshot portal.
+- KDE-only solutions are kept behind the platform interfaces and `capabilities()`, so that GNOME and Sway can be added without changing the core.

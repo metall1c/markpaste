@@ -1,28 +1,28 @@
-# 0017. Windows-сборка: MinGW на Fedora, тесты под Wine, портативный ZIP
+# 0017. Windows build: MinGW on Fedora, tests under Wine, a portable ZIP
 
-- Статус: принято (2026-10-20)
-- Требования ТЗ: разд. 7 (Qt на Windows — свежий, через aqtinstall; vcpkg), разд. 11 (Setup.exe с автообновлением и portable ZIP), разд. 12 (сборка Setup.exe на чистом образе Windows), NFR-3 (установщик до 40 МБ), NFR-12
+- Status: accepted (2026-10-20)
+- Spec items: section 7 (a fresh Qt on Windows via aqtinstall; vcpkg), section 11 (Setup.exe with auto-update and a portable ZIP), section 12 (building Setup.exe on a clean Windows image), NFR-3 (installer up to 40 MB), NFR-12
 
-## Контекст
+## Context
 
-Машина разработчика — Fedora 44, Windows рядом нет. Windows-версию надо собирать и проверять, не выходя из Linux, а релизную сборку — потом в CI на Windows.
+The development machine runs Fedora 44 and there is no Windows nearby. The Windows version must be built and checked without leaving Linux, and the release build later in CI on Windows.
 
-## Решение
+## Decision
 
-- **Кросс-сборка MinGW-w64 на Fedora.** Пакеты `mingw64-gcc-c++` 16.2 и `mingw64-qt6-*` 6.11.2 (Qt — той же версии, что системный на Fedora). Тулчейн — свой `cmake/mingw64-fedora.cmake`, без обёртки `mingw64-cmake`: полные пути к компиляторам, и `QT_CHAINLOAD_TOOLCHAIN_FILE` указывает на него же (docs/problems.md, 2026-10-20). Команды — docs/build.md.
-- **googletest** для MinGW в Fedora нет: при отсутствии системного `GTest` берём исходники v1.17.0 через `FetchContent` (с проверкой SHA-256). На Linux по-прежнему системный `gtest-devel`.
-- **Тесты под Wine 11.** `markpaste_core_tests` и `markpaste_ui_tests` — на модуле `offscreen`, как на Linux. Отдельный `markpaste_windows_tests` — на настоящем модуле `windows`: буфер OLE и его форматы, хук, `RegisterHotKey`, GDI-захват. Сквозная проверка программы — Wine в Xvfb с xfwm4 и xdotool (docs/build.md).
-- **Портативный ZIP** — `cmake --build build-win --target package` → `Markpaste-<версия>-win64-portable.zip`: `markpaste.exe`, DLL Qt и MinGW, плагины (`qwindows`, `qmodernwindowsstyle`, `qjpeg`, `qico`, `qsvg`, `qsvgicon`, `qschannelbackend`), переводы Qt, `qt.conf`. `windeployqt` в пакетах Fedora нет; `file(GET_RUNTIME_DEPENDENCIES)` при кросс-сборке приводит имена DLL к нижнему регистру и не находит `Qt6Core.dll` на регистрозависимой ФС — поэтому зависимости обходит свой скрипт `cmake/CollectDlls.cmake` по таблице импорта (`objdump -p`) и очищает копии от отладочных данных.
-- **Ресурсы .exe**: значок `data/icons/app.ico` (из `app.svg`, 16–256 px), сведения о версии, манифест (`asInvoker`, Windows 10/11, длинные пути, UTF-8). Программа без окна консоли (`WIN32_EXECUTABLE`).
+- **MinGW-w64 cross-compilation on Fedora.** The packages `mingw64-gcc-c++` 16.2 and `mingw64-qt6-*` 6.11.2 (Qt of the same version as the system one on Fedora). The toolchain is our own `cmake/mingw64-fedora.cmake`, without the `mingw64-cmake` wrapper: full compiler paths, and `QT_CHAINLOAD_TOOLCHAIN_FILE` points to the same file (docs/problems.md, 2026-10-20). Commands are in docs/build.md.
+- **googletest** is not packaged for MinGW in Fedora: without a system `GTest` the v1.17.0 sources are fetched with `FetchContent` (with a SHA-256 check). On Linux the system `gtest-devel` is still used.
+- **Tests under Wine 11.** `markpaste_core_tests` and `markpaste_ui_tests` run on the `offscreen` module, as on Linux. A separate `markpaste_windows_tests` runs on the real `windows` module: the OLE clipboard and its formats, the hook, `RegisterHotKey`, GDI capture. The end-to-end check of the program is Wine in Xvfb with xfwm4 and xdotool (docs/build.md).
+- **Portable ZIP**: `cmake --build build-win --target package` → `Markpaste-<version>-win64-portable.zip`: `markpaste.exe`, Qt and MinGW DLLs, plugins (`qwindows`, `qmodernwindowsstyle`, `qjpeg`, `qico`, `qsvg`, `qsvgicon`, `qschannelbackend`), Qt translations, `qt.conf`. Fedora packages have no `windeployqt`; `file(GET_RUNTIME_DEPENDENCIES)` lowercases DLL names when cross-compiling and does not find `Qt6Core.dll` on a case-sensitive file system, so our own script `cmake/CollectDlls.cmake` walks the dependencies by the import table (`objdump -p`) and strips debug data from the copies.
+- **.exe resources**: the icon `data/icons/app.ico` (from `app.svg`, 16–256 px), version info, a manifest (`asInvoker`, Windows 10/11, long paths, UTF-8). The program has no console window (`WIN32_EXECUTABLE`).
 
-## Рассмотренные варианты
+## Options considered
 
-- **MSVC + Qt из aqtinstall, как в ТЗ.** Нужна Windows (или виртуальная машина с лицензией) — для CI это правильный путь, для ежедневной разработки на Fedora нет.
-- **Qt из MSYS2 под Wine.** Тот же MinGW, но установка и обновление сложнее, чем `dnf install`.
-- **Сборка установщика Velopack сейчас.** Сначала — проверить программу на настоящей Windows; установщик и автообновление (APP-7) — следующий шаг.
+- **MSVC + Qt from aqtinstall, as in the spec.** Needs Windows (or a VM with a license): the right path for CI, but not for daily development on Fedora.
+- **Qt from MSYS2 under Wine.** The same MinGW, but installing and updating is harder than `dnf install`.
+- **Building the Velopack installer now.** First check the program on real Windows; the installer and auto-update (APP-7) are the next step.
 
-## Последствия и ограничения
+## Consequences and limitations
 
-- **Размер.** Qt из Fedora собран с ICU (`icudata77.dll` — 32 МБ) и тянет OpenSSL, GLib, fontconfig: каталог программы — 81 МБ, ZIP — 35 МБ. Для NFR-3 (до 40 МБ установщик) релиз собирать с официальным Qt без ICU (Windows 10+ даёт ICU сам) — это и есть путь ТЗ через aqtinstall в CI.
-- Сборка MinGW — для разработки и проверки. Релизная (MSVC, подпись SignPath, Velopack) — в CI на Windows, ещё не сделана.
-- Wine — не Windows: DXGI Desktop Duplication в нём не реализован, UIPI и «Ножниц» нет, без оконного менеджера скрытые окна остаются на экране. Результаты под Wine отмечены в platform-matrix.md отдельно от настоящей Windows.
+- **Size.** Fedora's Qt is built with ICU (`icudata77.dll` is 32 MB) and pulls in OpenSSL, GLib, fontconfig: the program directory is 81 MB, the ZIP is 35 MB. For NFR-3 (installer up to 40 MB) the release should be built with the official Qt without ICU (Windows 10+ provides ICU itself), which is the spec's path via aqtinstall in CI.
+- The MinGW build is for development and checks. The release one (MSVC, SignPath signing, Velopack) is for CI on Windows and is not done yet.
+- Wine is not Windows: DXGI Desktop Duplication is not implemented there, there is no UIPI and no Snipping Tool, and without a window manager hidden windows stay on the screen. Results under Wine are listed in platform-matrix.md separately from real Windows.

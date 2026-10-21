@@ -1,40 +1,40 @@
-# 0004. Лента: перенос «при отпускании» и видимость только при непустом наборе
+# 0004. Strip: moving "on release" and visibility only with a non-empty set
 
-- Статус: принято (2026-10-19)
-- Требования ТЗ: STR-1, STR-5, APP-1, разд. 4 шаг 8
+- Status: accepted (2026-10-19)
+- Spec items: STR-1, STR-5, APP-1, section 4 step 8
 
-## Контекст
+## Context
 
-Пользователь на KDE спросил, почему ленту нельзя переместить и почему она всегда открыта.
+On KDE the user asked why the strip cannot be moved and why it is always open.
 
-1. На KDE лента — поверхность layer-shell (роль `LayerTop`, без клавиатуры). Только так она висит поверх окон и не уводит фокус из чата, а значит, кнопка «Вставить набор» работает в режиме 1. Но композитор не даёт пользователю двигать такие поверхности: положение задаёт программа якорем к краю и отступами.
-2. Лента показывалась при каждом запуске, даже с пустым набором.
+1. On KDE the strip is a layer-shell surface (role `LayerTop`, no keyboard). Only this way it stays above windows and does not take focus from the chat, which means the "Paste set" button works in mode 1. But the compositor does not let the user move such surfaces: the program sets the position with an edge anchor and margins.
+2. The strip was shown on every start, even with an empty set.
 
-## Решение
+## Decision
 
-**Перенос (STR-5).** Ручка — заголовок ленты (`⠿ Markpaste`). Пока кнопка мыши зажата, события указателя идут нашей поверхности и за её пределами (неявный захват), координаты — относительно ленты. При **отпускании** считаем точку на экране: известное нам положение ленты (край + отступы + размер, `assumedTopLeft()`) плюс координаты отпускания. По этой точке выбираются монитор, ближайший край (левый или правый) и высота. Положение (край, отступ сверху, имя монитора) хранится в настройках `strip/*`. Смена монитора пересоздаёт поверхность (hide → `setScreen` → show): выход задаётся при создании поверхности.
+**Moving (STR-5).** The handle is the strip header (`⠿ Markpaste`). While the mouse button is held, pointer events go to our surface even outside it (implicit grab), with coordinates relative to the strip. On **release** we compute the point on the screen: the strip position we know (edge + margins + size, `assumedTopLeft()`) plus the release coordinates. This point selects the monitor, the nearest edge (left or right) and the height. The position (edge, offset from the top, monitor name) is kept in the `strip/*` settings. Changing the monitor recreates the surface (hide → `setScreen` → show): the output is set when the surface is created.
 
-Если лента выросла и вылезла за низ экрана, она поднимается сама.
+If the strip grew and went below the screen bottom, it moves up by itself.
 
-**Контур при переносе** (добавлено 2026-10-19 по просьбе пользователя). Пока кнопка зажата, лента стоит на месте, поэтому точка указателя на экране известна точно. На время перетаскивания на каждом мониторе появляется прозрачный слой layer-shell (`LayerOverlay`, `Qt::WindowTransparentForInput` — пустая область ввода, без клавиатуры). Он рисует пунктирный контур ленты там, где она встанет после отпускания: уже прижатой к краю, на нужной высоте и мониторе. Расчёт общий с переносом (`StripWindow::moveTarget`), поэтому контур и итог совпадают. Перерисовывается только старое и новое место контура. Слои удаляются после отпускания: к следующему переносу набор мониторов мог измениться. Отладка: команда сокета `debug-ghost <x> <y> <w> <h>`.
+**Outline while moving** (added 2026-10-19 at the user's request). While the button is held, the strip stays in place, so the pointer position on the screen is known exactly. During the drag a transparent layer-shell layer appears on every monitor (`LayerOverlay`, `Qt::WindowTransparentForInput`: an empty input region, no keyboard). It draws a dashed outline of the strip where it will end up after the release: already flush with the edge, at the right height and on the right monitor. The computation is shared with the move itself (`StripWindow::moveTarget`), so the outline and the result match. Only the old and new places of the outline are repainted. The layers are deleted after the release: the set of monitors may change by the next move. Debugging: the socket command `debug-ghost <x> <y> <w> <h>`.
 
-Без layer-shell (GNOME) лента — обычное окно, перенос — `QWindow::startSystemMove()` силами оконного менеджера.
+Without layer-shell (GNOME) the strip is an ordinary window, and moving is `QWindow::startSystemMove()` done by the window manager.
 
-**Видимость.**
-- Запуск без команды и с пустым набором — только значок в трее (если включено «прятать при пустом наборе»); при первом запуске — уведомление «нажмите Print».
-- Лента появляется после снимка и прячется, когда набор опустел (очистка, «очищать после вставки», удаление последнего снимка).
-- Прятать ли ленту при пустом наборе — настройка «Прятать ленту в трей, когда набор пуст» (вкладка «Вид», `strip/hideWhenEmpty`, по умолчанию включено; добавлено 2026-10-20 по просьбе пользователя). Выключена — лента не прячется, когда набор опустел, и показывается при обычном запуске. Смена настройки при пустом наборе сразу показывает или прячет ленту. Без трея лента не прячется независимо от настройки.
-- Кнопка «—» сворачивает ленту в трей. Клик по значку трея показывает или прячет ленту, в том числе пустую (по просьбе пользователя: сначала при пустом наборе клик запускал захват, это было неожиданно). Захват — Print или меню трея.
-- Повторный запуск из меню (`markpaste` или `--show`) показывает ленту и с пустым набором.
-- Без трея (GNOME без AppIndicator) лента не прячется автоматически: иначе программу не найти (APP-1).
+**Visibility.**
+- A start without a command and with an empty set shows only the tray icon (if "hide when the set is empty" is on); on the first start there is a "press Print" notification.
+- The strip appears after a capture and hides when the set becomes empty (clearing, "clear after paste", deleting the last shot).
+- Whether to hide the strip with an empty set is the "Hide the strip to the tray when the set is empty" setting ("Appearance" tab, `strip/hideWhenEmpty`, on by default; added 2026-10-20 at the user's request). When it is off, the strip does not hide when the set becomes empty and is shown on a normal start. Changing the setting with an empty set shows or hides the strip right away. Without a tray the strip does not hide regardless of the setting.
+- The "—" button hides the strip to the tray. A click on the tray icon shows or hides the strip, an empty one included (at the user's request: at first a click with an empty set started a capture, which was unexpected). Capturing is Print or the tray menu.
+- A repeated launch from the menu (`markpaste` or `--show`) shows the strip even with an empty set.
+- Without a tray (GNOME without AppIndicator) the strip does not hide automatically: otherwise the program cannot be found (APP-1).
 
-## Рассмотренные варианты
+## Options considered
 
-- **Плавное перемещение самой ленты за мышью.** Отказались. После каждой смены отступов следующие события указателя приходят относительно старого или нового положения — неизвестно, применил ли уже композитор новые отступы. Ошибка накапливается, и лента «убегала» бы от курсора.
-- **Сделать ленту обычным окном, чтобы двигал KWin.** Отказались: теряется «поверх окон», и клик по ленте забирает фокус у чата — кнопка вставки перестанет работать в режиме 1.
-- **Верхний и нижний края.** Не делали: лента вертикальная, у верхнего края она закрывала бы заголовки окон. Можно добавить с горизонтальной раскладкой.
+- **Smoothly moving the strip itself with the mouse.** Rejected. After each margin change, the next pointer events come relative to the old or the new position, and it is unknown whether the compositor has already applied the new margins. The error accumulates, and the strip would "run away" from the cursor.
+- **Make the strip an ordinary window so that KWin moves it.** Rejected: "above windows" is lost, and a click on the strip takes focus from the chat, so the paste button stops working in mode 1.
+- **Top and bottom edges.** Not done: the strip is vertical, at the top edge it would cover window titles. Can be added with a horizontal layout.
 
-## Последствия
+## Consequences
 
-- Сама лента «перепрыгивает» при отпускании, а за курсором едет её контур.
-- Расчёт верен, пока композитор ставит поверхность точно по якорю и отступам. KWin так и делает; проверить на Sway.
+- The strip itself "jumps" on release, while its outline follows the cursor.
+- The computation is correct as long as the compositor places the surface exactly by the anchor and margins. KWin does; to be checked on Sway.

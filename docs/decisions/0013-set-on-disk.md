@@ -1,42 +1,42 @@
-# 0013. Набор на диске: «пережить перезапуск», сохранение в папку, предпросмотр
+# 0013. The set on disk: "survive a restart", save to a folder, preview
 
-- Статус: принято (2026-10-20)
+- Status: accepted (2026-10-20)
 
-## Контекст
+## Context
 
-NFR-5 (набор переживает перезапуск, каталог данных пользователя с правами 0700), APP-6 (сохранение набора в папку: PNG и `message.md`), PST-6 (предпросмотр того, что уйдёт в чат).
+NFR-5 (the set survives a restart, the user data directory with mode 0700), APP-6 (saving the set to a folder: PNG and `message.md`), PST-6 (preview of what goes to the chat).
 
-## Решение
+## Decision
 
-**Сессия (NFR-5)** — `SetStorage::saveSession/loadSession`, ядро, без кода под ОС.
-- Галочка «Сохранять набор между перезапусками» на вкладке «Система», `session/keep`, **по умолчанию выключена** (в ТЗ — «при включённой опции»).
-- Каталог: `QStandardPaths::AppLocalDataLocation/session` → `~/.local/share/markpaste/session`, права 0700, файлы 0600.
-- Формат: `set.json` (версия 1: снимки по порядку, размер, dpr, обрезка, метки со всеми полями пера, размытия) и `<uuid>.png` — исходник снимка без меток и без размытия, те же байты, что в памяти (`Shot::sourcePng`).
-- Исходник снимка не меняется, пока снимок в наборе, поэтому PNG пишется один раз; при правках переписывается только `set.json` (QSaveFile, атомарно), лишние PNG удаляются. `set.json` пишется последним: при сбое старый файл ссылается на PNG, которые ещё есть.
-- Пишем через 1 с после последней правки (таймер) и при выходе. Загрузка — при запуске, без истории отмены.
-- Выключили галочку — каталог удаляется сразу и при каждом запуске.
-- Битый `set.json` или версия новее — набор не загружается, пользователь видит сообщение, файл не трогаем. Снимок без PNG пропускается, остальные загружаются.
+**Session (NFR-5)**: `SetStorage::saveSession/loadSession`, in the core, no OS-specific code.
+- The checkbox "Keep the set between restarts" on the "System" tab, `session/keep`, **off by default** (the spec says "when the option is on").
+- Directory: `QStandardPaths::AppLocalDataLocation/session` → `~/.local/share/markpaste/session`, mode 0700, files 0600.
+- Format: `set.json` (version 1: shots in order, size, dpr, crop, marks with all pen fields, blurs) and `<uuid>.png`, the shot source without marks and without blur, the same bytes as in memory (`Shot::sourcePng`).
+- A shot's source does not change while the shot is in the set, so the PNG is written once; on edits only `set.json` is rewritten (QSaveFile, atomically), and stale PNGs are deleted. `set.json` is written last: if something fails, the old file refers to PNGs that still exist.
+- Writing happens 1 s after the last edit (a timer) and on exit. Loading happens at startup, without undo history.
+- When the checkbox is turned off, the directory is deleted right away and on every start.
+- A broken `set.json` or a newer version: the set is not loaded, the user sees a message, the file is left alone. A shot without a PNG is skipped, the others load.
 
-**Сохранение в папку (APP-6)** — пункт «Сохранить в папку…» в меню ленты (кнопка-шестерёнка стала меню), в меню трея и в окне предпросмотра.
-- Пользователь выбирает папку, внутри создаётся `Markpaste ГГГГ-ММ-ДД ЧЧ-мм-сс`: новые сохранения не перезаписывают старые.
-- `A.png`, `B.png`… — запечённые снимки (метки, размытие, обрезка), всегда PNG без потерь, без уменьшения для чата.
-- `message.md` — `![A](A.png)` по строке на снимок и текст сообщения из шаблона; порядок «текст до/после картинок» — как при вставке.
-- Запекание — в пуле потоков; по готовности папка открывается в файловом менеджере.
+**Save to a folder (APP-6)**: the "Save to folder…" item in the strip menu (the gear button became a menu), in the tray menu and in the preview window.
+- The user picks a folder, and `Markpaste YYYY-MM-DD HH-mm-ss` is created inside it: new saves do not overwrite old ones.
+- `A.png`, `B.png`…: baked shots (marks, blur, crop), always lossless PNG, without downscaling for the chat.
+- `message.md`: `![A](A.png)`, one line per shot, and the message text from the template; the "text before/after images" order is as in the paste.
+- Baking runs in the thread pool; when it is done, the folder opens in the file manager.
 
-**Предпросмотр (PST-6)** — `PreviewDialog`, пункт «Предпросмотр сообщения…» там же.
-- Картинки и текст берутся из `PasteOrchestrator::bakeSequence` — того же кода, что и вставка: видно JPEG вместо PNG у больших снимков, уменьшение до 4096 px, склейку в режиме 4, место текста. Для каждой картинки — формат, размер в пикселях и байтах.
-- Режим «файлы + текст» показывается как последовательность: картинки и текст те же, меняется только доставка.
-- Кнопки: «Копировать текст», «Сохранить в папку…», «Закрыть». Вставки из окна нет: она уходит в активное окно, а активным было бы само окно предпросмотра.
+**Preview (PST-6)**: `PreviewDialog`, the "Preview message…" item in the same places.
+- The images and text come from `PasteOrchestrator::bakeSequence`, the same code as the paste: JPEG instead of PNG for large shots, downscaling to 4096 px, stitching in mode 4 and the text position are all visible. For each image there is the format, the size in pixels and bytes.
+- The "files + text" mode is shown as a sequence: the images and text are the same, only the delivery differs.
+- Buttons: "Copy text", "Save to folder…", "Close". There is no paste from the window: it goes to the active window, and the active one would be the preview window itself.
 
-## Рассмотренные варианты
+## Options considered
 
-- **Хранить в сессии запечённые картинки** — тогда метки после перезапуска не правятся. Отказ.
-- **Хранить исходник уже с размытием** (необратимо и на диске). Отказ: размытие после перезапуска нельзя было бы подвинуть или убрать; защищает каталог 0700 и то, что опция выключена по умолчанию. Если понадобится — отдельная галочка.
-- **QDataStream вместо JSON** — компактнее, но не читается глазами и хрупок при смене полей. JSON с номером версии проще отлаживать.
-- **История отмены после перезапуска** — не сохраняем: снимки состояния занимают память, ценность после перезапуска мала.
+- **Keep baked images in the session**: then the marks could not be edited after a restart. Rejected.
+- **Keep the source already blurred** (irreversibly, on disk too). Rejected: after a restart the blur could not be moved or removed; protection comes from the 0700 directory and the option being off by default. If needed, a separate checkbox.
+- **QDataStream instead of JSON**: more compact, but not human-readable and fragile when fields change. JSON with a version number is easier to debug.
+- **Undo history after a restart**: not saved: the state snapshots take memory, and their value after a restart is small.
 
-## Последствия
+## Consequences
 
-- В `~/.local/share/markpaste/session` лежат исходники **без размытия**: то, что пользователь закрыл размытием, на диске видно. Подсказка у галочки говорит, где хранится набор.
-- Набор из 26 снимков 4K — порядка 50–100 МБ на диске, пока опция включена и набор не очищен.
-- Восстановление после перезапуска на живой сессии пока не проверено; формат и права проверены тестами `SetStorage.*`.
+- `~/.local/share/markpaste/session` holds the sources **without blur**: what the user covered with blur is visible on disk. The hint next to the checkbox says where the set is kept.
+- A set of 26 4K shots takes about 50–100 MB on disk while the option is on and the set is not cleared.
+- Restoring after a restart in a live session has not been checked yet; the format and permissions are checked by the `SetStorage.*` tests.

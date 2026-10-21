@@ -1,12 +1,12 @@
-# Значки интерфейса
+# UI icons
 
-Линейные значки 24×24, линия 1,8 px, цвет `currentColor`: программа подставляет цвет
-состояния кнопки при отрисовке (`src/ui/Theme.cpp`, `iconPixmap`). Решение —
+Line icons 24×24, line 1.8 px, color `currentColor`: the program substitutes the button state
+color when painting (`src/ui/Theme.cpp`, `iconPixmap`). Decision:
 `docs/decisions/0019-ui-style.md`.
 
-Значки нарисованы для Markpaste. Контуры «Обрезать» (`crop.svg`), «Отменить» и «Повторить»
-(`undo.svg`, `redo.svg`) повторяют значки набора [Lucide](https://lucide.dev), выпущенного
-по лицензии ISC:
+The icons were drawn for Markpaste. The outlines of "Crop" (`crop.svg`), "Undo" and "Redo"
+(`undo.svg`, `redo.svg`) follow icons of the [Lucide](https://lucide.dev) set, released
+under the ISC license:
 
 ```
 ISC License

@@ -1,281 +1,281 @@
-# Журнал проблем
+# Problem log
 
-Каждая запись: дата, окружение, симптом, причина, решение, ссылки. Новые записи — сверху. Нерешённые тоже записываем, со статусом «открыто».
+Each entry: date, environment, symptom, cause, solution, links. New entries go on top. Unsolved ones are recorded too, with the status "open".
 
 ---
 
-## 2026-10-20 · KDE: новое сочетание «Снимок в ленту» (теперь «Снимок без редактора») осталось без клавиши
+## 2026-10-20 · KDE: the new "Capture to strip" shortcut (now "Capture without editor") was left without a key
 
-- **Окружение:** Fedora 44 KDE Plasma 6.7.5, Wayland, xdg-desktop-portal 1.22.1 + -kde 6.7.5, GlobalShortcuts v2. Программа 0.1.1 → 0.1.2, в `BindShortcuts` добавился третий id `capture-to-strip` (ADR 0022).
-- **Симптом:** после обновления в журнале нет строк `shortcut … bound`: ответ `BindShortcuts` не приходит. На экране — окно KDE «Запрос глобальных комбинаций клавиш» (видно через `qdbus --literal org.kde.KWin /WindowsRunner org.kde.krunner1.Match комбинац`). Программу перезапустили, не ответив в диалоге: он закрылся, а новая копия сразу получила `capture-to-strip bound to "<none>"`.
-- **Причина:** для `id`, которых KDE ещё не знает, он спрашивает пользователя и до ответа держит `BindShortcuts`. Когда сессия портала закрывается вместе с программой, KDE записывает действие без клавиши: `capture-to-strip=none,Ctrl+Print,Снять область сразу в ленту` (действующее, по умолчанию, описание). Дальше действие считается известным, и диалога больше нет.
-- **Решение:** при обновлении — ответить в диалоге KDE, не перезапуская программу. Если клавиша уже потеряна — «Изменить сочетания…» в настройках Markpaste или «Комбинации клавиш» KDE. Разработчику без мыши:
-  `gdbus call --session --dest org.kde.kglobalaccel --object-path /kglobalaccel --method org.kde.KGlobalAccel.setForeignShortcut "['su._525.Markpaste','capture-to-strip','Markpaste','Снимок без редактора']" "[83886089]"` (83886089 = `Qt::CTRL | Qt::Key_Print`). Программа получила `ShortcutsChanged` и подхватила Ctrl+Print без перезапуска.
-- **Статус:** обойдено. Предупреждение — в ADR 0022.
+- **Environment:** Fedora 44 KDE Plasma 6.7.5, Wayland, xdg-desktop-portal 1.22.1 + -kde 6.7.5, GlobalShortcuts v2. The program 0.1.1 → 0.1.2, a third id `capture-to-strip` was added to `BindShortcuts` (ADR 0022).
+- **Symptom:** after the update the log has no `shortcut … bound` lines: the `BindShortcuts` answer does not come. On the screen there is the KDE window "Global shortcuts request" (visible via `qdbus --literal org.kde.KWin /WindowsRunner org.kde.krunner1.Match комбинац`). The program was restarted without answering the dialog: it closed, and the new instance immediately got `capture-to-strip bound to "<none>"`.
+- **Cause:** for `id`s KDE does not know yet, it asks the user and holds `BindShortcuts` until the answer. When the portal session closes together with the program, KDE records the action without a key: `capture-to-strip=none,Ctrl+Print,<description>` (current, default, description). After that the action counts as known, and there is no dialog anymore.
+- **Solution:** on an update, answer the KDE dialog without restarting the program. If the key is already lost, use "Change shortcuts…" in the Markpaste settings or KDE "Shortcuts". For a developer without a mouse:
+  `gdbus call --session --dest org.kde.kglobalaccel --object-path /kglobalaccel --method org.kde.KGlobalAccel.setForeignShortcut "['su._525.Markpaste','capture-to-strip','Markpaste','Capture without editor']" "[83886089]"` (83886089 = `Qt::CTRL | Qt::Key_Print`). The program received `ShortcutsChanged` and picked up Ctrl+Print without a restart.
+- **Status:** worked around. A warning is in ADR 0022.
 
-## 2026-10-20 · X11: каждое второе нажатие Print (и Ctrl+Print) не срабатывало
+## 2026-10-20 · X11: every second press of Print (and Ctrl+Print) did not fire
 
-- **Окружение:** Xvfb 21.1.24 + xfwm4, Qt 6.11.2 (xcb), нажатия — xdotool. Найдено при проверке Ctrl+Print (ADR 0022).
-- **Симптом:** Ctrl+Print → снимок, затем ещё раз Ctrl+Print — ничего. В журнале нет `hotkey activated`. Срабатывает снова только после нажатия другого сочетания на той же клавише.
-- **Причина:** `XGrabKey` вызывался с `owner_events = 1`. Пока сочетание зажато, X отдаёт его события окну нашей программы, если фокус у него, а не корневому окну. Оверлей получает фокус через 7 мс после нажатия, поэтому отпускание уходило ему (`event 4194314` вместо корневого `927`). Фильтр смотрит только на корневое окно, и сочетание оставалось «нажатым». Следующее нажатие считалось автоповтором и проглатывалось. Отдельно: при двух сочетаниях на одной клавише (Print и Ctrl+Print) фильтр выходил на первом несовпавшем по модификаторам и до второго не доходил. Какое окажется первым, решал порядок в `QHash`.
-- **Решение:** `owner_events = 0` — нажатие и отпускание сочетания всегда приходят корневому окну. На случай прерванного захвата отпускание, пришедшее в наше окно, тоже снимает «нажато» (событие остаётся окну). Несовпавшее по модификаторам сочетание пропускается, а не завершает поиск. `pastetest --x11-hotkeys` теперь проверяет Print, Ctrl+Print и Shift+Print. Программа в Xvfb с xfwm4: Ctrl+Print, Print, Ctrl+Print при открытом редакторе, ещё раз Ctrl+Print, Print — все пять срабатывают.
-- **Статус:** решено. Ошибка была и до Ctrl+Print. Её не замечали: X11 проверялся только `pastetest` в Xvfb, без оверлея.
+- **Environment:** Xvfb 21.1.24 + xfwm4, Qt 6.11.2 (xcb), presses via xdotool. Found while checking Ctrl+Print (ADR 0022).
+- **Symptom:** Ctrl+Print → a shot, then Ctrl+Print again: nothing. There is no `hotkey activated` in the log. It fires again only after another shortcut on the same key is pressed.
+- **Cause:** `XGrabKey` was called with `owner_events = 1`. While the shortcut is held, X gives its events to our program's window if it has focus, rather than to the root window. The overlay gets focus 7 ms after the press, so the release went to it (`event 4194314` instead of the root `927`). The filter looks only at the root window, and the shortcut stayed "pressed". The next press counted as autorepeat and was swallowed. Separately: with two shortcuts on one key (Print and Ctrl+Print) the filter returned on the first one whose modifiers did not match and never reached the second. Which one came first was decided by the `QHash` order.
+- **Solution:** `owner_events = 0`: the press and release of a shortcut always come to the root window. In case of an interrupted grab, a release that arrives in our window also clears "pressed" (the event stays with the window). A shortcut whose modifiers do not match is skipped rather than ending the search. `pastetest --x11-hotkeys` now checks Print, Ctrl+Print and Shift+Print. The program in Xvfb with xfwm4: Ctrl+Print, Print, Ctrl+Print with the editor open, Ctrl+Print again, Print: all five fire.
+- **Status:** solved. The bug existed before Ctrl+Print too. Nobody noticed it: X11 was checked only with `pastetest` in Xvfb, without the overlay.
 
-## 2026-10-20 · Windows: «Набор скопирован», а в буфере — прежнее содержимое
+## 2026-10-20 · Windows: "Set copied", but the clipboard has the previous content
 
-- **Окружение:** Windows 11 24H2 (VirtualBox 7.2, общий буфер с хостом включён), портативный ZIP. Найдено ревью кода, воспроизведено.
-- **Симптом:** пока другая программа держит буфер открытым, «Скопировать набор» пишет «Набор скопирован — нажмите Ctrl+V в чате», а в буфере остаётся старый текст. В журнале — `OleSetClipboard: Failed to set mime data … COM error 0x800401d0` (`CLIPBRD_E_CANT_OPEN`). При последовательной вставке так же молча вставилась бы предыдущая картинка или чужое содержимое буфера. Воспроизведение: PowerShell-скрипт в сеансе пользователя вызывает `OpenClipboard` и ждёт 6 с, в это время нажать «Скопировать набор».
-- **Причина:** `QClipboard::setMimeData` при занятом буфере трижды пробует с паузой 50 мс и сдаётся, сообщая только предупреждением в журнал. `QtClipboard::write` всегда возвращал успех. Буфер на миг открывают после каждой смены: `rdpclip` в сеансе RDP, VBoxTray в виртуалке, менеджеры буфера. Снимок буфера перед вставкой в такой момент мог прочитаться пустым — тогда буфер пользователя после вставки не возвращался (по коду, не воспроизводилось).
-- **Решение:** `WinClipboard::write` после записи проверяет `QClipboard::ownsClipboard()` и, если буфер не наш, повторяет до 20 раз через 100 мс; не вышло — ошибка «The clipboard is busy». Новая запись отменяет повторы прежней (иначе запоздавшее восстановление буфера легло бы поверх следующей вставки). `WinClipboard::snapshot` ждёт, пока буфер освободится; занятость проверяется открытием буфера от своего скрытого окна (в Wine повторное открытие с `NULL` из другого потока проходит). Тесты `WinClipboard.BusyClipboardIsReportedNotIgnored`, `WriteWaitsUntilClipboardIsFree`, `SnapshotWaitsForBusyClipboard` — без исправления падают.
-- **Заодно:** в буфер Windows больше не попадают имена форматов X11 (`UTF8_STRING`, `STRING`, `TEXT`, `text/plain;charset=utf-8`, `x-special/gnome-copied-files`) — они регистрировались как лишние форматы. Тест `WinClipboard.NoX11FormatNamesOnWindows`.
-- **Статус:** решено.
+- **Environment:** Windows 11 24H2 (VirtualBox 7.2, shared clipboard with the host on), the portable ZIP. Found by code review, reproduced.
+- **Symptom:** while another program keeps the clipboard open, "Copy set" says "Set copied, press Ctrl+V in the chat", but the clipboard keeps the old text. The log has `OleSetClipboard: Failed to set mime data … COM error 0x800401d0` (`CLIPBRD_E_CANT_OPEN`). A sequential paste would silently paste the previous image or someone else's clipboard content the same way. Reproduction: a PowerShell script in the user's session calls `OpenClipboard` and waits 6 s; press "Copy set" meanwhile.
+- **Cause:** with a busy clipboard `QClipboard::setMimeData` tries three times with 50 ms pauses and gives up, reporting only a warning to the log. `QtClipboard::write` always returned success. The clipboard is opened for a moment after every change: `rdpclip` in an RDP session, VBoxTray in a VM, clipboard managers. The clipboard snapshot before a paste could read empty at such a moment, and then the user's clipboard did not come back after the paste (from the code, not reproduced).
+- **Solution:** after writing, `WinClipboard::write` checks `QClipboard::ownsClipboard()` and, if the clipboard is not ours, retries up to 20 times every 100 ms; if that fails, the error "The clipboard is busy". A new write cancels the retries of the previous one (otherwise a late clipboard restore would land over the next paste). `WinClipboard::snapshot` waits until the clipboard is free; busyness is checked by opening the clipboard from our own hidden window (in Wine re-opening with `NULL` from another thread succeeds). The tests `WinClipboard.BusyClipboardIsReportedNotIgnored`, `WriteWaitsUntilClipboardIsFree`, `SnapshotWaitsForBusyClipboard` fail without the fix.
+- **Also:** X11 format names (`UTF8_STRING`, `STRING`, `TEXT`, `text/plain;charset=utf-8`, `x-special/gnome-copied-files`) no longer get into the Windows clipboard: they were registered as extra formats. The test `WinClipboard.NoX11FormatNamesOnWindows`.
+- **Status:** solved.
 
-## 2026-10-20 · Ctrl+Alt+V при открытом окне Markpaste вставлял набор в это окно
+## 2026-10-20 · Ctrl+Alt+V with a Markpaste window open pasted the set into that window
 
-- **Окружение:** Windows 11 24H2 (VirtualBox); общее для всех платформ (`AppController::paste`).
-- **Симптом:** открыть настройки Markpaste и нажать Ctrl+Alt+V — в журнале `paste target: "markpaste.exe"`, Ctrl+V уходит в окно настроек, а лента пишет «Вставлено».
-- **Причина:** вставка шла в активное окно, каким бы оно ни было. Редактор прячется перед вставкой, лента фокус не берёт, а настройки, предпросмотр и мастер остаются активными.
-- **Решение:** если активно окно программы, кроме редактора и ленты, вставка не начинается: «Сначала щёлкните в окне чата: сейчас активно окно Markpaste». «Скопировать набор» и режим «файлы + текст» клавиш не жмут — для них проверки нет. Проверка вставки в мастере идёт своим путём и по-прежнему вставляет в своё поле.
-- **Статус:** решено.
+- **Environment:** Windows 11 24H2 (VirtualBox); common to all platforms (`AppController::paste`).
+- **Symptom:** open the Markpaste settings and press Ctrl+Alt+V: the log says `paste target: "markpaste.exe"`, Ctrl+V goes to the settings window, and the strip says "Pasted".
+- **Cause:** the paste went to the active window, whatever it was. The editor hides before a paste, the strip does not take focus, but the settings, the preview and the wizard stay active.
+- **Solution:** if a program window other than the editor and the strip is active, the paste does not start: "Click into the chat window first: a Markpaste window is active now". "Copy set" and the "files + text" mode press no keys, so they have no such check. The wizard's paste check goes its own way and still pastes into its own field.
+- **Status:** solved.
 
-## 2026-10-20 · Windows: лента у низа экрана закрывала панель задач
+## 2026-10-20 · Windows: the strip at the bottom of the screen covered the taskbar
 
-- **Окружение:** Windows 11 24H2 (VirtualBox), панель задач внизу.
-- **Симптом:** перетащить ленту вниз — она встаёт вплотную к низу экрана поверх панели задач и закрывает часы, раскладку и значок самого Markpaste в трее.
-- **Причина:** положение ленты, которую программа ставит сама, считалось от `QScreen::geometry()` — всего экрана вместе с панелью задач.
-- **Решение:** на Windows (`m_snapToEdge`) край и высота считаются от `availableGeometry()` — рабочей области без панели задач (`StripWindow::placementArea`). На KDE и Sway положение поверхности layer-shell по-прежнему задаётся от всего экрана: от панелей её отодвигает композитор.
-- **Статус:** решено.
+- **Environment:** Windows 11 24H2 (VirtualBox), the taskbar at the bottom.
+- **Symptom:** drag the strip down: it snaps flush to the bottom of the screen over the taskbar and covers the clock, the layout indicator and Markpaste's own tray icon.
+- **Cause:** the position of the strip the program places itself was computed from `QScreen::geometry()`, the whole screen including the taskbar.
+- **Solution:** on Windows (`m_snapToEdge`) the edge and height are computed from `availableGeometry()`, the work area without the taskbar (`StripWindow::placementArea`). On KDE and Sway the layer-shell surface position is still set from the whole screen: the compositor moves it away from panels.
+- **Status:** solved.
 
-## 2026-10-20 · Ревью Windows-версии: мелкие исправления
+## 2026-10-20 · Windows version review: small fixes
 
-- **Ожидание отпускания Shift/Alt/Win перед Ctrl+V длится до 1,5 с, а смена окна проверялась до него.** Перешёл пользователь за это время в другое окно — Ctrl+V ушёл бы туда. Теперь окно проверяется ещё раз прямо перед нажатием (`WinInputInjector::sendPaste`).
-- **Если `SendInput` не прошёл на «Ctrl нажат», дальше всё равно нажималась V** — в чат напечаталась бы «v». Теперь после сбоя шлются только отпускания.
-- **`FallbackCapture` на Windows убран.** `DxgiCapture` и так переходит на GDI для каждого монитора при каждом снимке. Обёртка же после одного полностью неудачного снимка (ни DXGI, ни GDI) навсегда переключалась на `QScreen::grabWindow` — тот же GDI, но уже без DXGI и правильного HDR до перезапуска. Найдено чтением кода: воспроизвести полный отказ не удалось — при заблокированном экране DXGI снимает экран блокировки.
-- **`tools/dev/winvm/vm.sh deploy` не обновлял сборку, если программа запущена:** каталог не удалялся, и `Move-Item` молча клал новую сборку внутрь старой — проверялась прежняя версия. Теперь `deploy` сначала останавливает `markpaste.exe` и падает при ошибке.
-- **Длинное сообщение раздвигало ленту вширь** (у строки сообщения не было предела ширины): на Windows лента уходила за правый край экрана, текст и кнопка «свернуть» обрезались. Видно на сообщении «Сначала щёлкните в окне чата…». Теперь сообщение не шире списка и переносится (тест `StripUi.LongMessageWrapsInsteadOfWideningStrip`, общий для всех платформ: без исправления лента в Linux-сборке расширялась с 200 до 295 px; на KDE её к краю прижимает композитор, поэтому она не уходила за экран, а только становилась шире).
-- **Лента на Windows не вставала заново к краю, когда росла** от сообщения или кнопки «Стоп», — низ уходил на панель задач. Теперь `StripWindow::resizeEvent` ставит её заново (тест `StripUi.GrownStripStaysInsideWorkArea`, только в Windows-сборке).
-- **Тесты ядра и окон на настоящей Windows «висели»** без единой строки вывода. Причина — не в программе: тесты включают платформу `offscreen`, а `qoffscreen.dll` в портативном ZIP нет; Qt падает при запуске, и процесс ждёт на невидимом окне ошибки. Для проверок — `vm.sh tests` (кладёт модуль сам, docs/build.md). С ним на Windows 11: ядро 63, окна 36, платформа 11 — всё проходит.
-- **Статус:** решено.
+- **Waiting for Shift/Alt/Win to be released before Ctrl+V lasts up to 1.5 s, and the window change was checked before it.** If the user switched to another window meanwhile, Ctrl+V would go there. Now the window is checked once more right before the press (`WinInputInjector::sendPaste`).
+- **If `SendInput` failed on "Ctrl down", V was pressed anyway**, which would type "v" into the chat. Now after a failure only releases are sent.
+- **`FallbackCapture` was removed on Windows.** `DxgiCapture` already falls back to GDI per monitor on every shot. The wrapper, after one completely failed shot (neither DXGI nor GDI), switched to `QScreen::grabWindow` for good, which is the same GDI but without DXGI and correct HDR until a restart. Found by reading the code: a complete failure could not be reproduced, with a locked screen DXGI captures the lock screen.
+- **`tools/dev/winvm/vm.sh deploy` did not update the build if the program was running:** the directory was not deleted, and `Move-Item` silently put the new build inside the old one, so the previous version was being checked. Now `deploy` first stops `markpaste.exe` and fails on errors.
+- **A long message widened the strip** (the message line had no width limit): on Windows the strip went past the right screen edge, and the text and the "hide" button were cut off. Visible with the message "Click into the chat window first…". Now the message is not wider than the list and wraps (the test `StripUi.LongMessageWrapsInsteadOfWideningStrip`, common to all platforms: without the fix the strip in the Linux build widened from 200 to 295 px; on KDE the compositor presses it to the edge, so it did not go off the screen but only got wider).
+- **On Windows the strip did not snap to the edge again when it grew** because of a message or the "Stop" button, and its bottom went onto the taskbar. Now `StripWindow::resizeEvent` places it again (the test `StripUi.GrownStripStaysInsideWorkArea`, Windows build only).
+- **The core and window tests "hung" on real Windows** without a single line of output. The cause is not the program: the tests enable the `offscreen` platform, and `qoffscreen.dll` is not in the portable ZIP; Qt fails at startup, and the process waits on an invisible error window. For checks, `vm.sh tests` (it puts the module in place itself, docs/build.md). With it on Windows 11: core 63, windows 36, platform 11, all pass.
+- **Status:** solved.
 
-## 2026-10-20 · Mattermost: вставка по Alt+V не доходит, по Ctrl+Alt+V и кнопкой — работает
+## 2026-10-20 · Mattermost: pasting with Alt+V does not arrive, with Ctrl+Alt+V and the button it works
 
-- **Окружение:** Fedora 44 KDE Plasma 6.7.5, Wayland; сочетание вставки, назначенное в KDE, — Alt+V; Mattermost Desktop (Electron). Нашёл пользователь.
-- **Симптом:** Alt+V срабатывает: лента пишет «вставлено», набор очищается, появляется уведомление KDE «Удалённо управляемый сеанс начат», — а в Mattermost ничего не появляется. Ctrl+Alt+V и кнопка ленты работают.
-- **Причина (по признакам, на Mattermost не воспроизводилось):** V из Alt+V забирает KDE, и окно чата видит только Alt↓ … Alt↑ без клавиш между ними — одиночное нажатие Alt. Electron (как Firefox и программы Windows) по нему переводит фокус в меню окна, и наш Ctrl+V уходит в меню. В Ctrl+Alt+V между Alt↓ и Alt↑ есть Ctrl — одиночным это не считается; кнопка ленты Alt не трогает.
-- **Решение:** если в сочетании вставки есть Alt без Ctrl, сессия ввода открывается сразу по нажатию (не дожидаясь запекания), и, пока Alt ещё зажат, программа нажимает и отпускает «маску» — Ctrl на Linux (портал RemoteDesktop, virtual-keyboard, XTEST), неназначенный код 0xE8 на Windows (как AutoHotkey). Одиночного Alt окно уже не видит. Если Alt отпустили раньше, чем открылась сессия (обычно 16–18 мс на KDE), маски нет — в журнале «Alt released before the session opened». `IInputInjector::sendModifierMask`, `PasteOptions::maskAltTap`; тесты `PasteOrchestrator.AltHotkeyIsMaskedWhileHeld`, `NoMaskWithoutAltOrAfterRelease`.
-- **Первая попытка не сработала:** KDE отдаёт все сочетания действия одной строкой — «Ctrl+Alt+V, Alt+V», — и проверка «есть Ctrl» отключала маску. Теперь каждое сочетание из списка проверяется отдельно; в журнале — «Alt still held: modifier mask sent».
-- **Статус:** решено — пользователь проверил в Mattermost 2026-10-20: Alt+V вставляет набор.
+- **Environment:** Fedora 44 KDE Plasma 6.7.5, Wayland; the paste shortcut assigned in KDE is Alt+V; Mattermost Desktop (Electron). Found by the user.
+- **Symptom:** Alt+V fires: the strip says "pasted", the set is cleared, the KDE notification "Remote control session started" appears, but nothing appears in Mattermost. Ctrl+Alt+V and the strip button work.
+- **Cause (by the signs, not reproduced on Mattermost):** KDE takes the V of Alt+V, and the chat window sees only Alt↓ … Alt↑ with no keys in between, a lone Alt press. Electron (like Firefox and Windows programs) moves focus to the window menu on it, and our Ctrl+V goes into the menu. In Ctrl+Alt+V there is Ctrl between Alt↓ and Alt↑, so it does not count as a lone press; the strip button does not touch Alt.
+- **Solution:** if the paste shortcut has Alt without Ctrl, the input session opens right on the press (without waiting for baking), and while Alt is still held the program presses and releases a "mask": Ctrl on Linux (RemoteDesktop portal, virtual-keyboard, XTEST), the unassigned code 0xE8 on Windows (as AutoHotkey does). The window no longer sees a lone Alt. If Alt was released before the session opened (usually 16–18 ms on KDE), there is no mask; the log says "Alt released before the session opened". `IInputInjector::sendModifierMask`, `PasteOptions::maskAltTap`; the tests `PasteOrchestrator.AltHotkeyIsMaskedWhileHeld`, `NoMaskWithoutAltOrAfterRelease`.
+- **The first attempt did not work:** KDE reports all shortcuts of an action in one string, "Ctrl+Alt+V, Alt+V", and the "has Ctrl" check disabled the mask. Now each shortcut from the list is checked separately; the log says "Alt still held: modifier mask sent".
+- **Status:** solved; the user checked it in Mattermost on 2026-10-20: Alt+V pastes the set.
 
-## 2026-10-20 · «Удалить снимок» в редакторе открывал другой снимок
+## 2026-10-20 · "Delete shot" in the editor opened another shot
 
-- **Окружение:** KDE Wayland и Windows 11 — поведение общее (`ShotEditor`). Нашёл пользователь.
-- **Симптом:** сделать снимок, нажать в редакторе «Удалить снимок» — снимок удаляется, а в редакторе открывается предыдущий снимок ленты. Esc при этом закрывает окно, как и ожидалось.
-- **Причина:** так было задумано: при исчезновении показанного снимка из набора редактор переходил к последнему оставшемуся. Пользователь этот снимок не выбирал.
-- **Решение:** снимок пропал из набора (кнопка, Ctrl+Z, удаление из ленты) — редактор закрывается, как по Esc. Тесты `ShotEditorUi.RemovedShotClosesEditor`, `ShotEditorUi.DeleteShotButtonRemovesAndCloses`; на Windows 11 (VirtualBox) — снимок B удалён, окно закрыто, A на месте.
-- **Статус:** решено.
+- **Environment:** KDE Wayland and Windows 11, shared behavior (`ShotEditor`). Found by the user.
+- **Symptom:** take a shot, press "Delete shot" in the editor: the shot is deleted, and the editor opens the previous shot of the strip. Esc closes the window, as expected.
+- **Cause:** it was designed this way: when the shown shot disappeared from the set, the editor moved to the last remaining one. The user had not chosen that shot.
+- **Solution:** a shot gone from the set (the button, Ctrl+Z, deletion from the strip) closes the editor, as Esc does. The tests `ShotEditorUi.RemovedShotClosesEditor`, `ShotEditorUi.DeleteShotButtonRemovesAndCloses`; on Windows 11 (VirtualBox): shot B deleted, the window closed, A in place.
+- **Status:** solved.
 
-## 2026-10-20 · Windows: в снимок попадает тающий редактор
+## 2026-10-20 · Windows: a fading editor gets into the shot
 
-- **Окружение:** Windows 11 24H2 (VirtualBox), портативный ZIP.
-- **Симптом:** при открытом редакторе нажать Print — в новом снимке полупрозрачный редактор (панель инструментов и рамка).
-- **Причина:** перед снимком программа прячет свои окна и ждёт 180 мс, а Windows прячет окно с анимацией DWM — около 200 мс; DXGI снимал середину анимации.
-- **Решение:** у окон программы отключены анимации DWM (`DWMWA_TRANSITIONS_FORCEDISABLED` при каждом показе окна верхнего уровня, `disableWindowAnimations()` в `platform/WindowRoles.h`). Проверено: снимок B при открытом редакторе — чистый.
-- **Статус:** решено.
+- **Environment:** Windows 11 24H2 (VirtualBox), the portable ZIP.
+- **Symptom:** with the editor open, press Print: the new shot has a semi-transparent editor (the toolbar and the frame).
+- **Cause:** before a capture the program hides its windows and waits 180 ms, while Windows hides a window with a DWM animation of about 200 ms; DXGI captured the middle of the animation.
+- **Solution:** DWM animations are turned off for the program's windows (`DWMWA_TRANSITIONS_FORCEDISABLED` on every show of a top-level window, `disableWindowAnimations()` in `platform/WindowRoles.h`). Checked: shot B with the editor open is clean.
+- **Status:** solved.
 
-## 2026-10-20 · Windows: первый запуск новой сборки — около минуты
+## 2026-10-20 · Windows: the first start of a new build takes about a minute
 
-- **Окружение:** Windows 11 24H2, Защитник Windows с защитой в реальном времени, портативный ZIP 35 МБ (неподписанный).
-- **Симптом:** после распаковки новой сборки окно и значок в трее появляются через 53–65 с; повторный запуск того же файла — меньше секунды.
-- **Причина:** Защитник проверяет новые неподписанные `.exe` и DLL (в сборке из Fedora одна ICU — 32 МБ) до запуска.
-- **Что поможет:** подпись (SignPath, ТЗ разд. 11) и сборка с официальным Qt без ICU и OpenSSL (ADR 0017) — меньше файлов и они доверенные. Пользователю пока — подождать первый запуск.
-- **Статус:** открыто, до релизной сборки.
+- **Environment:** Windows 11 24H2, Windows Defender with real-time protection, the portable 35 MB ZIP (unsigned).
+- **Symptom:** after unpacking a new build, the window and the tray icon appear after 53–65 s; a repeated start of the same file takes less than a second.
+- **Cause:** Defender checks new unsigned `.exe` and DLL files (in the Fedora build ICU alone is 32 MB) before they start.
+- **What will help:** signing (SignPath, spec section 11) and a build with the official Qt without ICU and OpenSSL (ADR 0017): fewer files, and trusted ones. For now the user has to wait for the first start.
+- **Status:** open, until the release build.
 
-## 2026-10-20 · Windows через удалённый рабочий стол: снимок — чёрный экран
+## 2026-10-20 · Windows over remote desktop: the shot is a black screen
 
-- **Окружение:** Windows Server 2022 Standard 21H2 (сборка 20348.4773), сеанс RDP; портативный ZIP от 2026-10-20. Нашёл пользователь.
-- **Симптом:** Print → оверлей чёрный, и снимок в наборе тоже чёрный.
-- **Причина:** в сеансе RDP рабочий стол рисует не видеокарта: DXGI Desktop Duplication создаётся, но отдаёт пустые кадры без отрисовки (`LastPresentTime = 0`). Код ждал второй кадр, не дожидался его и брал первый — чёрный. GDI в RDP работает.
-- **Решение:** в удалённом сеансе (`GetSystemMetrics(SM_REMOTESESSION)`) DXGI не используется — сразу GDI; мастер показывает «GDI BitBlt (remote desktop)». Кроме того, чёрный кадр без отрисовки больше не считается снимком ни в каком сеансе — монитор снимается через GDI.
-- **Проверка:** на консоли Windows 11 (VirtualBox) DXGI по-прежнему работает (29–42 мс на кадр 1920×967). В RDP исправление ещё не проверено — ждёт пользователя (в тестовой виртуалке RDP выключен).
-- **Статус:** исправлено, ждёт проверки в RDP.
+- **Environment:** Windows Server 2022 Standard 21H2 (build 20348.4773), an RDP session; the portable ZIP of 2026-10-20. Found by the user.
+- **Symptom:** Print → the overlay is black, and the shot in the set is black too.
+- **Cause:** in an RDP session the desktop is not drawn by the GPU: DXGI Desktop Duplication is created but returns empty frames without rendering (`LastPresentTime = 0`). The code waited for a second frame, did not get it and took the first one, a black one. GDI works in RDP.
+- **Solution:** in a remote session (`GetSystemMetrics(SM_REMOTESESSION)`) DXGI is not used, GDI right away; the wizard shows "GDI BitBlt (remote desktop)". Also, a black frame without rendering no longer counts as a shot in any session: the monitor is captured through GDI.
+- **Check:** on the Windows 11 console (VirtualBox) DXGI still works (29–42 ms per 1920×967 frame). The fix has not been checked in RDP yet; waiting for the user (RDP is off in the test VM).
+- **Status:** fixed, waiting for a check in RDP.
 
-## 2026-10-20 · Windows-сборка под Wine: что мешало и как обошли
+## 2026-10-20 · The Windows build under Wine: what got in the way and how it was worked around
 
-- **Окружение:** Fedora 44, кросс-сборка MinGW-w64 16.2.1 + `mingw64-qt6` 6.11.2, Wine 11.0 Staging (DXVK 2.7.1), Xvfb 21.1.
-- **CMake не находит компилятор в подпроекте googletest** — «The CMAKE_C_COMPILER: x86_64-w64-mingw32-gcc is not a full path and was not found in the PATH», при перенастройке из ninja — то же для всего проекта. Причина: `Qt6Config.cmake` подключает `qt.toolchain.cmake`, а тот — тулчейн Fedora `/usr/share/mingw/toolchain-mingw64.cmake`, где компиляторы заданы без пути; обёртка `mingw64-cmake` их находит через своё окружение, а обычный `cmake` — нет. Решение: свой `cmake/mingw64-fedora.cmake` с полными путями и `QT_CHAINLOAD_TOOLCHAIN_FILE` на него же.
-- **`gtest_discover_tests` падает после сборки** — пытается запустить `.exe`. Решение: при кросс-сборке `DISCOVERY_MODE PRE_TEST`.
-- **Qt не находит `Qt6Core.dll` при сборке портативного каталога** (`file(GET_RUNTIME_DEPENDENCIES)`): для PE CMake приводит имена DLL к нижнему регистру, а на ФС Linux регистр важен. Решение: `cmake/CollectDlls.cmake` сам обходит таблицу импорта.
-- **Картинка из буфера, положенная другой программой только как `CF_DIB`, у Qt под Wine — пустой `QImage`** (`hasImage()` = true, `imageData()` пустая). Буфер пользователя с картинкой не сохранился бы перед вставкой. Решение: `WinClipboard::snapshot` при пустом результате читает `PNG` или `CF_DIB` сам (тест `WinClipboard.SnapshotTurnsDibIntoPng`). На настоящей Windows поведение Qt не проверено — запасной путь безвреден.
-- **Программа падает под Wine в Xvfb при снимке**: «Unhandled division by zero» внутри `dxgi.dll` (Wine/DXVK) — в Xvfb нет данных о мониторе для DXGI. На рабочем столе Wine (XWayland) того же нет: `DuplicateOutput` честно отвечает `0x887a0004` (DXGI_ERROR_UNSUPPORTED), и снимок идёт через GDI. Обход для проверок: `MARKPASTE_CAPTURE=gdi`. Перехватить такое падение в коде нельзя — это исключение внутри чужой DLL.
-- **Лента без фона под Windows**: после `WA_TranslucentBackground` (ради скруглённых углов) Qt перестал рисовать фон окна и рамку из таблицы стилей — видны были только кнопки. Решение: `StripWindow::paintEvent` рисует `PE_Widget` по таблице стилей, если окно прозрачное (на Linux окно непрозрачное, там ничего не меняется).
-- **Скрытые окна остаются на экране** под Wine в Xvfb без оконного менеджера (редактор после «Готово»). Это Wine без WM, не программа: с xfwm4 окно прячется. Проверки — с оконным менеджером.
-- **Статус:** решено (обходы описаны в docs/build.md).
+- **Environment:** Fedora 44, MinGW-w64 16.2.1 cross-build + `mingw64-qt6` 6.11.2, Wine 11.0 Staging (DXVK 2.7.1), Xvfb 21.1.
+- **CMake does not find the compiler in the googletest subproject**: "The CMAKE_C_COMPILER: x86_64-w64-mingw32-gcc is not a full path and was not found in the PATH", and on reconfiguring from ninja the same for the whole project. Cause: `Qt6Config.cmake` includes `qt.toolchain.cmake`, which includes the Fedora toolchain `/usr/share/mingw/toolchain-mingw64.cmake`, where the compilers are set without a path; the `mingw64-cmake` wrapper finds them through its environment, a plain `cmake` does not. Solution: our own `cmake/mingw64-fedora.cmake` with full paths and `QT_CHAINLOAD_TOOLCHAIN_FILE` pointing to it.
+- **`gtest_discover_tests` fails after the build**: it tries to run the `.exe`. Solution: `DISCOVERY_MODE PRE_TEST` when cross-compiling.
+- **Qt6Core.dll is not found when building the portable directory** (`file(GET_RUNTIME_DEPENDENCIES)`): for PE CMake lowercases DLL names, and case matters on a Linux file system. Solution: `cmake/CollectDlls.cmake` walks the import table itself.
+- **An image put into the clipboard by another program only as `CF_DIB` is an empty `QImage` in Qt under Wine** (`hasImage()` = true, `imageData()` empty). The user's clipboard with an image would not be saved before a paste. Solution: on an empty result `WinClipboard::snapshot` reads `PNG` or `CF_DIB` itself (the test `WinClipboard.SnapshotTurnsDibIntoPng`). Qt's behavior on real Windows was not checked; the fallback is harmless.
+- **The program crashes under Wine in Xvfb on a capture**: "Unhandled division by zero" inside `dxgi.dll` (Wine/DXVK): Xvfb has no monitor data for DXGI. On the Wine desktop (XWayland) this does not happen: `DuplicateOutput` honestly answers `0x887a0004` (DXGI_ERROR_UNSUPPORTED), and the capture goes through GDI. A workaround for checks: `MARKPASTE_CAPTURE=gdi`. Such a crash cannot be caught in code: it is an exception inside someone else's DLL.
+- **The strip without a background on Windows**: after `WA_TranslucentBackground` (for the rounded corners) Qt stopped painting the window background and the border from the style sheet, only the buttons were visible. Solution: `StripWindow::paintEvent` paints `PE_Widget` from the style sheet if the window is transparent (on Linux the window is opaque and nothing changes there).
+- **Hidden windows stay on the screen** under Wine in Xvfb without a window manager (the editor after "Done"). This is Wine without a WM, not the program: with xfwm4 the window hides. Checks are done with a window manager.
+- **Status:** solved (the workarounds are described in docs/build.md).
 
-## 2026-10-20 · Мелкие исправления по ревью кода
+## 2026-10-20 · Small fixes after a code review
 
-- **Последний комментарий не попадал во вставку горячей клавишей.** Набрать комментарий в редакторе и сразу нажать Ctrl+Alt+V: `paste()` прятал редактор, а комментарий сохраняется по потере фокуса, которая на Wayland приходит позже, чем набор уходит во вставку. Теперь `paste()` и `copySet()` сначала сохраняют комментарий (`ShotEditor::commitPendingEdits`). На живой сессии не воспроизводилось, найдено чтением кода.
-- **Клик по любому уведомлению в трее открывал страницу релиза**, если раньше было уведомление о новой версии: подписка на `messageClicked` ждала любого следующего клика. Теперь адрес живёт только до следующего уведомления (`AppController::m_trayClickUrl`).
-- **Перетаскивание из ленты** с id снимка, которого уже нет в наборе, обращалось к `shots[-1]`. Такой снимок пропускается.
-- **Проверка обновлений:** если часы переведены назад относительно времени прошлой проверки, интервал таймера переполнял `int`. Теперь он ограничен сутками.
-- **Статус:** решено.
+- **The last comment did not get into a paste started with the hotkey.** Type a comment in the editor and press Ctrl+Alt+V right away: `paste()` hid the editor, while the comment is saved on focus loss, which on Wayland comes later than the set goes into the paste. Now `paste()` and `copySet()` save the comment first (`ShotEditor::commitPendingEdits`). Not reproduced in a live session, found by reading the code.
+- **A click on any tray notification opened the release page** if there had been a new-version notification before: the `messageClicked` subscription waited for any next click. Now the address lives only until the next notification (`AppController::m_trayClickUrl`).
+- **Dragging from the strip** with the id of a shot that is no longer in the set accessed `shots[-1]`. Such a shot is skipped.
+- **Update check:** if the clock went back relative to the time of the last check, the timer interval overflowed `int`. Now it is limited to a day.
+- **Status:** solved.
 
-## 2026-10-20 · Зависшая вставка не отменяется кнопкой «Стоп»
+## 2026-10-20 · A hung paste cannot be cancelled with the "Stop" button
 
-- **Окружение:** любое; найдено при ревью кода, воспроизведено тестом `PasteOrchestrator.CancelWorksWhileClipboardHangs`.
-- **Симптом (ожидаемый):** если платформенная операция не завершается — например, запись в буфер через data-control после обрыва нашего подключения к композитору (KWin перезапустился, а Qt пережил это сам), — лента навсегда показывает «Вставка 1 из N…». «Стоп» ничего не делает, новые вставки не запускаются до перезапуска программы.
-- **Причина:** `cancel()` только ставил флаг, а флаг проверялся на следующем шаге, до которого дело не доходило. Ответ композитора на `wl_display.sync` после обрыва не придёт никогда, и обещание записи оставалось невыполненным.
-- **Решение:** `cancel()` завершает вставку сразу; ждёт только начатую серию клавиш Ctrl+V. `DataControlDevice` при обрыве подключения (и при своём удалении) завершает ждущие записи ошибкой, а новые сразу отклоняет. Попутно исправлены тесты `EmptySetFails` и `NoBackgroundClipboardRefusesSequential`: они проходили по 5-секундному таймауту, а не по сигналу.
-- **Статус:** решено. Самотест последовательной вставки во вложенном Sway — PASS.
+- **Environment:** any; found in a code review, reproduced by the test `PasteOrchestrator.CancelWorksWhileClipboardHangs`.
+- **Symptom (expected):** if a platform operation never finishes (for example, a clipboard write through data-control after our connection to the compositor broke: KWin restarted, and Qt survived it on its own), the strip shows "Pasting 1 of N…" forever. "Stop" does nothing, new pastes do not start until the program restarts.
+- **Cause:** `cancel()` only set a flag, and the flag was checked at the next step, which was never reached. The compositor's answer to `wl_display.sync` never comes after a disconnect, and the write promise stayed unfulfilled.
+- **Solution:** `cancel()` ends the paste right away; it waits only for a Ctrl+V key sequence already in progress. On a disconnect (and on its own deletion) `DataControlDevice` fails pending writes with an error and rejects new ones right away. Along the way the tests `EmptySetFails` and `NoBackgroundClipboardRefusesSequential` were fixed: they passed by a 5-second timeout rather than by the signal.
+- **Status:** solved. The sequential paste self-test in a nested Sway: PASS.
 
-## 2026-10-20 · Падение при выборе пункта в меню миниатюры
+## 2026-10-20 · A crash when choosing an item in the thumbnail menu
 
-- **Окружение:** любое; найдено при ревью кода, воспроизведено тестом (`offscreen`).
-- **Симптом:** правый щелчок по миниатюре в ленте → «Удалить», «Выше», «Ниже» или «Редактировать» → программа падает: `double free or corruption (out)`.
-- **Причина:** пункт меню меняет набор, лента перестраивается (`StripWindow::rebuild`) и сразу удаляет (`delete`) старые миниатюры — в том числе ту, чьё меню ещё в `exec()`. Меню создано на стеке как дочерний объект миниатюры, и Qt удаляет его второй раз.
-- **Решение:** `rebuild` прячет старые миниатюры и удаляет их отложенно (`deleteLater`). Так же безопасен щелчок по миниатюре: он тоже перестраивает ленту прямо из обработчика её события. Тесты `StripUi.ThumbMenuDeleteDoesNotCrash`, `StripUi.ThumbMenuMoveDoesNotCrash`.
-- **Статус:** решено.
+- **Environment:** any; found in a code review, reproduced by a test (`offscreen`).
+- **Symptom:** right-click a thumbnail in the strip → "Delete", "Move up", "Move down" or "Edit" → the program crashes: `double free or corruption (out)`.
+- **Cause:** the menu item changes the set, the strip rebuilds (`StripWindow::rebuild`) and immediately deletes (`delete`) the old thumbnails, including the one whose menu is still in `exec()`. The menu is created on the stack as a child of the thumbnail, and Qt deletes it a second time.
+- **Solution:** `rebuild` hides the old thumbnails and deletes them later (`deleteLater`). A click on a thumbnail is equally safe: it also rebuilds the strip right from its event handler. The tests `StripUi.ThumbMenuDeleteDoesNotCrash`, `StripUi.ThumbMenuMoveDoesNotCrash`.
+- **Status:** solved.
 
-## 2026-10-20 · Esc удаляет уже принятый снимок
+## 2026-10-20 · Esc deletes an already accepted shot
 
-- **Окружение:** любое; найдено при ревью кода, воспроизведено тестом.
-- **Симптом:** снять A, нажать «Готово», снять B. В редакторе B нажать «Удалить снимок» или Ctrl+Z — редактор переходит к A. Esc молча удаляет A (если на нём нет меток — без вопроса). Если набор стал пустым, отменить удаление негде: Ctrl+Z есть только в редакторе.
-- **Причина:** признак «только что снят» (`ShotEditor::m_fresh`) оставался от B, когда редактор сам переключался на другой снимок после удаления.
-- **Решение:** при таком переключении признак сбрасывается. Тест `ShotEditorUi.OlderShotShownAfterFreshIsRemovedIsNotFresh`.
-- **Статус:** решено.
+- **Environment:** any; found in a code review, reproduced by a test.
+- **Symptom:** take A, press "Done", take B. In B's editor press "Delete shot" or Ctrl+Z: the editor moves to A. Esc silently deletes A (without a question if it has no marks). If the set became empty, the deletion cannot be undone anywhere: Ctrl+Z exists only in the editor.
+- **Cause:** the "just taken" flag (`ShotEditor::m_fresh`) stayed from B when the editor switched to another shot by itself after the deletion.
+- **Solution:** the flag is reset on such a switch. The test `ShotEditorUi.OlderShotShownAfterFreshIsRemovedIsNotFresh`.
+- **Status:** solved.
 
-## 2026-10-20 · Буфер через портал: после вставки возвращается устаревшее содержимое
+## 2026-10-20 · Portal clipboard: stale content comes back after a paste
 
-- **Окружение:** путь для GNOME (портал Clipboard в сессии RemoteDesktop; на KDE — с `MARKPASTE_CLIPBOARD=portal`). Найдено при ревью кода.
-- **Симптом (ожидаемый):** вставить набор, скопировать что-то в браузере, вставить набор снова — после второй вставки в буфере не скопированное, а содержимое с прошлой вставки.
-- **Причина:** `PortalClipboard` сбрасывает «буфер наш» по сигналу `sessionClosed`, а `PortalRemoteDesktop::end()` (закрытие сессии самой программой после каждой вставки) его не посылал — только закрытие порталом. В следующей сессии `snapshot()` отдавал свою старую запись, не читая настоящий буфер.
-- **Решение:** `end()` тоже посылает `sessionClosed`.
-- **Статус:** решено в коде, на GNOME не проверено.
+- **Environment:** the GNOME path (the Clipboard portal in a RemoteDesktop session; on KDE with `MARKPASTE_CLIPBOARD=portal`). Found in a code review.
+- **Symptom (expected):** paste the set, copy something in a browser, paste the set again: after the second paste the clipboard has not what was copied but the content from the previous paste.
+- **Cause:** `PortalClipboard` resets "the clipboard is ours" on the `sessionClosed` signal, and `PortalRemoteDesktop::end()` (the program closing the session itself after every paste) did not send it, only a close by the portal did. In the next session `snapshot()` returned its own old entry without reading the real clipboard.
+- **Solution:** `end()` sends `sessionClosed` too.
+- **Status:** solved in code, not checked on GNOME.
 
-## 2026-10-20 · Обрывок чужого буфера возвращался после вставки
+## 2026-10-20 · A fragment of someone else's clipboard came back after a paste
 
-- **Окружение:** KDE (ext-data-control-v1) и портал Clipboard. Найдено при ревью кода.
-- **Симптом (ожидаемый):** в буфере большая картинка из браузера или редактора; после вставки набора в буфер возвращается битая картинка.
-- **Причина:** `readAllAsync` (`platform/linux/FdIo.cpp`) по таймауту и сверх `maxBytes` отдавал то, что успело прийти, а таймаут чтения был 1 с. Владелец буфера часто кодирует картинку по запросу, и 4K PNG мог не успеть.
-- **Решение:** обрывок не отдаётся — результат пустой, и этот тип просто не восстанавливается. Таймаут чтения картинки — 3 с, текста — 1 с. Тесты `FdIo.*` (`markpaste_ui_tests`).
-- **Статус:** решено.
+- **Environment:** KDE (ext-data-control-v1) and the Clipboard portal. Found in a code review.
+- **Symptom (expected):** the clipboard has a large image from a browser or an editor; after pasting the set a broken image comes back into the clipboard.
+- **Cause:** `readAllAsync` (`platform/linux/FdIo.cpp`) on a timeout and beyond `maxBytes` returned whatever had arrived, and the read timeout was 1 s. The clipboard owner often encodes the image on request, and a 4K PNG might not make it.
+- **Solution:** a fragment is not returned: the result is empty, and that type is simply not restored. The read timeout is 3 s for images and 1 s for text. The `FdIo.*` tests (`markpaste_ui_tests`).
+- **Status:** solved.
 
-## 2026-10-20 · Захват не запускается после закрытия оверлея извне; падение при смене инструмента во время перетаскивания
+## 2026-10-20 · Capture does not start after the overlay is closed from outside; a crash when switching tools during a drag
 
-- **Окружение:** найдено при ревью кода, оба воспроизведены тестами.
-- **Симптом 1:** на GNOME и X11 оверлей — обычное окно. Если закрыть его Alt+F4, сеанс захвата не заканчивался, и до перезапуска программы Print больше ничего не делал (`AppController::m_capturing` оставался `true`).
-- **Решение 1:** `OverlayWidget::closeEvent` отменяет сеанс. Тест `CaptureOverlayUi.ClosingOverlayWindowCancelsSession`.
-- **Симптом 2:** в редакторе начать обрезку мышью и, не отпуская кнопку, нажать A (стрелка) — программа падает.
-- **Причина 2:** перетаскивание продолжалось новым инструментом, а стрелка брала первую точку из пустого списка точек обрезки.
-- **Решение 2:** смена инструмента бросает незаконченное перетаскивание. Тест `ShotEditorUi.SwitchingToolDuringDragIsSafe`.
-- **Статус:** решено.
+- **Environment:** found in a code review, both reproduced by tests.
+- **Symptom 1:** on GNOME and X11 the overlay is an ordinary window. If it was closed with Alt+F4, the capture session did not end, and Print did nothing until the program restarted (`AppController::m_capturing` stayed `true`).
+- **Solution 1:** `OverlayWidget::closeEvent` cancels the session. The test `CaptureOverlayUi.ClosingOverlayWindowCancelsSession`.
+- **Symptom 2:** in the editor, start a crop with the mouse and, without releasing the button, press A (arrow): the program crashes.
+- **Cause 2:** the drag continued with the new tool, and the arrow took the first point from the empty list of crop points.
+- **Solution 2:** switching the tool drops an unfinished drag. The test `ShotEditorUi.SwitchingToolDuringDragIsSafe`.
+- **Status:** solved.
 
-## 2026-10-19 · `update_translations` портит `markpaste_ru.ts`
+## 2026-10-19 · `update_translations` corrupts `markpaste_ru.ts`
 
-- **Окружение:** Fedora 44, Qt 6.11, CMake + Ninja.
-- **Симптом:** `cmake --build build --target update_translations` падает: `Unexpected characters … at i18n/markpaste_ru.ts:436`. В файле появляются номера строк (`<location …>`), хотя для программы задано `-locations none`.
-- **Причина:** `markpaste_ru.ts` был подключён через `qt_add_translations` дважды — у программы и у `markpaste_ui_tests`. У каждой цели своя цель lupdate, Ninja запускает их параллельно, и два lupdate пишут один файл одновременно. У тестовой цели к тому же нет `-locations none`.
-- **Решение:** тестам нужен только `.qm`, поэтому в `tests/CMakeLists.txt` — `qt_add_lrelease` + `qt_add_resources` вместо `qt_add_translations`. То же позже сделано в `tools/uipreview/CMakeLists.txt` — третья цель с тем же `.ts`. Теперь lupdate один.
-- **Статус:** решено.
+- **Environment:** Fedora 44, Qt 6.11, CMake + Ninja.
+- **Symptom:** `cmake --build build --target update_translations` fails: `Unexpected characters … at i18n/markpaste_ru.ts:436`. Line numbers (`<location …>`) appear in the file although `-locations none` is set for the program.
+- **Cause:** `markpaste_ru.ts` was attached via `qt_add_translations` twice, to the program and to `markpaste_ui_tests`. Each target has its own lupdate target, Ninja runs them in parallel, and two lupdate processes write the same file at once. The test target also lacks `-locations none`.
+- **Solution:** the tests need only the `.qm`, so `tests/CMakeLists.txt` uses `qt_add_lrelease` + `qt_add_resources` instead of `qt_add_translations`. The same was done later in `tools/uipreview/CMakeLists.txt`, a third target with the same `.ts`. Now there is one lupdate.
+- **Status:** solved.
 
-## 2026-10-19 · После переименования интерфейс стал английским
+## 2026-10-19 · After the rename the UI became English
 
-- **Окружение:** Fedora 44 KDE, `LANG=ru_RU.UTF-8`.
-- **Симптом:** после переименования Pointshot → Markpaste окна показываются на английском (скриншот пользователя).
-- **Причина:** перевод Qt ищется по контексту — имени класса с пространством имён (`ps::ShotEditor`). При переименовании пространство имён `ps` → `mp` поменялось в коде, но не в `.ts`, и ни одна строка не находилась. Сам `.qm` загружался нормально.
-- **Решение:** контексты в `i18n/*.ts` исправлены на `mp::`, `lupdate` нашёл все 121 строку, непереведённых 0. Добавлен тест `Translations.RussianLoadsForEditor` (`markpaste_ui_tests`): он упадёт, если контексты снова разойдутся.
-- **Правило:** при переименовании классов или пространств имён — сразу `cmake --build build --target update_translations` и проверка, что число непереведённых строк не выросло.
-- **Статус:** решено.
+- **Environment:** Fedora 44 KDE, `LANG=ru_RU.UTF-8`.
+- **Symptom:** after the Pointshot → Markpaste rename the windows are shown in English (the user's screenshot).
+- **Cause:** a Qt translation is looked up by context, the class name with its namespace (`ps::ShotEditor`). In the rename the `ps` → `mp` namespace changed in the code but not in the `.ts`, and no string was found. The `.qm` itself loaded fine.
+- **Solution:** the contexts in `i18n/*.ts` were fixed to `mp::`, `lupdate` found all 121 strings, 0 untranslated. Added the test `Translations.RussianLoadsForEditor` (`markpaste_ui_tests`): it fails if the contexts drift apart again.
+- **Rule:** when renaming classes or namespaces, run `cmake --build build --target update_translations` right away and check that the number of untranslated strings did not grow.
+- **Status:** solved.
 
-## 2026-10-19 · Лента переезжает только через 3–5 с после отпускания
+## 2026-10-19 · The strip moves only 3–5 s after the release
 
-- **Окружение:** Fedora 44 KDE, Plasma 6.7.5, Wayland, Qt 6.11.2, LayerShellQt 6.7.5.
-- **Симптом:** после переноса за заголовок лента оставалась на месте 3–5 с, потом прыгала куда надо (сообщил пользователь). Замер `tools/dev/kwin-probe.py`: за 4.3 с после команды переноса геометрия в KWin не изменилась.
-- **Причина:** `LayerShellQt::Window::setAnchors/setMargins` отправляют запросы, но композитор применяет их только при `wl_surface.commit`, а commit Qt делает при отрисовке окна. После отпускания мыши перерисовывать было нечего, и изменения ждали, пока что-нибудь обновит ленту — например, всплывающая подсказка заголовка, которая появляется через несколько секунд.
-- **Решение:** после смены положения — `widget->update()` и `QWindow::requestUpdate()` (`movePanel` в `platform/common/WindowRoles.cpp`). Замер после исправления: новое положение в KWin раньше первого опроса (< 250 мс), и на том же мониторе, и при переезде на другой.
-- **Заметка:** при переезде на другой монитор поверхность пересоздаётся, и около 0.5 с на старом месте видна гаснущая копия — это анимация закрытия окна в KWin.
-- **Статус:** решено.
+- **Environment:** Fedora 44 KDE, Plasma 6.7.5, Wayland, Qt 6.11.2, LayerShellQt 6.7.5.
+- **Symptom:** after moving it by the header, the strip stayed in place for 3–5 s and then jumped where it should (reported by the user). Measured with `tools/dev/kwin-probe.py`: within 4.3 s after the move command the geometry in KWin did not change.
+- **Cause:** `LayerShellQt::Window::setAnchors/setMargins` send the requests, but the compositor applies them only on `wl_surface.commit`, and Qt commits when it paints the window. After the mouse release there was nothing to repaint, and the changes waited until something updated the strip, e.g. the header tooltip that appears after a few seconds.
+- **Solution:** after a position change, `widget->update()` and `QWindow::requestUpdate()` (`movePanel` in `platform/common/WindowRoles.cpp`). Measured after the fix: the new position is in KWin before the first poll (< 250 ms), both on the same monitor and when moving to another one.
+- **Note:** when moving to another monitor the surface is recreated, and for about 0.5 s a fading copy is visible in the old place: that is KWin's window close animation.
+- **Status:** solved.
 
-## 2026-10-19 · Второй экземпляр не находит первый, `--quit` не доходит
+## 2026-10-19 · A second instance does not find the first one, `--quit` does not arrive
 
-- **Окружение:** Qt 6.11.2, Fedora 44.
-- **Симптом:** при запущенной программе `markpaste --capture` запускал второй полноценный экземпляр. `markpaste --quit` не закрывал первый.
-- **Причина:** `QLocalServer` с `UserAccessOption` создаёт сокет во временном каталоге (`/run/user/1000/.AxWCqw/s`) и переименовывает его поверх нужного пути. `listen()` проходит у каждого нового процесса, и последний перехватывает имя. Видно в `ss -xlp`: у каждого процесса свой LISTEN-сокет.
-- **Решение:** новый процесс сначала подключается к сокету и передаёт команду. Только если никто не ответил, сносит старый сокет и слушает сам. `UserAccessOption` убран: `$XDG_RUNTIME_DIR` и так 0700.
-- **Статус:** решено, проверено (`--capture` и `--quit` доходят, процесс завершается).
+- **Environment:** Qt 6.11.2, Fedora 44.
+- **Symptom:** with the program running, `markpaste --capture` started a second full instance. `markpaste --quit` did not close the first one.
+- **Cause:** `QLocalServer` with `UserAccessOption` creates the socket in a temporary directory (`/run/user/1000/.AxWCqw/s`) and renames it over the target path. `listen()` succeeds for every new process, and the last one takes over the name. Visible in `ss -xlp`: every process has its own LISTEN socket.
+- **Solution:** a new process first connects to the socket and passes its command. Only if nobody answers does it remove the old socket and listen itself. `UserAccessOption` was removed: `$XDG_RUNTIME_DIR` is 0700 anyway.
+- **Status:** solved, checked (`--capture` and `--quit` arrive, the process exits).
 
-## 2026-10-19 · Пустой лог при запуске программы в фоне
+## 2026-10-19 · An empty log when the program is started in the background
 
-- **Симптом:** `markpaste > app.log 2>&1 &` — файл пустой.
-- **Причина:** Qt пишет в journald, когда stderr — не терминал.
-- **Решение:** `QT_FORCE_STDERR_LOGGING=1` или `journalctl --user -f` (docs/build.md).
-- **Статус:** не проблема программы, записано для разработчиков.
+- **Symptom:** `markpaste > app.log 2>&1 &` gives an empty file.
+- **Cause:** Qt writes to journald when stderr is not a terminal.
+- **Solution:** `QT_FORCE_STDERR_LOGGING=1` or `journalctl --user -f` (docs/build.md).
+- **Status:** not a program problem, recorded for developers.
 
-## 2026-10-19 · Вставка в своё окно зависает и повторяется десятки раз
+## 2026-10-19 · Pasting into our own window hangs and repeats dozens of times
 
-- **Окружение:** Fedora 44 KDE, Plasma 6.7.5, Wayland, Qt 6.11.2.
-- **Симптом:** самопроверка `pastetest --self-test` с приёмником в том же процессе. 3 картинки «дошли», а текст пришёл пустым 37 раз подряд.
-- **Причина:** взаимная блокировка. Qt читает буфер блокирующе в главном потоке, а запрос данных от композитора приходит на наше data-control-подключение, которое тоже обслуживал главный поток. Пока поток стоял, сработал клиентский автоповтор клавиш Qt. Картинки «дошли» только потому, что приёмник проверял форматы и не читал данные.
-- **Решение:** подключение Wayland вынесено в отдельный поток, см. [ADR 0002](decisions/0002-wayland-connection-thread.md). Приёмник самопроверки теперь читает данные по-настоящему и по умолчанию запускается отдельным процессом.
-- **Статус:** решено. `--self-test` и `--self-test --in-process` — PASS.
+- **Environment:** Fedora 44 KDE, Plasma 6.7.5, Wayland, Qt 6.11.2.
+- **Symptom:** the `pastetest --self-test` self-check with the receiver in the same process. 3 images "arrived", and the text came out empty 37 times in a row.
+- **Cause:** a deadlock. Qt reads the clipboard blockingly in the main thread, and the compositor's data request comes to our data-control connection, which was also served by the main thread. While the thread was stuck, Qt's client-side key repeat fired. The images "arrived" only because the receiver checked the formats and did not read the data.
+- **Solution:** the Wayland connection was moved to a separate thread, see [ADR 0002](decisions/0002-wayland-connection-thread.md). The self-test receiver now really reads the data and by default runs as a separate process.
+- **Status:** solved. `--self-test` and `--self-test --in-process`: PASS.
 
-## 2026-10-19 · Портал отказывает в регистрации app id: «App info not found»
+## 2026-10-19 · The portal refuses to register the app id: "App info not found"
 
-- **Окружение:** xdg-desktop-portal 1.22.1, Fedora 44 KDE.
-- **Симптом:** `org.freedesktop.host.portal.Registry.Register("su._525.Markpaste")` → `Could not register app ID: App info not found`.
-- **Причина:** портал ищет .desktop-файл через GLib (`GDesktopAppInfo`). GLib отбрасывает файл, если программы из `Exec` нет на диске. Проверено: `Gio.DesktopAppInfo.new()` возвращает NULL, пока бинарника нет, и объект — как только он появился.
-- **Решение:** цель `cmake --build build --target dev-install-desktop` ставит в `~/.local/share/applications/` .desktop-файл с `Exec` на бинарник из каталога сборки. Пока основного бинарника нет, `build/src/app/markpaste` — ссылка на `markpaste-pastetest`.
-- **Следствие для пакетов:** .desktop-файл и бинарник обязаны ставиться вместе. Регистрация у порталов — только из процесса, для которого .desktop-файл валиден.
-- **Статус:** решено для разработки.
+- **Environment:** xdg-desktop-portal 1.22.1, Fedora 44 KDE.
+- **Symptom:** `org.freedesktop.host.portal.Registry.Register("su._525.Markpaste")` → `Could not register app ID: App info not found`.
+- **Cause:** the portal looks for the .desktop file through GLib (`GDesktopAppInfo`). GLib drops the file if the program from `Exec` is not on disk. Checked: `Gio.DesktopAppInfo.new()` returns NULL while the binary is missing, and an object as soon as it appears.
+- **Solution:** the target `cmake --build build --target dev-install-desktop` installs a .desktop file into `~/.local/share/applications/` with `Exec` pointing to the binary in the build directory. While there was no main binary yet, `build/src/app/markpaste` was a link to `markpaste-pastetest`.
+- **Consequence for packages:** the .desktop file and the binary must be installed together. Registering with the portals works only from a process for which the .desktop file is valid.
+- **Status:** solved for development.
 
-## 2026-10-19 · Портал RemoteDesktop: закрытие сессии сразу после Ctrl+V
+## 2026-10-19 · RemoteDesktop portal: closing the session right after Ctrl+V
 
-- **Окружение:** то же.
-- **Симптом:** при первом прогоне последний Ctrl+V повторился много раз.
-- **Причина:** в основном — блокировка из записи выше. Но и сами события `NotifyKeyboardKeycode` доходят до композитора асинхронно: ответ D-Bus значит «портал принял», а не «KWin обработал».
-- **Решение:** после последнего Ctrl+V сессия закрывается только после задержки профиля (≥ 400 мс). Это правило — для `PasteOrchestrator`.
-- **Статус:** решено, правило перенести в основной код вставки.
+- **Environment:** the same.
+- **Symptom:** on the first run the last Ctrl+V repeated many times.
+- **Cause:** mostly the deadlock from the entry above. But the `NotifyKeyboardKeycode` events themselves also reach the compositor asynchronously: a D-Bus reply means "the portal accepted it", not "KWin processed it".
+- **Solution:** after the last Ctrl+V the session is closed only after the profile delay (≥ 400 ms). This rule is for `PasteOrchestrator`.
+- **Status:** solved, the rule was carried over to the main paste code.
 
-## 2026-10-20 · Мастер первого запуска открывается при каждом запуске
+## 2026-10-20 · The first-start wizard opens on every start
 
-- **Окружение:** Fedora 44 KDE, Plasma 6.7.5, Wayland, Qt 6.11.2.
-- **Симптом:** после закрытия и нового запуска программы мастер (APP-4) снова открывается. В `~/.config/markpaste/markpaste.conf` при этом две секции `[%General]` с `setupShown=true`.
-- **Причина:** флаги хранились под ключами `general/setupShown`, `general/welcomeShown`, `general/hideHintShown`. QSettings пишет группу `general` в INI как `[%General]`, а при чтении файла превращает её в группу `General` — с большой буквы. Ключи чувствительны к регистру: `general/setupShown` после перезапуска не находится. В пределах одного процесса всё работало (значения из кэша), поэтому тесты ошибку не ловили. Проверено отдельной программой на копии конфигурации: `general/setupShown=0`, `General/setupShown=1`.
-- **Решение:** флаги перенесены в группу `once/…`; старые `General/…` тоже учитываются, поэтому у тех, кто уже видел мастер, он больше не откроется. Правило — в docs/build.md.
-- **Статус:** решено, проверено пользователем 2026-10-20: после перезапуска мастер не открывается.
+- **Environment:** Fedora 44 KDE, Plasma 6.7.5, Wayland, Qt 6.11.2.
+- **Symptom:** after closing and starting the program again, the wizard (APP-4) opens again. `~/.config/markpaste/markpaste.conf` has two `[%General]` sections with `setupShown=true`.
+- **Cause:** the flags were kept under the keys `general/setupShown`, `general/welcomeShown`, `general/hideHintShown`. QSettings writes the `general` group to INI as `[%General]` and, when reading the file, turns it into the group `General`, with a capital letter. Keys are case-sensitive: `general/setupShown` is not found after a restart. Within one process everything worked (values from the cache), so the tests did not catch the bug. Checked with a separate program on a copy of the configuration: `general/setupShown=0`, `General/setupShown=1`.
+- **Solution:** the flags moved to the `once/…` group; old `General/…` values are honored too, so those who have already seen the wizard will not see it again. The rule is in docs/build.md.
+- **Status:** solved, checked by the user on 2026-10-20: the wizard does not open after a restart.
 
-## 2026-10-20 · Новое сочетание вставки из настроек не действует
+## 2026-10-20 · A new paste shortcut from settings has no effect
 
-- **Окружение:** то же, xdg-desktop-portal 1.22.1, GlobalShortcuts v2.
-- **Симптом:** в настройках программы сочетание вставки заменено на Alt+V. После перезапуска работает старое Ctrl+Alt+V, Alt+V — нет. В журнале: `shortcut "paste-set" bound to "Ctrl+Alt+V"`.
-- **Причина:** через портал GlobalShortcuts программа только предлагает сочетание (`preferred_trigger`). KDE учитывает его при первой привязке, дальше хранит своё (`~/.config/kglobalshortcutsrc`, группа `su._525.Markpaste`) и новое предложение игнорирует. Так задумано спецификацией: сочетания на Wayland принадлежат пользователю и рабочему столу. Поле в настройках при этом было редактируемым и вводило в заблуждение.
-- **Решение:** если сочетания назначает система (`IHotkeys::systemAssignsTriggers`, портал), поля в настройках только для чтения и показывают фактические сочетания; кнопка «Изменить сочетания…» открывает диалог KDE (`ConfigureShortcuts`, портал v2). Изменение в KDE приходит сигналом `ShortcutsChanged` — программа обновляет показ без перезапуска ([ADR 0012](decisions/0012-system-assigned-shortcuts.md)). Своё значение в настройках программы сохраняется только как предложение для первой привязки.
-- **Статус:** решено, проверено пользователем 2026-10-20: Alt+V назначен через «Изменить сочетания…» и работает без перезапуска.
+- **Environment:** the same, xdg-desktop-portal 1.22.1, GlobalShortcuts v2.
+- **Symptom:** the paste shortcut is replaced with Alt+V in the program settings. After a restart the old Ctrl+Alt+V works, Alt+V does not. The log says `shortcut "paste-set" bound to "Ctrl+Alt+V"`.
+- **Cause:** through the GlobalShortcuts portal the program only suggests a shortcut (`preferred_trigger`). KDE honors it at the first binding, after that it keeps its own (`~/.config/kglobalshortcutsrc`, group `su._525.Markpaste`) and ignores a new suggestion. This is by design of the specification: on Wayland shortcuts belong to the user and the desktop. The field in settings was editable and misleading.
+- **Solution:** if the system assigns shortcuts (`IHotkeys::systemAssignsTriggers`, the portal), the fields in settings are read-only and show the actual shortcuts; the "Change shortcuts…" button opens the KDE dialog (`ConfigureShortcuts`, portal v2). A change in KDE comes as the `ShortcutsChanged` signal, and the program updates the display without a restart ([ADR 0012](decisions/0012-system-assigned-shortcuts.md)). The program's own value is kept only as the suggestion for the first binding.
+- **Status:** solved, checked by the user on 2026-10-20: Alt+V was assigned via "Change shortcuts…" and works without a restart.
 
-## 2026-10-20 · Уведомление «Удалённо управляемый сеанс начат» при каждой вставке
+## 2026-10-20 · The "Remote control session started" notification on every paste
 
-- **Окружение:** то же, xdg-desktop-portal-kde 6.7.5.
-- **Симптом:** при каждом Ctrl+Alt+V появляется уведомление «Портал встраивания KDE: Удалённо управляемый сеанс начат. Приложение «Markpaste» использует следующие особые права доступа: Управление устройством ввода».
-- **Причина:** на KDE Ctrl+V эмулируется через портал RemoteDesktop. Программа открывает сессию перед вставкой и закрывает после неё (журнал: `RemoteDesktop session started` на каждую вставку). Уведомление показывает сам портал на каждый `Start` — событие `remotedesktopstarted` в `/usr/share/knotifications6/xdg-desktop-portal-kde.notifyrc`, срочность High. Из программы его не отключить. Поведение программы с первой версии не менялось.
-- **Обход для пользователя:** «Параметры системы» → «Уведомления» → «Параметры приложений» → «Интеграция KDE с порталами» → «Started Remote Desktop» → снять всплывающее окно. Минус: уведомление пропадёт и для других программ.
-- **Предлагаемое решение (не реализовано):** держать сессию RemoteDesktop открытой после вставки, пока нет новых вставок, например 5 минут (настройка; 0 — как сейчас). Серия вставок даст одно уведомление, и каждая следующая вставка начнётся быстрее, без `CreateSession`/`Start`.
-  - Цена: пока сессия открыта, KDE держит в трее значок «Remote Control», и программа формально может управлять вводом.
-  - Устройство: `PasteOrchestrator` вместо `end()` вызывает `release()`; инжектор сам закрывает сессию по таймеру простоя. Сессия может закрыться извне (пользователь нажал значок в трее — сигнал `Session.Closed`), тогда следующий `begin()` открывает новую.
-  - Для портала Clipboard (GNOME) не подходит: буфер, записанный в сессии, живёт только пока она открыта, и восстановление буфера привязано к закрытию (ADR 0010). Там закрываем сразу, как сейчас.
-- **Статус:** открыто, решение отложено.
+- **Environment:** the same, xdg-desktop-portal-kde 6.7.5.
+- **Symptom:** every Ctrl+Alt+V shows the notification "KDE portal integration: Remote control session started. The application "Markpaste" uses the following special permissions: Input device control".
+- **Cause:** on KDE Ctrl+V is emulated through the RemoteDesktop portal. The program opens a session before a paste and closes it after (the log: `RemoteDesktop session started` for every paste). The portal itself shows the notification on every `Start`: the `remotedesktopstarted` event in `/usr/share/knotifications6/xdg-desktop-portal-kde.notifyrc`, urgency High. The program cannot turn it off. The program's behavior has not changed since the first version.
+- **Workaround for the user:** "System Settings" → "Notifications" → "Application settings" → "KDE portal integration" → "Started Remote Desktop" → uncheck the popup. The downside: the notification disappears for other programs too.
+- **Proposed solution (not implemented):** keep the RemoteDesktop session open after a paste while there are no new pastes, e.g. for 5 minutes (a setting; 0 means as now). A series of pastes would give one notification, and every next paste would start faster, without `CreateSession`/`Start`.
+  - The price: while the session is open, KDE keeps the "Remote Control" icon in the tray, and the program can formally control input.
+  - Design: `PasteOrchestrator` calls `release()` instead of `end()`; the injector closes the session itself on an idle timer. The session may be closed from outside (the user clicked the tray icon, the `Session.Closed` signal), then the next `begin()` opens a new one.
+  - Does not fit the Clipboard portal (GNOME): a clipboard written in the session lives only while it is open, and restoring the clipboard is tied to closing it (ADR 0010). There the session is closed right away, as now.
+- **Status:** open, the decision is postponed.
 
-## 2026-10-20 · После вставки программа держит сотни мегабайт
+## 2026-10-20 · After a paste the program holds hundreds of megabytes
 
-- **Окружение:** Fedora 44, glibc, Qt 6.11.2; замер `markpaste-bench` (26 снимков 4K, вставка 5).
-- **Симптом:** до вставки RSS 170 МБ, после вставки 5 снимков 4K — 650–750 МБ, и через секунды не уменьшается. У программы пользователя в фоне — 189 МБ.
-- **Причина:** запекание (`bakeSequence`) идёт в пуле потоков QtConcurrent. glibc даёт каждому потоку свою арену malloc; освобождённые развёрнутые кадры (33 МБ на кадр 4K) остаются в аренах и системе не возвращаются. Утечки нет: `malloc_trim(0)` возвращает всё — 748 → 166 МБ.
-- **Решение:** `mp::releaseFreedMemory()` (`src/platform/Memory.h`; на glibc — `malloc_trim(0)`, иначе ничего) через 2 с после вставки, перетаскивания, сохранения в папку, закрытия предпросмотра и очистки набора. Оркестратор больше не держит готовые картинки между вставками.
-- **Подводный камень:** первая версия ничего не делала — в файле до `#ifdef __GLIBC__` не был подключён ни один заголовок libc, и макрос не был определён. Нужен любой заголовок libc (`<cstdlib>`) до проверки.
-- **Статус:** решено, проверено `markpaste-bench`.
+- **Environment:** Fedora 44, glibc, Qt 6.11.2; measured with `markpaste-bench` (26 4K shots, pasting 5).
+- **Symptom:** before the paste RSS 170 MB, after pasting 5 4K shots 650–750 MB, and it does not go down after seconds. The user's program in the background holds 189 MB.
+- **Cause:** baking (`bakeSequence`) runs in the QtConcurrent thread pool. glibc gives every thread its own malloc arena; freed unpacked frames (33 MB per 4K frame) stay in the arenas and are not returned to the system. There is no leak: `malloc_trim(0)` returns everything, 748 → 166 MB.
+- **Solution:** `mp::releaseFreedMemory()` (`src/platform/Memory.h`; `malloc_trim(0)` on glibc, nothing otherwise) 2 s after a paste, a drag, a save to folder, closing the preview and clearing the set. The orchestrator no longer keeps the baked images between pastes.
+- **Pitfall:** the first version did nothing: no libc header was included in the file before `#ifdef __GLIBC__`, and the macro was not defined. Any libc header (`<cstdlib>`) is needed before the check.
+- **Status:** solved, checked with `markpaste-bench`.
 
-## 2026-10-20 · Захват перестаёт идти через KWin, если файл программы заменили на ходу
+## 2026-10-20 · Capture stops going through KWin if the program file was replaced on the fly
 
-- **Окружение:** Fedora 44 KDE, Plasma 6.7.5, Wayland.
-- **Симптом:** в журнале `KWin ScreenShot2: The process is not authorized to take a screenshot`, программа переходит на портал Screenshot: снимок 379–596 мс вместо ~220.
-- **Причина:** KWin пускает к ScreenShot2 процесс, чей исполняемый файл совпадает с `Exec` из .desktop-файла. Программу пересобрали, пока она работала (у пользователя то же будет при обновлении пакета через dnf): `/proc/<pid>/exe` указывает на `… (deleted)`, сравнение не проходит.
-- **Решение:** снимок всё равно делается через портал (запасной путь). Если `/proc/self/exe` оканчивается на ` (deleted)`, программа говорит: «Markpaste обновилась во время работы. Перезапустите её, чтобы снимать без задержек и диалогов».
-- **Статус:** решено; уведомление на живой сессии не проверялось.
+- **Environment:** Fedora 44 KDE, Plasma 6.7.5, Wayland.
+- **Symptom:** the log has `KWin ScreenShot2: The process is not authorized to take a screenshot`, and the program switches to the Screenshot portal: a shot takes 379–596 ms instead of ~220.
+- **Cause:** KWin lets a process into ScreenShot2 if its executable matches `Exec` from the .desktop file. The program was rebuilt while it was running (a user gets the same on a package update through dnf): `/proc/<pid>/exe` points to `… (deleted)`, and the comparison fails.
+- **Solution:** the shot is still taken through the portal (the fallback). If `/proc/self/exe` ends with ` (deleted)`, the program says: "Markpaste was updated while running. Restart it to capture without delays and dialogs".
+- **Status:** solved; the notification has not been checked in a live session.

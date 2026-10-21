@@ -1,109 +1,109 @@
-# Как устроена программа (фактическое состояние)
+# How the program is built (actual state)
 
-Обновлено: 2026-10-20.
+Updated: 2026-10-20.
 
-## Слои и цели CMake
+## Layers and CMake targets
 
 ```
-markpaste (app/)             контроллер, настройки, один экземпляр, трей, журнал, проверка версии
-  └ markpaste_ui (ui/)       оверлей, редактор, лента — без кода под ОС
-      ├ markpaste_core       core/ модель, набор на диске · render/ запекание · paste/ оркестратор вставки
-      │   └ markpaste_platform_api   PlatformTypes + 4 интерфейса
-      └ markpaste_platform   PlatformFactory, WindowRoles, Paths, реализации:
+markpaste (app/)             controller, settings, single instance, tray, log, version check
+  └ markpaste_ui (ui/)       overlay, editor, strip; no OS-specific code
+      ├ markpaste_core       core/ model, set on disk · render/ baking · paste/ paste orchestrator
+      │   └ markpaste_platform_api   PlatformTypes + 4 interfaces
+      └ markpaste_platform   PlatformFactory, WindowRoles, Paths, implementations:
             common/          QtClipboard, QtScreenCapture, FallbackCapture
             linux/portal/    PortalBus, RemoteDesktop, Screenshot, GlobalShortcuts
-            linux/wayland/   WaylandConnection (свой поток), DataControlClipboard
+            linux/wayland/   WaylandConnection (own thread), DataControlClipboard
             linux/kde/       KWinScreenshot
             linux/x11/       X11Hotkeys, X11InputInjector
-            windows/         DxgiCapture, WinHotkeys + KeyboardHook (свой поток), WinClipboard, WinInputInjector
+            windows/         DxgiCapture, WinHotkeys + KeyboardHook (own thread), WinClipboard, WinInputInjector
 ```
 
-Ядро видит только `markpaste_platform_api`. `#ifdef` под ОС — только в `src/platform/` (проверка: `grep -rn 'ifdef\|Q_OS_' src | grep -v ^src/platform/`).
+The core sees only `markpaste_platform_api`. OS `#ifdef`s are only in `src/platform/` (check: `grep -rn 'ifdef\|Q_OS_' src | grep -v ^src/platform/`).
 
-## Что выбирает PlatformFactory на KDE Wayland
+## What PlatformFactory picks on KDE Wayland
 
-| Интерфейс | Реализация | Запасная |
+| Interface | Implementation | Fallback |
 | --- | --- | --- |
-| ICapture | KWin ScreenShot2, каждый монитор в родных пикселях | портал Screenshot (`FallbackCapture` переключается навсегда после первой ошибки) |
-| IHotkeys | портал GlobalShortcuts (сочетание назначает система, ADR 0012) | нет — тогда CLI `markpaste --capture`, `--capture-to-strip` |
-| IClipboard | ext-data-control-v1 | QClipboard (без записи из фона: режим 1 выключается) |
-| IInputInjector | портал RemoteDesktop | нет — режим 2 |
+| ICapture | KWin ScreenShot2, each monitor in native pixels | Screenshot portal (`FallbackCapture` switches for good after the first error) |
+| IHotkeys | GlobalShortcuts portal (the system assigns the shortcut, ADR 0012) | none, then the CLI `markpaste --capture`, `--capture-to-strip` |
+| IClipboard | ext-data-control-v1 | QClipboard (no background writes: mode 1 is disabled) |
+| IInputInjector | RemoteDesktop portal | none, mode 2 |
 
-## Что выбирает PlatformFactory на Windows (ADR 0016)
+## What PlatformFactory picks on Windows (ADR 0016)
 
-| Интерфейс | Реализация | Запасная |
+| Interface | Implementation | Fallback |
 | --- | --- | --- |
-| ICapture | DXGI Desktop Duplication на монитор, при отказе — GDI BitBlt этого монитора (решение на каждый снимок) | `MARKPASTE_CAPTURE=gdi` — без DXGI. `FallbackCapture` не используется: он переключался бы навсегда |
-| IHotkeys | `RegisterHotKey`; Print Screen — хук `WH_KEYBOARD_LL` в своём потоке | — |
-| IClipboard | QClipboard (OLE) + `PNG` и пометки «не в историю»; занятый другой программой буфер — повтор до ~2 с, затем ошибка | — |
-| IInputInjector | `SendInput` с проверкой UIPI и смены активного окна | — |
+| ICapture | DXGI Desktop Duplication per monitor, on failure GDI BitBlt of that monitor (decided on every shot) | `MARKPASTE_CAPTURE=gdi`, without DXGI. `FallbackCapture` is not used: it would switch for good |
+| IHotkeys | `RegisterHotKey`; Print Screen via the `WH_KEYBOARD_LL` hook in its own thread | — |
+| IClipboard | QClipboard (OLE) + `PNG` and "not into history" marks; a clipboard busy in another program is retried for up to ~2 s, then an error | — |
+| IInputInjector | `SendInput` with UIPI and active window change checks | — |
 
-Файлы на Windows: настройки — реестр `HKCU\Software\markpaste\markpaste`; набор, журнал — `%LOCALAPPDATA%\markpaste\markpaste\`; автозапуск — `HKCU\…\CurrentVersion\Run`.
+Files on Windows: settings in the registry `HKCU\Software\markpaste\markpaste`; the set and the log in `%LOCALAPPDATA%\markpaste\markpaste\`; autostart in `HKCU\…\CurrentVersion\Run`.
 
-## Файлы программы на Linux
+## Program files on Linux
 
-| Что | Где | Права |
+| What | Where | Mode |
 | --- | --- | --- |
-| Настройки | `~/.config/markpaste/markpaste.conf` (QSettings, INI) | обычные |
-| Набор между перезапусками (NFR-5, ADR 0013) | `~/.local/share/markpaste/session/` — `set.json` + исходники `<uuid>.png` | 0700 / 0600 |
-| Журнал (ADR 0014) | `~/.local/share/markpaste/logs/markpaste.log`, 1 МБ × 3 | 0700 / 0600 |
-| Временные картинки для «файлы + текст» и перетаскивания | `$XDG_RUNTIME_DIR/markpaste/` | 0700 / 0600 |
+| Settings | `~/.config/markpaste/markpaste.conf` (QSettings, INI) | ordinary |
+| The set between restarts (NFR-5, ADR 0013) | `~/.local/share/markpaste/session/`: `set.json` + sources `<uuid>.png` | 0700 / 0600 |
+| Log (ADR 0014) | `~/.local/share/markpaste/logs/markpaste.log`, 1 MB × 3 | 0700 / 0600 |
+| Temporary images for "files + text" and drag and drop | `$XDG_RUNTIME_DIR/markpaste/` | 0700 / 0600 |
 
-## Координаты и масштаб
+## Coordinates and scale
 
-- Кадр от `ICapture` — в **физических** пикселях монитора, `ScreenFrame::scale` = физические / логические.
-- Оверлей — окно размером с монитор в логических координатах. Кадр рисуется с `devicePixelRatio = scale`, то есть 1:1 по физическим пикселям. Выделение переводится в физические пиксели с округлением **наружу** (floor слева/сверху, ceil справа/снизу): выделенное не теряется.
-- В модели всё — в физических пикселях исходника, обрезка хранится отдельным прямоугольником. Метки при обрезке не сдвигаются: они остаются в координатах исходника.
-- Ширина рамки, размер значка и блок пикселизации умножаются на `Shot::devicePixelRatio`. Поэтому снимок с монитора 200 % выглядит в чате так же, как со 100 %.
-- Редактор рисует снимок через одно преобразование «исходник → окно», а метки — той же функцией `paintMarks`, что и запекание: на экране ровно то, что уйдёт в чат.
-- Точки стрелки и карандаша — целые координаты пикселей исходника; рисуются через центры пикселей (+0.5), попадание мышью считается в координатах окна, после перевода точек через то же преобразование.
+- A frame from `ICapture` is in the monitor's **physical** pixels, `ScreenFrame::scale` = physical / logical.
+- The overlay is a window the size of the monitor in logical coordinates. The frame is drawn with `devicePixelRatio = scale`, i.e. 1:1 in physical pixels. The selection is converted to physical pixels rounding **outwards** (floor on the left/top, ceil on the right/bottom): nothing selected is lost.
+- In the model everything is in physical pixels of the source, and the crop is kept as a separate rectangle. Marks do not move on crop: they stay in source coordinates.
+- The frame width, badge size and pixelation block are multiplied by `Shot::devicePixelRatio`. So a shot from a 200 % monitor looks the same in the chat as one from 100 %.
+- The editor draws the shot through a single "source → window" transform, and the marks with the same `paintMarks` function as baking: the screen shows exactly what goes to the chat.
+- Arrow and freehand points are integer pixel coordinates of the source; they are drawn through pixel centers (+0.5), and mouse hit-testing is computed in window coordinates after mapping the points through the same transform.
 
-## Формы меток (ADR 0006)
+## Mark shapes (ADR 0006)
 
-Рамка, стрелка и карандаш лежат в одном списке `Shot::marks` — отсюда общая нумерация A1, A2… Любая правка формы проходит через `CaptureSetModel::fitMark`: он вписывает метку в видимую область (рамку — пересечением, стрелку и карандаш — обрезкой линии), упрощает линию карандаша и пересчитывает `rect`. Этот же метод решает при обрезке, удалится ли метка, поэтому подсчёт в вопросе «удалить N меток?» и фактическая обрезка не расходятся. Геометрия (обрезка отрезка и ломаной, упрощение, расстояние до линии) — в `core/Geometry`.
+Frames, arrows and freehand lines are in one list `Shot::marks`, hence the shared A1, A2… numbering. Any shape edit goes through `CaptureSetModel::fitMark`: it fits the mark into the visible area (a frame by intersection, an arrow and freehand by clipping the line), simplifies the freehand line and recomputes `rect`. The same method decides on crop whether a mark is removed, so the count in the "delete N marks?" question and the actual crop do not diverge. The geometry (clipping a segment and a polyline, simplification, distance to a line) is in `core/Geometry`.
 
-Перо метки (`MarkPen`, ADR 0007) хранит только то, что выбрал пользователь; пустые поля разрешаются при рисовании (`markColor`, `markWidth`) из `RenderStyle`. Поэтому смена акцента в настройках перекрашивает метки без своего цвета. Холст держит текущее перо: панель меняет его и перо выделенной метки, выделение метки — наоборот, ставит её перо в панель и в холст.
+A mark's pen (`MarkPen`, ADR 0007) keeps only what the user chose; empty fields are resolved at paint time (`markColor`, `markWidth`) from `RenderStyle`. So changing the accent in settings recolors marks without their own color. The canvas holds the current pen: the panel changes it and the selected mark's pen, and selecting a mark does the opposite, putting its pen into the panel and the canvas.
 
-Холст при перетаскивании держит живую копию: `m_live` для рамок и размытия, `m_livePoints` для линейных форм. В модель уходит одна правка на отпускание мыши.
+During a drag the canvas keeps a live copy: `m_live` for frames and blur, `m_livePoints` for line shapes. The model gets one edit when the mouse is released.
 
-## Последовательная вставка (PasteOrchestrator)
+## Sequential paste (PasteOrchestrator)
 
-Цепочка future и таймеров в главном потоке. Каждый отложенный шаг проверяет счётчик поколения `m_generation`, поэтому отмена или ошибка гасят все хвосты прошлого запуска.
+A chain of futures and timers in the main thread. Every delayed step checks the generation counter `m_generation`, so a cancel or an error extinguishes all the tails of the previous run.
 
-0. Сочетание с Alt без Ctrl (Alt+V): сразу, параллельно с запеканием, — сессия ввода и, пока Alt зажат, `sendModifierMask()` — иначе окно чата примет отпускание Alt за одиночное нажатие и уйдёт в меню (docs/problems.md). Сессия открывается один раз: `openSession` ставит в очередь тех, кто попросил её, пока она открывается.
-1. Запечь все снимки параллельно (`QtConcurrent::blockingMapped` внутри `QtConcurrent::run`).
-2. Сохранить буфер (`snapshot`) — только текст и картинки.
-3. `injector->begin()`: сессия RemoteDesktop по токену восстановления; первый раз — диалог KDE.
-4. Если вставку запустила горячая клавиша — дождаться `released` (Deactivated портала) или таймаута 1.5 с, плюс 50 мс. Иначе зажатый Alt превратит наш Ctrl+V в Ctrl+Alt+V.
-5. Для каждого элемента: записать в буфер → 80 мс → Ctrl+V → 400 мс.
-6. После последнего: ещё пауза (≥ 400 мс), только потом `end()`. События клавиш доходят до KWin асинхронно, и раннее закрытие сессии теряло «V отпущена» (docs/problems.md).
-7. Через 1 с вернуть буфер. При ошибке или отмене буфер возвращается сразу.
+0. A shortcut with Alt without Ctrl (Alt+V): right away, in parallel with baking, the input session and, while Alt is held, `sendModifierMask()`; otherwise the chat window takes the Alt release for a single press and opens its menu (docs/problems.md). The session is opened once: `openSession` queues those who asked for it while it is opening.
+1. Bake all shots in parallel (`QtConcurrent::blockingMapped` inside `QtConcurrent::run`).
+2. Save the clipboard (`snapshot`): text and images only.
+3. `injector->begin()`: a RemoteDesktop session by the restore token; the first time, a KDE dialog.
+4. If the paste was started by a hotkey, wait for `released` (the portal's Deactivated) or a 1.5 s timeout, plus 50 ms. Otherwise a held Alt turns our Ctrl+V into Ctrl+Alt+V.
+5. For each item: write to the clipboard → 80 ms → Ctrl+V → 400 ms.
+6. After the last one: one more pause (≥ 400 ms), only then `end()`. Key events reach KWin asynchronously, and closing the session early lost "V released" (docs/problems.md).
+7. After 1 s, restore the clipboard. On an error or cancel the clipboard is restored right away.
 
-Отмена («Стоп») завершает вставку сразу, не дожидаясь текущей операции: запись в буфер или открытие сессии могут не закончиться никогда (оборвалось подключение к композитору), а пока вставка «идёт», новую не начать. Исключение — серия клавиш Ctrl↓ V↓ V↑ Ctrl↑ (`m_keysInFlight`): её дожидаемся, иначе Ctrl может остаться зажатым, а отмену видит следующий шаг. Запись через data-control при обрыве подключения тоже не висит: `DataControlDevice` по сигналу `disconnected` завершает ждущие записи ошибкой.
+Cancel ("Stop") ends the paste right away without waiting for the current operation: a clipboard write or opening the session may never finish (the connection to the compositor broke), and while a paste is "running", a new one cannot start. The exception is the key sequence Ctrl↓ V↓ V↑ Ctrl↑ (`m_keysInFlight`): it is waited for, otherwise Ctrl may stay held, and the next step sees the cancel. A data-control write does not hang on a broken connection either: on the `disconnected` signal `DataControlDevice` fails the pending writes.
 
-Вставка с клавишами не начинается, если активно окно самой программы (настройки, предпросмотр, мастер): Ctrl+V ушёл бы в него. Редактор не в счёт — `AppController::paste` прячет его перед вставкой; лента фокус не берёт.
+A paste with keys does not start if a window of the program itself is active (settings, preview, wizard): Ctrl+V would go to it. The editor does not count: `AppController::paste` hides it before pasting; the strip does not take focus.
 
-Режим 2 (файлы + текст) — одна запись: `text/uri-list`, `x-special/gnome-copied-files`, текст с синонимами MIME, первая картинка `image/png`. Файлы лежат в `$XDG_RUNTIME_DIR/markpaste/` (0700), удаляются при очистке набора и при выходе.
+Mode 2 (files + text) is one entry: `text/uri-list`, `x-special/gnome-copied-files`, text with MIME synonyms, the first image as `image/png`. The files are in `$XDG_RUNTIME_DIR/markpaste/` (0700) and are deleted when the set is cleared and on exit.
 
-## Кнопка «Вставить набор» в ленте
+## The "Paste set" button in the strip
 
-На KDE лента — поверхность layer-shell с `KeyboardInteractivityNone`: клик по ней не забирает фокус клавиатуры у окна чата. Поэтому кнопка запускает режим 1, а не только копирование, как ТЗ предлагает для Wayland. Без layer-shell (GNOME) кнопка копирует набор в режиме 2. На Windows то же даёт окно с `WS_EX_NOACTIVATE` (ADR 0016) — проверено под Wine и на Windows 11 в VirtualBox (вставка в Paint), см. platform-matrix.md.
+On KDE the strip is a layer-shell surface with `KeyboardInteractivityNone`: a click on it does not take keyboard focus from the chat window. So the button starts mode 1 rather than only copying, as the spec suggests for Wayland. Without layer-shell (GNOME) the button copies the set in mode 2. On Windows a window with `WS_EX_NOACTIVATE` gives the same (ADR 0016); checked under Wine and on Windows 11 in VirtualBox (pasting into Paint), see platform-matrix.md.
 
-## Лента: где стоит и когда видна
+## Strip: where it stands and when it is visible
 
-См. [ADR 0004](../decisions/0004-strip-placement-and-visibility.md). Коротко: положение поверхности layer-shell Qt не знает, поэтому лента считает его сама из края, отступов и размера (`StripWindow::assumedTopLeft`). Переезд — один раз, при отпускании заголовка. Видна, только пока набор не пуст (если есть трей).
+See [ADR 0004](../decisions/0004-strip-placement-and-visibility.md). In short: Qt does not know the position of a layer-shell surface, so the strip computes it itself from the edge, margins and size (`StripWindow::assumedTopLeft`). The move happens once, when the header is released. Visible only while the set is not empty (if there is a tray).
 
-## Потоки
+## Threads
 
-- Главный: UI, модель, D-Bus-вызовы (ответы приходят из потока QtDBus через очередь).
-- `markpaste-wayland`: своё подключение к композитору и data-control (ADR 0002).
-- Пул `QtConcurrent`: запекание, PNG, запись данных буфера в pipe, декодирование кадра портала, снимок DXGI/GDI на Windows.
-- Windows: поток хука клавиатуры `KeyboardHook` со своим циклом сообщений — только сравнивает код клавиши и шлёт сигнал в главный поток (ADR 0016).
+- Main: UI, model, D-Bus calls (replies come from the QtDBus thread through the queue).
+- `markpaste-wayland`: our own connection to the compositor and data-control (ADR 0002).
+- The `QtConcurrent` pool: baking, PNG, writing clipboard data into a pipe, decoding the portal frame, DXGI/GDI capture on Windows.
+- Windows: the `KeyboardHook` thread with its own message loop; it only compares the key code and signals the main thread (ADR 0016).
 
-## Мастер первого запуска (ADR 0009)
+## First-start wizard (ADR 0009)
 
-`SetupWizard` (ui/) получает `Platform` контроллера и сам вызывает интерфейсы: снимок через `ICapture`, цепочку `snapshot → begin → write → sendPaste → end → write(saved)` — тот же порядок, что в `PasteOrchestrator`. Пока окно мастера видно, контроллер не выполняет действия горячих клавиш, а передаёт их в `hotkeyActivated`. Фактические сочетания приходят асинхронно (`bindAll`), поэтому контроллер передаёт их в мастер и при открытии, и по готовности привязки.
+`SetupWizard` (ui/) gets the controller's `Platform` and calls the interfaces itself: a shot through `ICapture`, the chain `snapshot → begin → write → sendPaste → end → write(saved)`, the same order as in `PasteOrchestrator`. While the wizard window is visible, the controller does not perform hotkey actions but passes them to `hotkeyActivated`. The actual shortcuts arrive asynchronously (`bindAll`), so the controller passes them to the wizard both when it opens and when the binding is ready.
 
-## Один экземпляр
+## Single instance
 
-`QLocalServer` на `$XDG_RUNTIME_DIR/su._525.Markpaste.sock`. Новый процесс **сначала подключается** к сокету и передаёт команду. Только если никто не ответил — сносит старый сокет и слушает сам. Опираться на результат `listen()` нельзя (docs/problems.md).
+`QLocalServer` on `$XDG_RUNTIME_DIR/su._525.Markpaste.sock`. A new process **first connects** to the socket and passes its command. Only if nobody answers does it remove the old socket and listen itself. The result of `listen()` cannot be relied on (docs/problems.md).

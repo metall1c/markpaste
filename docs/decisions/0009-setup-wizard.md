@@ -1,24 +1,24 @@
-# 0009. Мастер первого запуска — одно окно с настоящими проверками
+# 0009. The first-start wizard is one window with real checks
 
-- Статус: принято (2026-10-19)
-- Требования ТЗ: APP-4, разд. 9 («Одно окно мастера на все разрешения»), разд. 14 (клавиша по умолчанию занята).
+- Status: accepted (2026-10-19)
+- Spec items: APP-4, section 9 ("One wizard window for all permissions"), section 14 (the default key is taken).
 
-## Решение
+## Decision
 
-- **Одно окно, четыре блока:** система (окружение, примечания платформы, предупреждение про XWayland), захват, горячие клавиши, вставка; внизу — галочка автозапуска и кнопка «Настройки…». Не пошаговый `QWizard`: проверки независимы, и пользователь видит всё сразу.
-- **Когда показывается:** при первом обычном запуске (`once/setupShown` в настройках; до 2026-10-20 — `general/setupShown`, который после перезапуска не читался, см. docs/problems.md) вместо уведомления в трее; потом — пункт трея «Проверка настройки…» и команда `markpaste --setup`.
-- **Захват** — настоящий снимок всех мониторов через `ICapture`, с числом мониторов, размерами и временем. На Wayland здесь же появляется диалог разрешения, если он нужен. Захват без признака `Silent` — предупреждение «окружение может показывать свой диалог при каждом снимке».
-- **Клавиши** — мастер показывает фактические сочетания от системы и просит нажать каждое. Пока мастер открыт, контроллер передаёт срабатывание ему (`SetupWizard::hotkeyActivated`) вместо захвата или вставки. Не назначено — предупреждение и кнопка «Изменить в настройках системы» (на KDE). Нет `IHotkeys` вовсе — подсказка назначить `markpaste --capture` / `--paste` в настройках клавиатуры.
-- **Вставка** — сквозная проверка режима 1 на самом мастере: сохранить буфер → сессия ввода (`IInputInjector::begin`, на Wayland — диалог RemoteDesktop при первом разе) → записать проверочный текст → 80 мс → Ctrl+V → 600 мс → закрыть сессию → вернуть буфер. Успех — текст появился в поле мастера. Задержка перед закрытием сессии — по той же причине, что в `PasteOrchestrator` (docs/problems.md, 2026-10-19). Без фоновой записи буфера или эмуляции Ctrl+V проверка не запускается, мастер объясняет режим «файлы + текст».
-- Мастер — в `ui/` и работает только через `Platform`, поэтому покрыт тестами на заглушках (`tests/test_setup_wizard.cpp`).
+- **One window, four blocks:** system (environment, platform notes, an XWayland warning), capture, global hotkeys, paste; at the bottom, an autostart checkbox and a "Settings…" button. Not a step-by-step `QWizard`: the checks are independent, and the user sees everything at once.
+- **When it is shown:** on the first normal start (`once/setupShown` in settings; before 2026-10-20 it was `general/setupShown`, which was not read back after a restart, see docs/problems.md) instead of a tray notification; later via the tray item "Setup check…" and the command `markpaste --setup`.
+- **Capture** is a real shot of all monitors via `ICapture`, with the number of monitors, sizes and time. On Wayland the permission dialog appears right here if it is needed. A capture without the `Silent` flag gives a warning "the environment may show its own dialog on every shot".
+- **Hotkeys**: the wizard shows the actual shortcuts from the system and asks to press each one. While the wizard is open, the controller passes the activation to it (`SetupWizard::hotkeyActivated`) instead of capturing or pasting. Not assigned: a warning and a "Change in system settings" button (on KDE). No `IHotkeys` at all: a hint to assign `markpaste --capture` / `--paste` in the keyboard settings.
+- **Paste** is an end-to-end mode 1 check on the wizard itself: save the clipboard → input session (`IInputInjector::begin`, on Wayland the RemoteDesktop dialog the first time) → write a check text → 80 ms → Ctrl+V → 600 ms → close the session → restore the clipboard. Success means the text appeared in the wizard field. The delay before closing the session has the same reason as in `PasteOrchestrator` (docs/problems.md, 2026-10-19). Without background clipboard writes or Ctrl+V emulation the check does not run, and the wizard explains the "files + text" mode.
+- The wizard is in `ui/` and works only through `Platform`, so it is covered by tests on stubs (`tests/test_setup_wizard.cpp`).
 
-## Рассмотренные варианты
+## Options considered
 
-- **Пошаговый QWizard.** Лишние «Далее», а проверки не зависят друг от друга.
-- **Проверять вставку в стороннем окне** (попросить открыть чат). Ближе к жизни, но результат не проверить программно; поле в самом мастере даёт однозначный ответ.
-- **Проверять, занята ли клавиша Print** (ТЗ разд. 9, 14). На Wayland сочетание назначает окружение, и программа видит только итог; на KDE нажатие и есть проверка. Для X11 и Windows — вместе с их реализацией клавиш.
+- **A step-by-step QWizard.** Extra "Next" clicks, while the checks do not depend on each other.
+- **Check the paste in a third-party window** (ask to open a chat). Closer to real life, but the result cannot be checked programmatically; a field in the wizard itself gives an unambiguous answer.
+- **Check whether the Print key is taken** (spec sections 9, 14). On Wayland the desktop assigns the shortcut, and the program sees only the result; on KDE the press is the check. For X11 and Windows, together with their hotkey implementations.
 
-## Последствия
+## Consequences
 
-- После обновления мастер один раз откроется и у тех, кто уже пользовался программой (ключа `general/setupShown` раньше не было).
-- Если после диалога портала окно мастера не получило фокус (запрет кражи фокуса), текст не появится — мастер просит щёлкнуть в поле и повторить.
+- After the update the wizard opens once also for those who have already used the program (there was no `general/setupShown` key before).
+- If the wizard window did not get focus after the portal dialog (focus stealing prevention), the text does not appear: the wizard asks to click into the field and try again.

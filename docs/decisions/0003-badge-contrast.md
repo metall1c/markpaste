@@ -1,28 +1,28 @@
-# 0003. Фон значка метки затемняется до контраста 4.5:1
+# 0003. The mark badge background is darkened to a 4.5:1 contrast
 
-- Статус: принято (2026-10-19)
-- Требования ТЗ: EDT-3, NFR-9, разд. 10 «Запекание»
+- Status: accepted (2026-10-19)
+- Spec items: EDT-3, NFR-9, section 10 "Baking"
 
-## Контекст
+## Context
 
-В ТЗ два требования противоречат друг другу:
+Two requirements of the spec contradict each other:
 
-- значок — круг акцентного цвета (по умолчанию #FF5A1F) с белым текстом (EDT-3, разд. 10);
-- контраст значков не ниже 4.5:1 (NFR-9).
+- the badge is a circle of the accent color (#FF5A1F by default) with white text (EDT-3, section 10);
+- the contrast of badges is at least 4.5:1 (NFR-9).
 
-Контраст белого на #FF5A1F по WCAG — около 3.1:1, требование не выполняется. Пользователь может выбрать и ещё более светлый акцент.
+The WCAG contrast of white on #FF5A1F is about 3.1:1, so the requirement is not met. The user may also pick an even lighter accent.
 
-## Решение
+## Decision
 
-- Рамка метки рисуется исходным акцентным цветом.
-- Фон значка — тот же цвет, затемнённый ступенями по 2 % к чёрному, пока контраст с белым не станет ≥ 4.5:1 (`badgeFillColor()` в `render/ShotRenderer.cpp`). Оттенок сохраняется, тёмные цвета не меняются.
-- Значок обведён белой линией 1 px, чтобы читаться на любом фоне.
+- The mark frame is drawn in the original accent color.
+- The badge background is the same color, darkened in 2 % steps towards black until its contrast with white is ≥ 4.5:1 (`badgeFillColor()` in `render/ShotRenderer.cpp`). The hue is kept, dark colors are not changed.
+- The badge has a 1 px white outline so that it reads on any background.
 
-## Рассмотренные варианты
+## Options considered
 
-- Чёрный текст на акцентном цвете: контраст 6.7:1, но противоречит EDT-3 и хуже читается на тёмных акцентах.
-- Сменить акцент по умолчанию на более тёмный: рамка на тёмных интерфейсах станет хуже заметна.
+- Black text on the accent color: contrast 6.7:1, but it contradicts EDT-3 and reads worse on dark accents.
+- Change the default accent to a darker one: the frame would be less visible on dark interfaces.
 
-## Последствия
+## Consequences
 
-Для #FF5A1F значок получается заметно темнее рамки. Тест `Renderer.BadgeContrastAtLeast45` проверяет порог для набора акцентов.
+For #FF5A1F the badge comes out noticeably darker than the frame. The `Renderer.BadgeContrastAtLeast45` test checks the threshold for a set of accents.

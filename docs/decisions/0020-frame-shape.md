@@ -1,46 +1,46 @@
-# 0020. Форма рамки метки: прямоугольник, скруглённый прямоугольник, овал
+# 0020. Mark frame shape: rectangle, rounded rectangle, ellipse
 
-- Статус: принято (2026-10-20)
-- Требования ТЗ: EDT-1 (прямоугольная метка протягиванием мыши), EDT-3 (значок номера у левого верхнего угла рамки, не выходит за край снимка), EDT-4, EDT-8
+- Status: accepted (2026-10-20)
+- Spec items: EDT-1 (a rectangular mark dragged with the mouse), EDT-3 (the number badge at the frame's top-left corner, not beyond the shot edge), EDT-4, EDT-8
 
-## Контекст
+## Context
 
-Пользователь попросил выбирать форму у основного инструмента «Метка», как в Snapik: меню у кнопки инструмента с пунктами «Прямоугольник», «Скруглённый прямоугольник», «Овал» (снимок Snapik, 2026-10-20). ТЗ знает только прямоугольную метку.
+The user asked to choose the shape on the main "Mark" tool, as in Snapik: a menu on the tool button with "Rectangle", "Rounded rectangle", "Ellipse" (a Snapik screenshot, 2026-10-20). The spec knows only a rectangular mark.
 
-## Решение
+## Decision
 
-- **Форма — поле пера**: `MarkPen::frame` (`FrameShape::Rect | Rounded | Ellipse`), а не отдельное поле метки. Так форма проходит теми же путями, что цвет и толщина:
-  - для новых меток берётся текущее перо;
-  - у выделенной рамки меняется одной правкой в истории отмен;
-  - выделение метки показывает её форму, и следующая рамка будет такой же;
-  - последний выбор запоминается в настройках (`editor/markFrame`).
-- **Геометрия у всех трёх форм одна** — охватывающий прямоугольник `rect`. Перемещение, ручки размера, обрезка, проверка «внутри снимка» не изменились. Меняется только отрисовка: `frameOutline()` в `ShotRenderer` строит путь прямоугольника, скруглённого прямоугольника или эллипса. Линия целиком внутри `rect`. Радиус скругления — 10 логических px, у маленькой рамки — не больше трети стороны. Стыки у скруглённой рамки и овала — круглые.
-- **Значок номера овала** стоит на самом овале под 45° слева сверху. В углу охватывающего прямоугольника он висел бы в пустоте. Это уточнение EDT-3 для овала. У скруглённой рамки значок, как и у прямоугольной, — в левом верхнем углу: он закрывает скругление.
-- **Попадание мышью**: в овал — по самому овалу (с запасом 5 px), не по углам охватывающего прямоугольника. Перетаскивание из пустого угла рисует новую рамку. Скруглённая рамка ловится, как прямоугольная.
-- **Стрелке, карандашу и точке форма не нужна.** Выбор формы при выделенной стрелке меняет форму только для новых рамок: у стрелки ничего не меняется, пустого шага отмены нет.
-- **Интерфейс:**
-  - рядом с кнопкой «Метка» — узкая кнопка со стрелкой вниз и меню из трёх форм со значками и отметкой текущей;
-  - значок самой кнопки «Метка» показывает текущую форму;
-  - выбор формы включает инструмент «Метка».
-- **Хранение набора на диске**: поле `"frame": "rounded" | "ellipse"` пишется только у непрямоугольной рамки. Старые наборы читаются без изменений, их рамки — прямоугольные.
+- **The shape is a pen field**: `MarkPen::frame` (`FrameShape::Rect | Rounded | Ellipse`), not a separate mark field. This way the shape goes the same paths as color and width:
+  - new marks take the current pen;
+  - for the selected frame it changes with one edit in the undo history;
+  - selecting a mark shows its shape, and the next frame will be the same;
+  - the last choice is kept in settings (`editor/markFrame`).
+- **The geometry is the same for all three shapes**: the bounding rectangle `rect`. Moving, resize handles, crop and the "inside the shot" check did not change. Only painting changes: `frameOutline()` in `ShotRenderer` builds the path of a rectangle, a rounded rectangle or an ellipse. The line is entirely inside `rect`. The corner radius is 10 logical px, for a small frame no more than a third of the side. The joins of the rounded frame and the ellipse are round.
+- **The ellipse's number badge** sits on the ellipse itself at 45° top-left. In the corner of the bounding rectangle it would hang in empty space. This refines EDT-3 for the ellipse. For the rounded frame the badge is in the top-left corner, as for the rectangle: it covers the rounding.
+- **Mouse hit-testing**: an ellipse is hit by the ellipse itself (with a 5 px margin), not by the corners of the bounding rectangle. A drag from an empty corner draws a new frame. A rounded frame is hit like a rectangle.
+- **Arrows, freehand lines and points need no shape.** Choosing a shape with an arrow selected changes the shape only for new frames: nothing changes on the arrow, and there is no empty undo step.
+- **UI:**
+  - next to the "Mark" button there is a narrow button with a down arrow and a menu of the three shapes with icons and a mark on the current one;
+  - the "Mark" button icon itself shows the current shape;
+  - choosing a shape enables the "Mark" tool.
+- **Storing the set on disk**: the field `"frame": "rounded" | "ellipse"` is written only for a non-rectangular frame. Old sets are read unchanged, their frames are rectangular.
 
-## Рассмотренные варианты
+## Options considered
 
-- **Новые формы метки** (`MarkShape::RoundedRect`, `MarkShape::Ellipse`). Пришлось бы менять все места, где различаются рамка и линейные формы (`isLinear`, ручки, перемещение, обрезка, сохранение). Выигрыша нет: геометрия та же.
-- **Отдельное поле метки `frame`**. Понадобились бы своя правка модели, свой сигнал выделения и своя запись в настройках — те же пути, что у пера, ещё раз.
-- **Форма в панели пера** (рядом с цветом и толщиной). В Snapik форма выбирается у инструмента. Панель пера общая для всех инструментов, а форма нужна только рамке.
+- **New mark shapes** (`MarkShape::RoundedRect`, `MarkShape::Ellipse`). All places that distinguish frames and line shapes would have to change (`isLinear`, handles, moving, crop, saving). No gain: the geometry is the same.
+- **A separate mark field `frame`**. It would need its own model edit, its own selection signal and its own settings entry: the same paths as the pen, once more.
+- **The shape in the pen panel** (next to color and width). In Snapik the shape is chosen on the tool. The pen panel is shared by all tools, while only frames need a shape.
 
-## Последствия и ограничения
+## Consequences and limitations
 
-- `MarkPen` называется «пером», но несёт и форму рамки — это отмечено в комментарии к структуре.
-- **Enter в поле комментария снимает выделение** (решение пользователя, 2026-10-20). Сначала выделение оставалось, и форма, выбранная сразу после рамки «для следующей», меняла и её. Это нашлось на Windows: овал A1 стал скруглённым. Теперь выбор формы и цвета после Enter относится к следующей метке. Если поле закрылось щелчком мимо (например, по кнопке цвета), метка остаётся выделенной и перекрашивается: так человек правит именно её. Esc закрывает поле, выделение остаётся.
-- Клавиши для смены формы нет. R и M включают «Метку» текущей формы.
-- Текст сообщения от формы не зависит.
+- `MarkPen` is called a "pen" but also carries the frame shape; this is noted in the struct's comment.
+- **Enter in the comment field drops the selection** (the user's decision, 2026-10-20). At first the selection stayed, and a shape chosen right after a frame "for the next one" changed it too. This was found on Windows: the A1 ellipse became rounded. Now a choice of shape and color after Enter applies to the next mark. If the field closed by a click outside (for example, on the color button), the mark stays selected and is recolored: this way the person edits exactly it. Esc closes the field, the selection stays.
+- There is no key for changing the shape. R and M enable "Mark" with the current shape.
+- The message text does not depend on the shape.
 
-## Проверка
+## Checks
 
-- Тесты:
-  - ядро: отрисовка трёх форм (угол закрашен только у прямоугольника), значок на овале, сохранение на диск;
-  - интерфейс: меню для новой и выделенной рамки, отмена, стрелка без пустого шага, попадание в овал, после Enter форма и цвет — для следующей метки.
-- Windows 11 24H2 (VirtualBox, 2026-10-20): меню с галочкой у текущей формы, овал и скруглённая рамка нарисованы, отмена возвращает прежнюю форму.
-- KDE: меню отрисовано в стиле Breeze без дисплея (`QT_STYLE_OVERRIDE=breeze markpaste-uipreview --dark`): переключатели у пунктов.
+- Tests:
+  - core: painting the three shapes (only the rectangle's corner is painted), the badge on the ellipse, saving to disk;
+  - UI: the menu for a new and a selected frame, undo, an arrow without an empty step, ellipse hit-testing, after Enter the shape and color apply to the next mark.
+- Windows 11 24H2 (VirtualBox, 2026-10-20): the menu with a check mark on the current shape, the ellipse and the rounded frame are drawn, undo restores the previous shape.
+- KDE: the menu rendered in the Breeze style without a display (`QT_STYLE_OVERRIDE=breeze markpaste-uipreview --dark`): radio buttons on the items.

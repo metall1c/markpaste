@@ -1,49 +1,51 @@
 # CLAUDE.md
 
-## О проекте
+## About the project
 
-Открытый аналог Snapik для Windows 10/11 и Linux — **Markpaste** (идентификатор `su._525.Markpaste`, исполняемый файл `markpaste`; в ТЗ — рабочее имя Pointshot, см. `docs/decisions/0005-*.md`). Репозиторий: https://gitlab.525.su/che/main/markpaste. Сценарий: горячая клавиша → снимок области → метки A1, A2… с комментариями → вставка всего набора (картинки + текст) в любой чат одним действием.
+An open alternative to Snapik for Windows 10/11 and Linux: **Markpaste** (ID `su._525.Markpaste`, executable `markpaste`; the spec uses the working name Pointshot, see `docs/decisions/0005-*.md`). Repository: https://github.com/metall1c/markpaste (public home, releases); the working mirror is https://gitlab.525.su/che/main/markpaste. Scenario: hotkey → area shot → marks A1, A2… with comments → pasting the whole set (images + text) into any chat in one action.
 
-- Полное ТЗ: [TZ.md](TZ.md). Это источник требований (ID вида CAP-1, EDT-3, PST-1, NFR-2), на них ссылаемся в коде, коммитах и документации.
-- Стек: C++20, Qt 6 (Widgets + QPainter), CMake + Ninja. На Linux — системный Qt, API не новее Qt 6.4.
-- Главная платформа Linux — **Fedora 44 KDE Plasma на Wayland** (решение пользователя, уточняет ТЗ: см. `docs/decisions/0001-*.md`). Каждая функция сначала делается и проверяется здесь. Потом GNOME 50 и Sway, X11 — по остаточному принципу. Машина разработчика — сама эталонная система (Fedora 44 KDE, Wayland), поэтому проверяем всё на живой сессии.
-- Пользователь работает в Linux-версии; Windows — отдельный этап позже, но код ядра и UI пишется платформенно-независимым с самого начала.
-- Архитектура: UI → ядро → 4 платформенных интерфейса (`ICapture`, `IHotkeys`, `IClipboard`, `IInputInjector`) → реализации в `platform/`. Платформенный код (`#ifdef _WIN32` и т. п.) — только в `platform/`. Ядро выбирает поведение по `capabilities()`, а не по названию ОС.
-- Лицензия по умолчанию — GPL-3.0-or-later.
+- The full spec: [TZ.md](TZ.md). It is the source of requirements (IDs like CAP-1, EDT-3, PST-1, NFR-2), referenced in code, commits and documentation.
+- Stack: C++20, Qt 6 (Widgets + QPainter), CMake + Ninja. On Linux the system Qt, no API newer than Qt 6.4.
+- The main Linux platform is **Fedora 44 KDE Plasma on Wayland** (the user's decision, refining the spec: see `docs/decisions/0001-*.md`). Every feature is first built and checked here. Then GNOME 50 and Sway, X11 last. The developer machine is the reference system itself (Fedora 44 KDE, Wayland), so everything is checked in the live session.
+- The user works with the Linux version; Windows is a separate stage, but the core and UI code is platform-independent from the start.
+- Architecture: UI → core → 4 platform interfaces (`ICapture`, `IHotkeys`, `IClipboard`, `IInputInjector`) → implementations in `platform/`. Platform code (`#ifdef _WIN32` and the like) only in `platform/`. The core picks its behavior by `capabilities()`, not by the OS name.
+- Default license: GPL-3.0-or-later.
 
-## Документирование по ходу работы — обязательно
+## Documenting along the way is mandatory
 
-ТЗ описывает намерения, а не то, что получилось. По мере реализации фиксируем **фактическое** состояние в `docs/`. Документацию обновляем в той же задаче, что и код, а не «потом».
+The spec describes intentions, not what came out. As the implementation goes, record the **actual** state in `docs/`. Documentation is updated in the same task as the code, not "later".
 
-### Что записывать
+### What to record
 
-1. **Технические решения** — `docs/decisions/NNNN-краткое-имя.md` (ADR). Каждое решение, которое кто-то мог бы принять иначе: выбор API, библиотеки, формата, режима, значения задержки, отказ от пункта ТЗ. Формат:
-   - Контекст — какая задача и какие требования ТЗ (ID).
-   - Решение — что сделали фактически.
-   - Рассмотренные варианты и почему отказались.
-   - Последствия и ограничения.
-   - Статус: принято / заменено решением NNNN.
-2. **Отклонения от ТЗ** — если реализация расходится с TZ.md (не подтвердилась гипотеза, другой API, другие цифры), записываем ADR и добавляем строку в `docs/deviations.md`: пункт ТЗ → что сделано вместо → ссылка на ADR. TZ.md без явной просьбы не правим.
-3. **Сложные места** — `docs/architecture/` (или комментарий в коде, если касается одной функции): неочевидные алгоритмы, асинхронные цепочки (порталы, конечный автомат вставки), пересчёт координат и DPI, порядок инициализации, потоки. Пишем, *почему* так устроено, а не пересказываем код.
-4. **Проблемы и их решение** — `docs/problems.md`, журнал в формате:
-   - Дата, окружение (ОС, DE, Wayland/X11, версии Qt/композитора/порталов).
-   - Симптом и как воспроизвести.
-   - Причина (если найдена) и как решили или обошли.
-   - Ссылки на баг-трекеры, документацию, коммиты.
-   Записываем и нерешённые проблемы — со статусом «открыто».
-5. **Результаты проверок на платформах** — `docs/platform-matrix.md`: фактическая матрица возможностей (раздел 9 ТЗ) и совместимости чатов (раздел 12) — что проверено, где, когда и с каким результатом. Особенно гипотезы ТЗ: портал Clipboard в GNOME 50, `ext-data-control-v1` в Plasma 6.6, фокус оверлея на GNOME, задержки профилей вставки, скорость захвата через портал.
-6. **Сборка и окружение разработчика** — `docs/build.md`: фактические зависимости и команды сборки для каждой платформы, подводные камни.
+1. **Technical decisions**: `docs/decisions/NNNN-short-name.md` (ADR). Every decision someone could have made differently: the choice of an API, library, format, mode, delay value, dropping a spec item. Format:
+   - Context: what task and which spec requirements (IDs).
+   - Decision: what was actually done.
+   - Options considered and why they were rejected.
+   - Consequences and limitations.
+   - Status: accepted / replaced by decision NNNN.
+2. **Deviations from the spec**: if the implementation differs from TZ.md (a hypothesis did not hold, a different API, different numbers), write an ADR and add a row to `docs/deviations.md`: spec item → what was done instead → link to the ADR. TZ.md is not edited without an explicit request.
+3. **Tricky parts**: `docs/architecture/` (or a code comment if it concerns one function): non-obvious algorithms, asynchronous chains (portals, the paste state machine), coordinate and DPI conversion, initialization order, threads. Write *why* it is built this way, not a retelling of the code.
+4. **Problems and their solutions**: `docs/problems.md`, a log in the format:
+   - Date, environment (OS, DE, Wayland/X11, Qt/compositor/portal versions).
+   - Symptom and how to reproduce.
+   - Cause (if found) and how it was solved or worked around.
+   - Links to bug trackers, documentation, commits.
+   Unsolved problems are recorded too, with the status "open".
+5. **Platform check results**: `docs/platform-matrix.md`: the actual capability matrix (spec section 9) and chat compatibility (section 12): what was checked, where, when and with what result. Especially the spec's hypotheses: the Clipboard portal in GNOME 50, `ext-data-control-v1` in Plasma 6.6, overlay focus on GNOME, paste profile delays, portal capture speed.
+6. **Build and developer environment**: `docs/build.md`: the actual dependencies and build commands for each platform, pitfalls.
 
-### Правила
+### Rules
 
-- После каждой завершённой задачи проверить: появилось ли решение, отклонение, сложное место или проблема? Если да — записать до того, как считать задачу сделанной.
-- Пишем по-русски, коротко и конкретно: версии, команды, сообщения об ошибках, цифры замеров.
-- Не дублировать: если запись уже есть — обновить её, а не создавать новую. Устаревшее помечать, а не молча удалять.
-- В отчёте пользователю о выполненной задаче упоминать, какие документы обновлены.
+- After each finished task, check: is there a new decision, deviation, tricky part or problem? If so, record it before considering the task done.
+- **Documentation and code comments are written in English** (since 2026-10-21, before publishing on GitHub), short and specific: versions, commands, error messages, measured numbers. `README.ru.md` is the Russian copy of `README.md` and is kept in sync with it. UI strings stay English in code with Russian translations in `i18n/`.
+- Talk to the user in Russian.
+- Do not duplicate: if an entry exists, update it rather than create a new one. Mark outdated content instead of silently deleting it.
+- In the report to the user about a finished task, mention which documents were updated.
 
-## Коммиты и пуш
+## Commits and push
 
-- После каждой значимой правки (функция, исправление ошибки, заметное изменение документации) — сразу коммит и пуш в `origin` (`git@gitlab.525.su:che/main/markpaste.git`, ветка `main`), не дожидаясь отдельной просьбы.
-- Перед коммитом: сборка без ошибок, тесты `markpaste_core_tests` и `markpaste_ui_tests` проходят, документация по правилам выше обновлена.
-- Сообщения коммитов — по-русски: первая строка — что сделано, ниже — зачем и ссылки на ID требований ТЗ и docs/.
-- Версия программы: после каждой правки кода (не только документации) увеличивать номер версии в `project(Markpaste VERSION …)` в корневом `CMakeLists.txt` в том же коммите — по умолчанию последнюю цифру (0.1.1 → 0.1.2); среднюю — для заметной новой функции, если так скажет пользователь. В сообщении коммита указывать новую версию.
+- After each significant change (a feature, a bug fix, a notable documentation change), commit and push right away, without waiting for a separate request: to `origin` (`git@gitlab.525.su:che/main/markpaste.git`) and to `github` (`git@github.com:metall1c/markpaste.git`), branch `main`.
+- Before committing: the build has no errors, the `markpaste_core_tests` and `markpaste_ui_tests` tests pass, the documentation is updated per the rules above.
+- Commit messages are in Russian: the first line says what was done, below it why, with links to spec requirement IDs and docs/.
+- Program version: after each code change (not documentation only), bump the version in `project(Markpaste VERSION …)` in the root `CMakeLists.txt` in the same commit: the last digit by default (0.1.1 → 0.1.2); the middle one for a notable new feature if the user says so. Mention the new version in the commit message.
+- Releases: tag `vX.Y.Z` on `main`, push the tag to both remotes, publish a GitHub release with the packages (`docs/release.md`).

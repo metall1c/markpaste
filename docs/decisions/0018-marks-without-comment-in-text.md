@@ -1,26 +1,26 @@
-# 0018. Метки без комментария не попадают в текст сообщения
+# 0018. Marks without a comment do not get into the message text
 
-- Статус: принято (2026-10-20, просьба пользователя; в тот же день расширено на набор из нескольких снимков)
-- Требования ТЗ: разд. 3 («Комментарий… может быть пустым — тогда в сообщение уходит только номер»), разд. 10 (шаблон: «пустые комментарии дают строку только с номером, снимки без меток дают только заголовок»), PST-3
+- Status: accepted (2026-10-20, the user's request; extended the same day to a set of several shots)
+- Spec items: section 3 ("A comment… may be empty, then only the number goes into the message"), section 10 (template: "empty comments give a line with just the number, shots without marks give just a header"), PST-3
 
-## Контекст
+## Context
 
-Пользователь поставил на единственный снимок стрелку без комментария и получил в чате текст «Снимок A / A1» — он ничего не сообщает, только засоряет сообщение.
+The user put an arrow without a comment on the only shot and got the text "Shot A / A1" in the chat: it says nothing and only clutters the message.
 
-## Решение
+## Decision
 
 `buildMessage` (`src/core/MessageBuilder.cpp`):
-- метка любой формы без комментария строки не даёт; номера остальных — как на картинке (если у A1 слов нет, а у A2 есть, в тексте «A2 …»);
-- если ни у одного снимка набора нет комментариев, текста нет: ни «Снимок A», ни номеров меток — сколько бы снимков ни было. Сначала так было только для единственного снимка; пользователь попросил то же для всей ленты. Вводная и заключительная фразы из настроек остаются: их пользователь пишет сам, по умолчанию они пустые;
-- если комментарии есть хоть у одного снимка, заголовок остаётся у каждого: по нему видно, какая картинка какая.
+- a mark of any shape without a comment gives no line; the other numbers stay as on the image (if A1 has no words and A2 does, the text has "A2 …");
+- if no shot of the set has comments, there is no text: no "Shot A" and no mark numbers, however many shots there are. At first this was only for a single shot; the user asked for the same for the whole strip. The opening and closing phrases from settings stay: the user writes them, and they are empty by default;
+- if at least one shot has comments, every shot keeps its header: it shows which image is which.
 
-Пустой текст не вставляется вовсе: в режиме 1 — без шага «текст», в режиме «файлы + текст» — без текстовой части, в `message.md` (APP-6) — только картинки. При перетаскивании набора из ленты (режим 3) пустой текст не кладётся в буфер, и лента не пишет «Текст скопирован».
+Empty text is not pasted at all: in mode 1 there is no "text" step, in the "files + text" mode there is no text part, in `message.md` (APP-6) only images. When the set is dragged from the strip (mode 3), empty text is not put into the clipboard, and the strip does not say "Text copied".
 
-## Рассмотренные варианты
+## Options considered
 
-- Убирать заголовок у каждого снимка без комментариев, даже когда у других комментарии есть. Тогда в тексте «Снимок B / B1 …» без «Снимок A» и не видно, что первая картинка — A. Оставили заголовки, пока комментарий есть хоть где-то.
+- Drop the header of every shot without comments, even when others have comments. Then the text has "Shot B / B1 …" without "Shot A", and it is not clear that the first image is A. The headers stay as long as there is a comment anywhere.
 
-## Последствия
+## Consequences
 
-- Расходится с ТЗ (разд. 3 и 10) — строка в docs/deviations.md.
-- Тесты `MessageBuilder.MarksWithoutCommentAreSkipped`, `MessageBuilder.SingleShotWithoutCommentsGivesNoText`, `MessageBuilder.SeveralShotsWithoutCommentsGiveNoText`, `MessageBuilder.ShotWithoutCommentsAmongSeveralGivesHeaderOnly`.
+- Differs from the spec (sections 3 and 10): a line in docs/deviations.md.
+- Tests `MessageBuilder.MarksWithoutCommentAreSkipped`, `MessageBuilder.SingleShotWithoutCommentsGivesNoText`, `MessageBuilder.SeveralShotsWithoutCommentsGiveNoText`, `MessageBuilder.ShotWithoutCommentsAmongSeveralGivesHeaderOnly`.

@@ -1,32 +1,32 @@
-# 0005. Название Markpaste и идентификатор su._525.Markpaste
+# 0005. The name Markpaste and the ID su._525.Markpaste
 
-- Статус: принято (2026-10-19)
-- Требования ТЗ: разд. 2 (рабочее название), разд. 11 (идентификатор приложения), разд. 14 (открытые вопросы)
+- Status: accepted (2026-10-19)
+- Spec items: section 2 (working name), section 11 (application ID), section 14 (open questions)
 
-## Контекст
+## Context
 
-ТЗ дало рабочее название Pointshot и попросило выбрать окончательное до первого публичного релиза. Проверка 2026-10-19 нашла у Pointshot проблемы:
+The spec gave the working name Pointshot and asked to choose the final one before the first public release. A check on 2026-10-19 found problems with Pointshot:
 
-- имя не говорит о главном — вставке набора в чат;
-- есть браузерное расширение «Point & Shoot» с очень похожей идеей (скриншоты интерфейса с заметками);
-- аккаунт `github.com/pointshot` занят, поэтому идентификатор `io.github.pointshot.Pointshot` указывал бы на чужой аккаунт;
-- поиск по слову выдаёт приём стрельбы «point shooting».
+- the name says nothing about the main thing, pasting the set into a chat;
+- there is a browser extension "Point & Shoot" with a very similar idea (interface screenshots with notes);
+- the `github.com/pointshot` account is taken, so the ID `io.github.pointshot.Pointshot` would point to someone else's account;
+- a search for the word returns the "point shooting" firing technique.
 
-## Решение
+## Decision
 
-- **Название — Markpaste**: «отметил → вставил», оба шага сценария. На 2026-10-19: аккаунт `github.com/markpaste` свободен, 4 малоизвестных репозитория с похожим именем, пакета в Fedora нет.
-- **Идентификатор — `su._525.Markpaste`.** Репозиторий живёт на `gitlab.525.su`, домен принадлежит автору, а идентификатор — обратная запись домена. Элемент идентификатора не может начинаться с цифры (спецификации D-Bus и Desktop Entry), поэтому `525` записан как `_525`. Компонент KDE для клавиш — `su._525.Markpaste`, объект D-Bus — `su__525_Markpaste`.
-- **Исполняемый файл `markpaste`**, каталог настроек `~/.config/markpaste/`, временные файлы `$XDG_RUNTIME_DIR/markpaste/`, переводы `markpaste_*.ts`, пространство имён C++ `mp`, переменные CMake `MARKPASTE_*`.
-- Имя и идентификатор заданы в одном месте — верх `CMakeLists.txt`.
+- **The name is Markpaste**: "mark → paste", both steps of the scenario. As of 2026-10-19: the `github.com/markpaste` account is free, there are 4 little-known repositories with a similar name, and Fedora has no such package.
+- **The ID is `su._525.Markpaste`.** The repository lived on `gitlab.525.su`, the domain belongs to the author, and the ID is the reversed domain. An ID element cannot start with a digit (D-Bus and Desktop Entry specifications), so `525` is written as `_525`. The KDE shortcuts component is `su._525.Markpaste`, the D-Bus object is `su__525_Markpaste`.
+- **Executable `markpaste`**, settings directory `~/.config/markpaste/`, temporary files `$XDG_RUNTIME_DIR/markpaste/`, translations `markpaste_*.ts`, C++ namespace `mp`, CMake variables `MARKPASTE_*`.
+- The name and ID are set in one place, at the top of `CMakeLists.txt`.
 
-## Рассмотренные варианты
+## Options considered
 
-- Shotpaste, Snipnote, Pinshot, Shotlist — аккаунты на GitHub заняты, у Pinshot и Shotlist много одноимённых репозиториев.
-- `io.github.markpaste.Markpaste` — аккаунт на GitHub свободен, но не принадлежит автору; проект живёт не на GitHub.
+- Shotpaste, Snipnote, Pinshot, Shotlist: the GitHub accounts are taken, Pinshot and Shotlist have many repositories with the same name.
+- `io.github.markpaste.Markpaste`: the GitHub account is free but does not belong to the author.
 
-## Последствия
+## Consequences
 
-- После переименования KDE заново спрашивает разрешения: на глобальные клавиши — при первом запуске, на управление клавиатурой — при первой вставке. Разрешения порталов привязаны к идентификатору.
-- **После первого публичного релиза идентификатор не меняется** (ТЗ разд. 11).
-- Перед публикацией стоит ещё проверить имя в Debian, на Flathub и среди товарных знаков: пока проверены только GitHub и Fedora.
-- Если проект переедет на GitHub под аккаунтом markpaste, менять идентификатор не обязательно: домен 525.su остаётся за автором.
+- After the rename KDE asks for permissions again: for global hotkeys on the first start, for keyboard control on the first paste. Portal permissions are tied to the ID.
+- **The ID does not change after the first public release** (spec section 11).
+- Before publishing, the name should also be checked in Debian, on Flathub and among trademarks: so far only GitHub and Fedora were checked.
+- Update 2026-10-21: the project is published as `github.com/metall1c/markpaste` ([ADR 0024](0024-github-home-and-releases.md)). The ID stays `su._525.Markpaste`: the 525.su domain remains the author's.

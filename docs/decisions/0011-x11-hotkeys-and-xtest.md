@@ -1,28 +1,28 @@
-# 0011. X11: глобальные клавиши через XGrabKey, Ctrl+V через XTEST
+# 0011. X11: global hotkeys via XGrabKey, Ctrl+V via XTEST
 
-- Статус: принято (2026-10-19)
-- Требования ТЗ: разд. 9 (X11: XGrabKey, XTest, MIT-SHM), CAP-1, PST-1; п. 6 плана Linux-версии. X11 — по остаточному принципу (ADR 0001).
+- Status: accepted (2026-10-19)
+- Spec items: section 9 (X11: XGrabKey, XTest, MIT-SHM), CAP-1, PST-1; item 6 of the Linux version plan. X11 is lowest priority (ADR 0001).
 
-## Решение
+## Decision
 
-- **Клавиши — `X11Hotkeys`** (`src/platform/linux/x11/`): `xcb_grab_key` на корневом окне через подключение Qt (`QNativeInterface::QX11Application`), события — фильтром нативных событий Qt. Сочетание захватывается в 4 вариантах: без фиксируемых модификаторов, с CapsLock, с NumLock и с обоими — иначе при включённом NumLock клавиша молчит.
-- **Занятое сочетание.** `xcb_grab_key_checked` + `xcb_request_check`: BadAccess значит, что сочетание захватил кто-то ещё, — `BindResult` с ошибкой «… is already used by another program» (ТЗ разд. 14: сообщить и предложить другую). Мастер и лог показывают её.
-- **Автоповтор.** X11 при удержании шлёт пары «отпущена/нажата». Отпускание, при котором клавиша по `QueryKeymap` всё ещё нажата, считается автоповтором; повторное «нажата» при уже нажатой — тоже. Итог: одно `activated` и одно `released` на удержание.
-- **Ctrl+V — `X11InputInjector`**: `xcb_test_fake_input`, Ctrl↓ V↓ V↑ Ctrl↑ с паузами 20 мс, как на Wayland. Код V — клавиша, на которой в раскладке есть `v` (`xcb_key_symbols_get_keycode`), иначе 55 (evdev KEY_V + 8). Сессии нет: `begin/end` пустые.
-- **Ожидание отпускания модификаторов** на X11 настоящее: `waitModifiersReleased` опрашивает `QueryKeymap` каждые 20 мс, пока не отпущены все модификаторы, кроме CapsLock и NumLock (Lock и Mod2).
-- **Буфер** — `QtClipboard(true)`: на X11 владелец selection может быть в фоне. Картинка кладётся ещё и через `setImageData`, чтобы Qt отдавал её в других форматах.
-- **Захват** — `QScreen::grabWindow` (Qt). MIT-SHM из ТЗ не делали: на Xvfb 1280×800 снимок за 5 мс; замеры на 4K — когда будет настоящая X11-сессия.
-- **Показ сочетания** — «Ctrl+Alt+V», а не переносимое «Primary+Alt+V».
-- Сборка: `xcb`, `xcb-xtest`, `xcb-keysyms` через pkg-config, необязательны (`MARKPASTE_HAVE_X11`). Под XWayland X11-реализации не включаются: глобальные клавиши там не работают (ТЗ разд. 14).
+- **Hotkeys: `X11Hotkeys`** (`src/platform/linux/x11/`): `xcb_grab_key` on the root window through Qt's connection (`QNativeInterface::QX11Application`), events through a Qt native event filter. A shortcut is grabbed in 4 variants: without lock modifiers, with CapsLock, with NumLock and with both; otherwise the key is silent with NumLock on.
+- **A taken shortcut.** `xcb_grab_key_checked` + `xcb_request_check`: BadAccess means someone else has grabbed the shortcut, giving a `BindResult` with the error "… is already used by another program" (spec section 14: report it and suggest another one). The wizard and the log show it.
+- **Autorepeat.** While a key is held, X11 sends "released/pressed" pairs. A release during which the key is still down according to `QueryKeymap` counts as autorepeat; a repeated "pressed" while already pressed too. Result: one `activated` and one `released` per hold.
+- **Ctrl+V: `X11InputInjector`**: `xcb_test_fake_input`, Ctrl↓ V↓ V↑ Ctrl↑ with 20 ms pauses, as on Wayland. The V code is the key that has `v` in the layout (`xcb_key_symbols_get_keycode`), otherwise 55 (evdev KEY_V + 8). There is no session: `begin/end` are empty.
+- **Waiting for modifier release** is real on X11: `waitModifiersReleased` polls `QueryKeymap` every 20 ms until all modifiers except CapsLock and NumLock (Lock and Mod2) are released.
+- **Clipboard**: `QtClipboard(true)`: on X11 the selection owner may be in the background. The image is also set via `setImageData`, so that Qt offers it in other formats.
+- **Capture**: `QScreen::grabWindow` (Qt). MIT-SHM from the spec was not done: on Xvfb 1280×800 a shot takes 5 ms; 4K measurements when there is a real X11 session.
+- **Shortcut display**: "Ctrl+Alt+V", not the portable "Primary+Alt+V".
+- Build: `xcb`, `xcb-xtest`, `xcb-keysyms` via pkg-config, optional (`MARKPASTE_HAVE_X11`). Under XWayland the X11 implementations are not enabled: global hotkeys do not work there (spec section 14).
 
-## Проверки (Xvfb, без оконного менеджера, 2026-10-19)
+## Checks (Xvfb, no window manager, 2026-10-19)
 
-- `pastetest --x11-hotkeys` (нажатия через xdotool/XTEST): Print и Ctrl+Alt+V дают `activated`/`released`, V и Ctrl+V без Alt — не срабатывают, удержание Print 0.9 с — одно срабатывание. PASS.
-- Второй процесс, захватывающий те же сочетания, получает «already used by another program».
-- `pastetest --self-test` (XTEST + QClipboard): 3 картинки + текст, PASS 3/3, в том же процессе и с приёмником в отдельном процессе.
-- Сама программа на Xvfb: фабрика выбрала XGrabKey и XTEST; Print запускает захват; мастер — «Проверить захват» ✓ (1 экран 1280×800, 5 мс) и «Проверить вставку» ✓.
+- `pastetest --x11-hotkeys` (presses via xdotool/XTEST): Print and Ctrl+Alt+V give `activated`/`released`, V and Ctrl+V without Alt do not fire, holding Print for 0.9 s gives one activation. PASS.
+- A second process grabbing the same shortcuts gets "already used by another program".
+- `pastetest --self-test` (XTEST + QClipboard): 3 images + text, PASS 3/3, in the same process and with the receiver in a separate process.
+- The program itself on Xvfb: the factory chose XGrabKey and XTEST; Print starts a capture; the wizard: "Check capture" ✓ (1 screen 1280×800, 5 ms) and "Check paste" ✓.
 
-## Последствия
+## Consequences
 
-- Настоящая X11-сессия (KDE/Xfce на X11) с оконным менеджером не проверялась: на Xvfb нет WM, перехватов клавиш окружением (KDE на X11 сам держит Print), русской раскладки.
-- `canDetectForegroundChange` = false: смену активного окна во время вставки (`_NET_ACTIVE_WINDOW`) пока не отслеживаем.
+- A real X11 session (KDE/Xfce on X11) with a window manager was not checked: Xvfb has no WM, no hotkey grabs by the desktop (KDE on X11 holds Print itself), no Russian layout.
+- `canDetectForegroundChange` = false: a change of the active window during a paste (`_NET_ACTIVE_WINDOW`) is not tracked yet.

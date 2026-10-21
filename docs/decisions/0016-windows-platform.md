@@ -1,74 +1,74 @@
-# 0016. Windows: захват DXGI, клавиши RegisterHotKey и хук, буфер OLE, SendInput
+# 0016. Windows: DXGI capture, RegisterHotKey and a hook for hotkeys, OLE clipboard, SendInput
 
-- Статус: принято (2026-10-20)
-- Требования ТЗ: разд. 9 («Windows»), разд. 10 (формат буфера, «свои события», UIPI), CAP-1, PST-1, PST-2, STR-1, STR-5, NFR-4, NFR-5, NFR-11, APP-3 (автозапуск)
+- Status: accepted (2026-10-20)
+- Spec items: section 9 ("Windows"), section 10 (clipboard format, "own events", UIPI), CAP-1, PST-1, PST-2, STR-1, STR-5, NFR-4, NFR-5, NFR-11, APP-3 (autostart)
 
-## Контекст
+## Context
 
-Linux-версия готова, следующий этап — Windows 10/11 (ADR 0001). Ядро и интерфейс уже не зависят от ОС: Windows-версия — это четыре реализации платформенных интерфейсов в `src/platform/windows/` (пространство имён `mp::win`) и ветки `#ifdef Q_OS_WIN` в общих файлах `src/platform/common/`. Вне `src/platform/` кода под Windows нет: проверка `grep -rn 'ifdef\|Q_OS_' src | grep -v ^src/platform/` пустая.
+The Linux version is ready, the next stage is Windows 10/11 (ADR 0001). The core and the UI already do not depend on the OS: the Windows version is four implementations of the platform interfaces in `src/platform/windows/` (namespace `mp::win`) and `#ifdef Q_OS_WIN` branches in the shared files of `src/platform/common/`. There is no Windows code outside `src/platform/`: the check `grep -rn 'ifdef\|Q_OS_' src | grep -v ^src/platform/` is empty.
 
-## Решение
+## Decision
 
-### Захват — `DxgiCapture`
+### Capture: `DxgiCapture`
 
-- **DXGI Desktop Duplication** на каждый монитор: `D3D11CreateDevice` на адаптере монитора → `IDXGIOutput5::DuplicateOutput1` с единственным форматом `B8G8R8A8_UNORM` (система сама переводит HDR-рабочий стол в 8 бит) → `AcquireNextFrame` → копия в staging-текстуру → `QImage::Format_RGB32`. Без `IDXGIOutput5` (Windows 10 до 1703) — `IDXGIOutput1::DuplicateOutput`.
-- Первый кадр дублирования у некоторых драйверов чёрный: если он пустой и `LastPresentTime == 0`, ждём ещё один кадр 100 мс, иначе берём что есть.
-- Повёрнутый монитор: поверхность дублирования — в собственной ориентации панели, поворачиваем по `DXGI_OUTDUPL_DESC.Rotation`.
-- **GDI BitBlt** (`CAPTUREBLT`, в физических пикселях) — для монитора, который DXGI не отдал: экран блокировки и окно UAC (`E_ACCESSDENIED`), драйвер без дублирования, Wine. Решение — по каждому монитору и каждому снимку, а не «раз отказал — навсегда», как у `FallbackCapture`: временный отказ DXGI не должен лишать HDR-мониторы правильной картинки до перезапуска. Поэтому `DxgiCapture` не обёрнут в `FallbackCapture` → `QtScreenCapture`: тот после одного полностью неудачного снимка навсегда переходил бы на `QScreen::grabWindow` — тот же GDI, но без DXGI (ревью, 2026-10-20).
-- Сопоставление с `QScreen`: по имени устройства (`\\.\DISPLAY1` — Qt 6.11 называет экраны так же), а если не совпало — по левому верхнему углу: Qt сохраняет его в физических координатах и при разном масштабе мониторов.
-- Снимок идёт в пуле потоков (`QtConcurrent`); геометрию `QScreen` берём заранее в главном потоке. Устройство D3D11 создаётся на каждый снимок — без кэша, проще и без общих объектов между потоками. Если это окажется медленно (цель NFR-1 — 300 мс на 2×4K), кэшировать устройство по LUID адаптера.
-- **Удалённый рабочий стол** (`SM_REMOTESESSION`): только GDI — DXGI там отдаёт пустые чёрные кадры. И вообще чёрный кадр без отрисовки (`LastPresentTime = 0`) не принимается — монитор снимается через GDI (docs/problems.md, 2026-10-20).
-- `MARKPASTE_CAPTURE=gdi` — только GDI: для драйверов, где DXGI сбоит, и для Wine без экрана (docs/problems.md, 2026-10-20).
+- **DXGI Desktop Duplication** per monitor: `D3D11CreateDevice` on the monitor's adapter → `IDXGIOutput5::DuplicateOutput1` with the single format `B8G8R8A8_UNORM` (the system itself converts an HDR desktop to 8 bits) → `AcquireNextFrame` → copy into a staging texture → `QImage::Format_RGB32`. Without `IDXGIOutput5` (Windows 10 before 1703), `IDXGIOutput1::DuplicateOutput`.
+- The first duplication frame is black on some drivers: if it is empty and `LastPresentTime == 0`, we wait for one more frame for 100 ms, otherwise we take what there is.
+- A rotated monitor: the duplication surface is in the panel's own orientation, rotated by `DXGI_OUTDUPL_DESC.Rotation`.
+- **GDI BitBlt** (`CAPTUREBLT`, in physical pixels) for a monitor DXGI did not provide: the lock screen and a UAC window (`E_ACCESSDENIED`), a driver without duplication, Wine. The decision is made per monitor and per shot, not "failed once, forever" as in `FallbackCapture`: a temporary DXGI failure must not deprive HDR monitors of the correct image until a restart. That is why `DxgiCapture` is not wrapped into `FallbackCapture` → `QtScreenCapture`: after one completely failed shot it would switch to `QScreen::grabWindow` for good, which is the same GDI but without DXGI (review, 2026-10-20).
+- Matching with `QScreen`: by device name (`\\.\DISPLAY1`; Qt 6.11 names screens the same way), and if that does not match, by the top-left corner: Qt keeps it in physical coordinates also with different monitor scales.
+- The capture runs in the thread pool (`QtConcurrent`); the `QScreen` geometry is taken beforehand in the main thread. The D3D11 device is created for every shot, without a cache: simpler and without objects shared between threads. If this turns out to be slow (the NFR-1 target is 300 ms on 2×4K), cache the device by the adapter LUID.
+- **Remote desktop** (`SM_REMOTESESSION`): GDI only, DXGI returns empty black frames there. And in general a black frame without rendering (`LastPresentTime = 0`) is not accepted: the monitor is captured via GDI (docs/problems.md, 2026-10-20).
+- `MARKPASTE_CAPTURE=gdi`: GDI only, for drivers where DXGI misbehaves and for Wine without a screen (docs/problems.md, 2026-10-20).
 
-### Клавиши — `WinHotkeys`
+### Hotkeys: `WinHotkeys`
 
-- Обычные сочетания — `RegisterHotKey` на окне только для сообщений (`HWND_MESSAGE`), с `MOD_NOREPEAT`. Система сама разбирает модификаторы, не шлёт автоповтор и отвечает `ERROR_HOTKEY_ALREADY_REGISTERED`, если сочетание занято, — это уходит пользователю как «… is already used by another program», как на X11.
-- **Print Screen — через хук `WH_KEYBOARD_LL`** (`KeyboardHook`), а не `RegisterHotKey`: в Windows 11 эту клавишу забирают «Ножницы» (ТЗ разд. 9). Хук глотает нажатие — ни «Ножницы», ни копирование экрана в буфер не срабатывают.
-- Хук живёт в **своём потоке со своим циклом сообщений**. Windows ждёт ответа хука не дольше `LowLevelHooksTimeout` и молча снимает медленный хук; в главном потоке он ждал бы запекания картинок. Поток только сравнивает код клавиши и отправляет сигнал в главный поток через очередь, в журнал не пишет. Нажатия с `LLKHF_INJECTED` (наши же) пропускает. Хук стоит, только пока к нему привязано хоть одно сочетание.
-- **Отпускание.** `RegisterHotKey` его не сообщает, а вставка ждёт его, чтобы зажатый Alt не превратил наш Ctrl+V в Ctrl+Alt+V. После срабатывания опрашиваем `GetAsyncKeyState` каждые 20 мс, пока клавиша и модификаторы сочетания не отпущены, — тогда `released`. Хук отпускание видит сам.
-- Сочетание из настроек — переносимое (`Primary+Alt+V`) → `QKeySequence` → виртуальный код клавиши. Показывается как «Ctrl+Alt+V».
+- Ordinary shortcuts use `RegisterHotKey` on a message-only window (`HWND_MESSAGE`), with `MOD_NOREPEAT`. The system itself handles modifiers, sends no autorepeat and answers `ERROR_HOTKEY_ALREADY_REGISTERED` if the shortcut is taken; the user gets "… is already used by another program", as on X11.
+- **Print Screen goes through the `WH_KEYBOARD_LL` hook** (`KeyboardHook`) rather than `RegisterHotKey`: on Windows 11 the key is taken by the Snipping Tool (spec section 9). The hook swallows the press: neither the Snipping Tool nor copying the screen to the clipboard fires.
+- The hook lives in **its own thread with its own message loop**. Windows waits for the hook's answer no longer than `LowLevelHooksTimeout` and silently removes a slow hook; in the main thread it would wait for image baking. The thread only compares the key code and sends a signal to the main thread through the queue; it does not write to the log. Presses with `LLKHF_INJECTED` (our own) are skipped. The hook is installed only while at least one shortcut is bound to it.
+- **Release.** `RegisterHotKey` does not report it, but the paste waits for it so that a held Alt does not turn our Ctrl+V into Ctrl+Alt+V. After the hotkey fires we poll `GetAsyncKeyState` every 20 ms until the key and the shortcut's modifiers are released, then `released`. The hook sees the release itself.
+- The shortcut from settings is portable (`Primary+Alt+V`) → `QKeySequence` → virtual key code. Shown as "Ctrl+Alt+V".
 
-### Буфер — `WinClipboard`
+### Clipboard: `WinClipboard`
 
-- `QClipboard` (OLE) — пишет из фона, без фокуса. Qt раскладывает запись по форматам Windows: картинку — в `CF_DIB`/`CF_DIBV5`, список файлов — в `CF_HDROP`, текст — в `CF_UNICODETEXT`.
-- Формат **`PNG`** Qt сам не кладёт, а Chrome, Telegram и Office читают его первым (прозрачность, без потерь): добавляем байты PNG как есть через `application/x-qt-windows-mime;value="PNG"`.
-- **«Не в историю»** (NFR-4, ТЗ разд. 10): `ExcludeClipboardContentFromMonitorProcessing`, `CanIncludeInClipboardHistory` = 0, `CanUploadToCloudClipboard` = 0 — журнал Win+V, облачная синхронизация и мониторы буфера такие записи пропускают. При восстановлении буфера после вставки пометок нет: это снова буфер пользователя.
-- Снимок буфера перед вставкой: если Qt не разобрал картинку другой программы (под Wine `CF_DIB` давал пустой `QImage`), читаем `PNG` или `CF_DIB` сами — `CF_DIB` это BMP-файл без 14-байтного заголовка, дописываем его и читаем как BMP.
-- **Занятый буфер.** После каждой смены буфер на миг открывают другие программы (`rdpclip` в RDP, VBoxTray, менеджеры буфера), и `OleSetClipboard` в это время не пишет — Qt лишь оставляет предупреждение. Поэтому после записи проверяем `QClipboard::ownsClipboard()` и повторяем до 20 раз через 100 мс, иначе — ошибка; новая запись отменяет повторы прежней. Снимок буфера ждёт, пока его отпустят (проверка — открыть буфер от своего скрытого окна). Повторы — по таймеру, без блокировки главного потока: пока буфер читают, данные им отдаёт наш поток (отложенная отрисовка OLE).
-- В буфер кладём только `text/plain`, `text/uri-list` и картинки; синонимы X11 (`UTF8_STRING`…) из общего набора форматов отбрасываются.
+- `QClipboard` (OLE) writes from the background, without focus. Qt spreads the entry over Windows formats: the image into `CF_DIB`/`CF_DIBV5`, the file list into `CF_HDROP`, the text into `CF_UNICODETEXT`.
+- Qt does not put the **`PNG`** format itself, while Chrome, Telegram and Office read it first (transparency, lossless): we add the PNG bytes as they are via `application/x-qt-windows-mime;value="PNG"`.
+- **"Not into history"** (NFR-4, spec section 10): `ExcludeClipboardContentFromMonitorProcessing`, `CanIncludeInClipboardHistory` = 0, `CanUploadToCloudClipboard` = 0; the Win+V history, cloud sync and clipboard monitors skip such entries. When the clipboard is restored after a paste there are no marks: it is the user's clipboard again.
+- The clipboard snapshot before a paste: if Qt did not parse another program's image (under Wine `CF_DIB` gave an empty `QImage`), we read `PNG` or `CF_DIB` ourselves; `CF_DIB` is a BMP file without the 14-byte header, so we add it and read as BMP.
+- **A busy clipboard.** After every change other programs briefly open the clipboard (`rdpclip` in RDP, VBoxTray, clipboard managers), and `OleSetClipboard` does not write meanwhile; Qt only leaves a warning. So after a write we check `QClipboard::ownsClipboard()` and retry up to 20 times every 100 ms, otherwise it is an error; a new write cancels the retries of the previous one. The clipboard snapshot waits until it is released (the check opens the clipboard from our own hidden window). Retries run on a timer, without blocking the main thread: while the clipboard is being read, our thread serves the data (OLE delayed rendering).
+- Only `text/plain`, `text/uri-list` and images go into the clipboard; X11 synonyms (`UTF8_STRING`…) from the shared set of formats are dropped.
 
-### Ctrl+V — `WinInputInjector`
+### Ctrl+V: `WinInputInjector`
 
-- `SendInput` по одному событию: Ctrl↓ V↓ V↑ Ctrl↑ с паузами 20 мс, как на X11 и Wayland. V — виртуальный код `VK_V`: программы Windows сверяют сочетание по нему, и при русской раскладке Ctrl+V тоже вставляет.
-- Перед нажатием ждём отпускания Shift/Alt/Win (до 1,5 с).
-- **Смена окна** (ТЗ разд. 10, шаг 6): окно, активное в `begin()`, запоминаем; если перед очередным Ctrl+V активно другое — вставка останавливается с ошибкой. Проверка — после ожидания отпускания модификаторов, прямо перед нажатием. `canDetectForegroundChange()` = true.
-- Если `SendInput` не прошёл, дальше шлются только отпускания: V без Ctrl напечатала бы «v».
-- Активно окно самой программы (настройки, предпросмотр, мастер) — вставка не начинается (`AppController::paste`, для всех платформ).
-- **UIPI**: `SendInput` молча не доходит до окна, запущенного от администратора, и ошибку не возвращает. Поэтому в `begin()` сравниваем уровни целостности процессов (`TokenIntegrityLevel`) и сразу сообщаем: окно запущено от администратора — скопируйте набор и вставьте вручную. Автоматического перехода на режим «файлы + текст», как в ТЗ, пока нет.
-- Имя процесса целевого окна пишется в журнал — заготовка для профилей задержек по программам.
+- `SendInput` one event at a time: Ctrl↓ V↓ V↑ Ctrl↑ with 20 ms pauses, as on X11 and Wayland. V is the virtual code `VK_V`: Windows programs match the shortcut by it, so Ctrl+V pastes with a Russian layout too.
+- Before pressing we wait for Shift/Alt/Win to be released (up to 1.5 s).
+- **Window change** (spec section 10, step 6): the window active in `begin()` is remembered; if another one is active before the next Ctrl+V, the paste stops with an error. The check is done after waiting for the modifiers, right before the press. `canDetectForegroundChange()` = true.
+- If `SendInput` failed, only releases are sent after that: V without Ctrl would type "v".
+- If a window of the program itself is active (settings, preview, wizard), the paste does not start (`AppController::paste`, on all platforms).
+- **UIPI**: `SendInput` silently does not reach a window started as administrator and returns no error. So `begin()` compares the processes' integrity levels (`TokenIntegrityLevel`) and reports right away: the window runs as administrator, copy the set and paste it by hand. There is no automatic switch to the "files + text" mode as in the spec yet.
+- The process name of the target window is written to the log, groundwork for per-program delay profiles.
 
-### Окна
+### Windows
 
-- **Лента** (`applyPanelRole`): окно без рамки, поверх всех, `Qt::WindowDoesNotAcceptFocus` и `WS_EX_NOACTIVATE`. Клик по ленте не забирает фокус у чата, поэтому кнопка «Вставить» работает в режиме 1, как на KDE с layer-shell. Скруглённые углы — прозрачное окно, фон рисует сама лента по таблице стилей.
-- **Перенос ленты** (STR-5): тянут за заголовок (`startSystemMove`). Конец перетаскивания — `WM_EXITSIZEMOVE` (`watchPanelMoves`): лента встаёт вплотную к ближайшему краю на той высоте, где её отпустили, положение сохраняется. Край и высота — в пределах рабочей области (`availableGeometry`), чтобы не закрывать панель задач. Пока тянут — ничего не делаем, иначе окно «прыгало» бы под мышью.
-- **Анимации окон DWM выключены** для всех окон программы (`disableWindowAnimations`): перед снимком программа прячет свои окна, а тающий редактор попадал в кадр.
-- **Оверлей** — обычное окно на весь экран поверх всех (как на GNOME и X11). Клавиатуру ему отдаёт `forceActivate`: Windows не даёт программе стать активной, если последнее событие ввода получила не она, а Print Screen глотает наш хук. Присоединяемся к потоку активного окна (`AttachThreadInput`) и вызываем `SetForegroundWindow`.
+- **Strip** (`applyPanelRole`): a frameless window above all others, `Qt::WindowDoesNotAcceptFocus` and `WS_EX_NOACTIVATE`. A click on the strip does not take focus from the chat, so the "Paste" button works in mode 1, as on KDE with layer-shell. Rounded corners: a transparent window, the strip paints its own background from the style sheet.
+- **Moving the strip** (STR-5): dragged by the header (`startSystemMove`). The end of the drag is `WM_EXITSIZEMOVE` (`watchPanelMoves`): the strip snaps flush to the nearest edge at the height where it was released, and the position is saved. The edge and height stay within the work area (`availableGeometry`) so as not to cover the taskbar. Nothing is done during the drag, otherwise the window would "jump" under the mouse.
+- **DWM window animations are turned off** for all program windows (`disableWindowAnimations`): before a capture the program hides its windows, and a fading editor got into the frame.
+- **Overlay**: an ordinary full-screen window above all others (as on GNOME and X11). `forceActivate` gives it the keyboard: Windows does not let a program become active if the last input event was not received by it, and our hook swallows Print Screen. We attach to the thread of the active window (`AttachThreadInput`) and call `SetForegroundWindow`.
 
-### Остальное
+### Other
 
-- **Автозапуск** — значение `su._525.Markpaste` в `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, путь в кавычках. Выключение в «Диспетчере задач → Автозагрузка» (`StartupApproved\Run`) программа видит как «выключено»; включение из программы эту отметку снимает.
-- **Настройки** — `QSettings` в реестре (`HKCU\Software\markpaste\markpaste`); данные и журнал — `%LOCALAPPDATA%\markpaste\markpaste` (NFR-5). Права 0700 на Windows не нужны: каталог профиля закрыт ACL владельца.
-- **Память** — `releaseFreedMemory()` вызывает `_heapmin()`.
-- **SIGPIPE** перенесён из `main.cpp` в `platform/Process.h` (`prepareProcess()`): на Windows его нет.
+- **Autostart**: the value `su._525.Markpaste` in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, the path in quotes. Turning it off in "Task Manager → Startup" (`StartupApproved\Run`) is seen by the program as "off"; turning it on from the program removes that mark.
+- **Settings**: `QSettings` in the registry (`HKCU\Software\markpaste\markpaste`); data and log in `%LOCALAPPDATA%\markpaste\markpaste` (NFR-5). Mode 0700 is not needed on Windows: the profile directory is closed by the owner's ACL.
+- **Memory**: `releaseFreedMemory()` calls `_heapmin()`.
+- **SIGPIPE** moved from `main.cpp` to `platform/Process.h` (`prepareProcess()`): Windows does not have it.
 
-## Рассмотренные варианты
+## Options considered
 
-- **Windows.Graphics.Capture** (ТЗ разд. 9 — основной путь). На Windows 10 рисует жёлтую рамку вокруг захвата, которую нельзя отключить; нужен C++/WinRT, которого нет в MinGW. HDR DXGI решает через `DuplicateOutput1`. Вернуться к WGC, если на HDR-мониторах картинка через DXGI окажется неверной.
-- **Только хук `WH_KEYBOARD_LL` для всех сочетаний.** Хук видит отпускание, но для обычных сочетаний `RegisterHotKey` надёжнее: Windows не снимает его за медлительность, и антивирусы к нему равнодушны (ТЗ разд. 14, риск «хук клавиатуры»).
-- **Хук в главном потоке.** Проще, но Windows снимает хук, если главный поток занят дольше `LowLevelHooksTimeout`.
-- **Свой код буфера на WinAPI вместо QClipboard.** Qt уже даёт CF_DIB, CF_HDROP и отложенную отрисовку; недостающее — `PNG` и пометки — добавляется через `QMimeData`.
+- **Windows.Graphics.Capture** (spec section 9, the main path). On Windows 10 it draws a yellow border around the capture that cannot be turned off; it needs C++/WinRT, which MinGW does not have. DXGI handles HDR via `DuplicateOutput1`. Go back to WGC if the DXGI image on HDR monitors turns out to be wrong.
+- **Only the `WH_KEYBOARD_LL` hook for all shortcuts.** The hook sees releases, but for ordinary shortcuts `RegisterHotKey` is more reliable: Windows does not remove it for slowness, and antivirus software does not care about it (spec section 14, the "keyboard hook" risk).
+- **The hook in the main thread.** Simpler, but Windows removes the hook if the main thread is busy longer than `LowLevelHooksTimeout`.
+- **Our own WinAPI clipboard code instead of QClipboard.** Qt already provides CF_DIB, CF_HDROP and delayed rendering; what is missing (`PNG` and the marks) is added through `QMimeData`.
 
-## Последствия и ограничения
+## Consequences and limitations
 
-- Проверено под Wine 11 и на Windows 11 24H2 в VirtualBox (docs/platform-matrix.md): DXGI, Print Screen через хук, `forceActivate`, вставка клавишей и кнопкой ленты, остановка при смене окна. Не проверены: RDP после исправления, HDR, мониторы с разным масштабом, UIPI, журнал Win+V, автозапуск при входе, Windows 10.
-- Нет: перехвата обычного Ctrl+V (PST-2), профилей задержек по программам, захвата окна под курсором (CAP-5), подсказки мастера про «Ножницы», автоматического перехода на «файлы + текст» при UIPI.
+- Checked under Wine 11 and on Windows 11 24H2 in VirtualBox (docs/platform-matrix.md): DXGI, Print Screen via the hook, `forceActivate`, pasting with the hotkey and the strip button, stopping on a window change. Not checked: RDP after the fix, HDR, monitors with different scales, UIPI, the Win+V history, autostart at login, Windows 10.
+- Not done: intercepting the ordinary Ctrl+V (PST-2), per-program delay profiles, capturing the window under the cursor (CAP-5), a wizard hint about the Snipping Tool, an automatic switch to "files + text" on UIPI.

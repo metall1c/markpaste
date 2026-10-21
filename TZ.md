@@ -1,437 +1,439 @@
-# ТЗ: аналог Snapik для Windows и Linux
+# Spec: a Snapik alternative for Windows and Linux
 
 Oct 19, 2026 · @Andrew
 
-## 1. Разбор оригинала: что умеет Snapik
+> Translated from the Russian original (2026-10-21; the original is in the git history). The working name **Pointshot** is kept as written: the program is called Markpaste (ADR 0005). Where the implementation differs from this spec, see [docs/deviations.md](docs/deviations.md).
 
-Snapik 1.9 — утилита для Windows 10/11 и macOS 14+. Она делает несколько скриншотов, ставит на них нумерованные метки с комментариями и вставляет всё в любой чат одним Ctrl+V. Цена — 19 € разово, первые 7 дней бесплатно. Версии для Linux нет. Ниже собрано всё, что видно на сайте, в условиях, политике конфиденциальности и в релизах на GitHub.
+## 1. Analysis of the original: what Snapik can do
 
-### Функции
+Snapik 1.9 is a utility for Windows 10/11 and macOS 14+. It takes several screenshots, puts numbered marks with comments on them and pastes everything into any chat with one Ctrl+V. The price is €19 once, the first 7 days are free. There is no Linux version. Below is everything visible on the website, in the terms, the privacy policy and the GitHub releases.
 
-| Функция | Как работает в Snapik | Источник |
+### Features
+
+| Feature | How it works in Snapik | Source |
 | --- | --- | --- |
-| Захват | Print Screen (Windows) или ⌥⌘S (Mac), клавишу можно переназначить. Экран «замирает», пользователь обводит нужную область | [сайт](https://getsnapik.com/ru) |
-| Метки | Обведённая кнопка или блок получает метку A1, A2…: буква — номер снимка, цифра — место на нём. Рядом сразу открывается поле для комментария | [сайт](https://getsnapik.com/ru) |
-| Лента снимков | Снимки копятся в маленькой ленте сбоку экрана, до 26 штук (A–Z). У каждого видно число комментариев, есть кнопка «Новый снимок» | [сайт](https://getsnapik.com/ru) |
-| Вставка | Одно Ctrl+V / ⌘V вставляет в чат все снимки сразу, а под ними текст: «Снимок A», «A1 …», «A2 …», «Снимок B»… | [сайт](https://getsnapik.com/ru) |
-| Куда вставлять | ChatGPT, Codex, Claude, Cursor, Telegram, WhatsApp — любой чат, принимающий картинки. Snapik ничего не отправляет сам | [сайт](https://getsnapik.com/ru) |
-| Замазать | Провести по паролю или номеру карты, и в чат уйдёт размытая версия | [сайт](https://getsnapik.com/ru) |
-| Обрезка и отмена | Обрезка снимка, Ctrl+Z отменяет любое число шагов (неверная рамка, размытие, обрезка) | [сайт](https://getsnapik.com/ru) |
-| Приватность | Снимки, заметки и настройки хранятся локально. Наружу уходят только анонимные события (установка, конец пробного периода, активация) с версией программы и ОС, отключается в настройках | [privacy](https://getsnapik.com/privacy) |
-| Лицензия | Ключ приходит на почту после оплаты через Lemon Squeezy и проверяется у них при активации. Одна покупка — два компьютера | [terms](https://getsnapik.com/terms) |
-| Обновления | Windows обновляется сама с GitHub, есть каналы `win` и `beta`. Mac-версия пока не обновляется сама | [download](https://getsnapik.com/download) |
+| Capture | Print Screen (Windows) or ⌥⌘S (Mac), the key can be reassigned. The screen "freezes", the user outlines the needed area | [website](https://getsnapik.com/ru) |
+| Marks | An outlined button or block gets a mark A1, A2…: the letter is the shot number, the digit is the place on it. A comment field opens right next to it | [website](https://getsnapik.com/ru) |
+| Shot strip | Shots pile up in a small strip at the side of the screen, up to 26 (A–Z). Each one shows the number of comments, there is a "New shot" button | [website](https://getsnapik.com/ru) |
+| Paste | One Ctrl+V / ⌘V pastes all shots into the chat at once, with text below them: "Shot A", "A1 …", "A2 …", "Shot B"… | [website](https://getsnapik.com/ru) |
+| Where to paste | ChatGPT, Codex, Claude, Cursor, Telegram, WhatsApp: any chat that accepts images. Snapik sends nothing itself | [website](https://getsnapik.com/ru) |
+| Blur | Swipe over a password or a card number, and a blurred version goes to the chat | [website](https://getsnapik.com/ru) |
+| Crop and undo | Cropping a shot, Ctrl+Z undoes any number of steps (a wrong frame, blur, crop) | [website](https://getsnapik.com/ru) |
+| Privacy | Shots, notes and settings are stored locally. Only anonymous events (install, end of trial, activation) with the program and OS version go out; can be turned off in settings | [privacy](https://getsnapik.com/privacy) |
+| License | The key arrives by e-mail after paying through Lemon Squeezy and is checked with them on activation. One purchase covers two computers | [terms](https://getsnapik.com/terms) |
+| Updates | Windows updates itself from GitHub, there are `win` and `beta` channels. The Mac version does not update itself yet | [download](https://getsnapik.com/download) |
 
-### Что видно по сборкам
+### What the builds show
 
-Выводы ниже сделаны по файлам релиза [1.9.8](https://github.com/getsnapik/releases/releases/tag/1.9.8) и странице загрузки, исходников у Snapik нет.
+The conclusions below are drawn from the files of release [1.9.8](https://github.com/getsnapik/releases/releases/tag/1.9.8) and the download page; Snapik has no sources.
 
-- **Windows-установщик собран Velopack.** На это указывают `SnapikApp-win-Setup.exe`, `*-full.nupkg`, `releases.win.json` и канал `beta`. Велопак чаще всего используют с .NET, а установщик весит около 90 МБ — похоже на самодостаточное .NET-приложение.
-- **Mac-версия — отдельная программа** в отдельном репозитории `releases-mac`, без автообновления. Скорее всего, это нативное приложение, а не общий кроссплатформенный код.
-- **Вставка эмулирует нажатия клавиш.** На Mac для вставки через ⌘V нужно разрешение «Универсальный доступ». Оно требуется для синтеза клавиатурных событий. Значит, Snapik, вероятно, кладёт в буфер элементы по очереди и сам нажимает «вставить» для каждого.
-- **Релизы частые:** 1.9.0 вышла 29 сентября 2026, 1.9.8 — 14 октября 2026.
-- **Подписи кода нет.** Windows показывает предупреждение SmartScreen, macOS требует ручного разрешения на запуск.
+- **The Windows installer is built with Velopack.** This is indicated by `SnapikApp-win-Setup.exe`, `*-full.nupkg`, `releases.win.json` and the `beta` channel. Velopack is most often used with .NET, and the installer is about 90 MB, which looks like a self-contained .NET application.
+- **The Mac version is a separate program** in a separate repository `releases-mac`, without auto-update. Most likely a native application rather than shared cross-platform code.
+- **Pasting emulates key presses.** On Mac pasting with ⌘V needs the "Accessibility" permission. It is required for synthesizing keyboard events. So Snapik probably puts the items into the clipboard one by one and presses "paste" itself for each.
+- **Frequent releases:** 1.9.0 came out on September 29, 2026, 1.9.8 on October 14, 2026.
+- **No code signing.** Windows shows a SmartScreen warning, macOS requires a manual permission to run.
 
-## 2. Цель и границы проекта
+## 2. Project goal and scope
 
-Нужно сделать открытую (open source) десктопную программу для Windows 10/11 и Linux (X11 и Wayland) с тем же сценарием, что у Snapik: снял, отметил, подписал, вставил в чат одним действием. Рабочее название в документе — **Pointshot** (условное, менять можно).
+The goal is an open source desktop program for Windows 10/11 and Linux (X11 and Wayland) with the same scenario as Snapik: capture, mark, annotate, paste into a chat in one action. The working name in this document is **Pointshot** (provisional, may change).
 
-**Linux — упор на Wayland.** Главная цель для Linux — сессия Wayland. В Fedora с версии 43 GNOME работает только на Wayland ([Linuxiac](https://linuxiac.com/fedora-43-drops-gnome-x11-support/)), KDE тоже по умолчанию на Wayland. Эталонная система для разработки и приёмки — **Fedora 44** (GNOME 50 и KDE Plasma 6.6, [вышла 28 апреля 2026](https://linuxiac.com/fedora-44-officially-released-this-is-whats-new/)). Каждая функция сначала делается и проверяется на Wayland. X11 поддерживается, но без гарантии одинаковых возможностей и без приоритета при исправлении ошибок.
+**Linux: the focus is Wayland.** The main Linux target is a Wayland session. In Fedora since version 43 GNOME runs only on Wayland ([Linuxiac](https://linuxiac.com/fedora-43-drops-gnome-x11-support/)), and KDE is on Wayland by default too. The reference system for development and acceptance is **Fedora 44** (GNOME 50 and KDE Plasma 6.6, [released on April 28, 2026](https://linuxiac.com/fedora-44-officially-released-this-is-whats-new/)). Every feature is first built and checked on Wayland. X11 is supported, but without a guarantee of equal capabilities and without priority in bug fixing.
 
-**Главный критерий успеха:** пользователь проходит путь от нажатия клавиши до готового сообщения в ChatGPT или Telegram с тремя снимками и пятью комментариями быстрее чем за 60 секунд, не открывая отдельных окон-редакторов.
+**The main success criterion:** a user goes from pressing the key to a ready message in ChatGPT or Telegram with three shots and five comments in less than 60 seconds, without opening separate editor windows.
 
-### Входит в MVP (версия 1.0)
+### In the MVP (version 1.0)
 
-- Захват области экрана по глобальной горячей клавише, которую пользователь назначает сам (по умолчанию Print Screen). Поддержка нескольких мониторов с разным масштабом.
-- Прямоугольные метки с автонумерацией A1, A2… и поле комментария к каждой.
-- Лента до 26 снимков (A–Z) с переходом между ними, удалением и пересъёмкой.
-- Размытие (пикселизация) области, обрезка снимка, многошаговая отмена и повтор.
-- Вставка всего набора в активный чат: последовательная вставка (основной режим) и запасные режимы — список файлов, перетаскивание, склейка в одно изображение.
-- Значок в трее там, где трей есть, настройки, автозапуск, русский и английский интерфейс.
-- Пакеты: Windows (Setup.exe с автообновлением и portable ZIP), Linux (.deb и .rpm).
-- Открытый исходный код в публичном репозитории, лицензия GPL-3.0-or-later (раздел 11).
+- Capturing a screen area with a global hotkey the user assigns (Print Screen by default). Support for several monitors with different scales.
+- Rectangular marks with automatic numbering A1, A2… and a comment field for each.
+- A strip of up to 26 shots (A–Z) with switching between them, deleting and retaking.
+- Blur (pixelation) of an area, cropping a shot, multi-step undo and redo.
+- Pasting the whole set into the active chat: sequential paste (the main mode) and fallback modes: a file list, drag and drop, stitching into one image.
+- A tray icon where there is a tray, settings, autostart, Russian and English UI.
+- Packages: Windows (Setup.exe with auto-update and a portable ZIP), Linux (.deb and .rpm).
+- Open source code in a public repository, license GPL-3.0-or-later (section 11).
 
-### Во второй очереди (1.x)
+### Second round (1.x)
 
-- Другие формы меток: стрелка, точка-маркер, произвольная линия.
-- Шаблоны текста сообщения (например, вводная фраза для ИИ: «Исправь по пунктам…»).
-- Сохранение набора в папку (PNG + Markdown) и история последних наборов.
-- Пакеты AppImage и Flatpak, публикация на Flathub.
-- Версия для macOS. В 1.0 её нет, но архитектура закладывает её с первого дня (разделы 8 и 9).
+- Other mark shapes: arrow, point marker, freehand line.
+- Message text templates (for example, an opening phrase for an AI: "Fix point by point…").
+- Saving the set to a folder (PNG + Markdown) and a history of recent sets.
+- AppImage and Flatpak packages, publishing on Flathub.
+- A macOS version. It is not in 1.0, but the architecture plans for it from day one (sections 8 and 9).
 
-### Не входит
+### Out of scope
 
-- Запись видео и GIF, OCR, облачное хранение и ссылки на снимки.
-- Отправка сообщений от имени пользователя: программа только готовит вставку, «Отправить» нажимает человек.
-- Платная версия, пробный период и ключи активации: проект распространяется бесплатно с открытым кодом.
+- Video and GIF recording, OCR, cloud storage and links to shots.
+- Sending messages on the user's behalf: the program only prepares the paste, a person presses "Send".
+- A paid version, a trial period and activation keys: the project is distributed free with open source code.
 
-## 3. Термины
+## 3. Terms
 
-| Термин | Значение |
+| Term | Meaning |
 | --- | --- |
-| Снимок | Обрезанное изображение части экрана. Обозначается буквой A–Z в порядке создания |
-| Метка | Отмеченная область на снимке с номером и комментарием. Идентификатор — буква снимка + порядковый номер: A1, A2, B1 |
-| Комментарий | Текст, привязанный к метке. Может быть пустым — тогда в сообщение уходит только номер |
-| Набор | Все снимки ленты с метками и комментариями. Это то, что вставляется в чат |
-| Лента | Компактная панель у края экрана со списком снимков набора |
-| Оверлей | Полноэкранное окно поверх «замороженного» снимка экрана, в котором выделяют область будущего снимка. Метки ставятся уже в окне редактирования |
-| Запекание (render) | Наложение меток и размытия на пиксели снимка перед вставкой. Исходный снимок при этом не меняется |
-| Последовательная вставка | Режим, в котором программа по очереди кладёт в буфер обмена каждый элемент набора и сама нажимает Ctrl+V |
-| Портал | xdg-desktop-portal — стандартный D-Bus-интерфейс Linux, через который приложения на Wayland получают снимок экрана, глобальные клавиши и ввод |
+| Shot | A cropped image of part of the screen. Denoted by a letter A–Z in the order of creation |
+| Mark | A marked area on a shot with a number and a comment. The identifier is the shot letter + a sequence number: A1, A2, B1 |
+| Comment | Text attached to a mark. May be empty, then only the number goes into the message |
+| Set | All shots of the strip with marks and comments. This is what is pasted into the chat |
+| Strip | A compact panel at the screen edge with the list of the set's shots |
+| Overlay | A full-screen window over a "frozen" screenshot in which the area of the future shot is selected. Marks are placed later, in the editing window |
+| Baking (render) | Applying marks and blur to the shot's pixels before pasting. The source shot does not change |
+| Sequential paste | A mode in which the program puts each item of the set into the clipboard in turn and presses Ctrl+V itself |
+| Portal | xdg-desktop-portal, the standard Linux D-Bus interface through which applications on Wayland get screenshots, global hotkeys and input |
 
-## 4. Основной сценарий
+## 4. The main scenario
 
-Сценарий идёт по прямой, ветвление есть только на шаге 6.
+The scenario goes straight; there is a branch only at step 6.
 
-1. Пользователь нажимает горячую клавишу (задаётся в настройках, по умолчанию Print Screen; особенности Linux — в разделе 9).
-2. Программа снимает все мониторы и показывает оверлей с замороженной картинкой, слегка затемнённой. Курсор — перекрестье, рядом лупа с координатами.
-3. Пользователь обводит область. Она становится снимком **A**, оверлей закрывается, появляется окно редактирования снимка с лентой: у края экрана там, где окно можно расположить, а на GNOME — там, где его поставит система.
-4. В окне редактирования пользователь обводит кнопку — появляется метка **A1** и поле комментария с фокусом. Он пишет «Кнопку ярче», Enter закрепляет комментарий. Так же ставит A2, при необходимости размывает данные или обрезает.
-5. Если нужен ещё экран — горячая клавиша или «Новый снимок» в ленте. Повторяются шаги 2–4, снимок получает букву **B**.
-6. Пользователь переходит в чат и нажимает глобальную клавишу вставки набора. На Windows и X11 можно также нажать обычный Ctrl+V или кнопку «Вставить» в ленте.
-   - **Последовательная вставка доступна** (Windows, X11 и Wayland там, где программа может менять буфер из фона и получила разрешение портала) — программа вставляет все снимки и затем текст.
-   - **Недоступна** — программа предлагает запасной режим: перетащить набор из ленты в чат или вставить склеенное изображение с текстом.
-7. Сообщение собрано в поле ввода. Пользователь при желании дописывает текст и сам нажимает «Отправить».
-8. Лента предлагает «Очистить набор» — или очищается сама при следующем захвате, если так задано в настройках.
+1. The user presses the hotkey (set in settings, Print Screen by default; Linux specifics are in section 9).
+2. The program captures all monitors and shows an overlay with the frozen, slightly dimmed picture. The cursor is a crosshair, with a magnifier and coordinates next to it.
+3. The user outlines an area. It becomes shot **A**, the overlay closes, and the shot editing window appears with the strip: at the screen edge where a window can be placed, and on GNOME where the system puts it.
+4. In the editing window the user outlines a button: mark **A1** appears with a focused comment field. They write "Make the button brighter", Enter fixes the comment. A2 is placed the same way, data is blurred or the shot is cropped if needed.
+5. If another screen is needed: the hotkey or "New shot" in the strip. Steps 2–4 repeat, the shot gets the letter **B**.
+6. The user switches to the chat and presses the global paste-set key. On Windows and X11 the ordinary Ctrl+V or the "Paste" button in the strip can also be used.
+   - **Sequential paste is available** (Windows, X11 and Wayland where the program can change the clipboard from the background and got the portal permission): the program pastes all shots and then the text.
+   - **Not available**: the program offers a fallback mode: drag the set from the strip into the chat or paste a stitched image with the text.
+7. The message is assembled in the input field. The user adds text if they like and presses "Send" themselves.
+8. The strip offers "Clear set", or clears itself on the next capture if so set in settings.
 
-## 5. Функциональные требования
+## 5. Functional requirements
 
-Приоритет: **M** — обязательно для 1.0, **S** — желательно для 1.0, **C** — во второй очереди.
+Priority: **M**, required for 1.0; **S**, desirable for 1.0; **C**, second round.
 
-### 5.1 Захват
+### 5.1 Capture
 
-| ID | Требование | Приоритет |
+| ID | Requirement | Priority |
 | --- | --- | --- |
-| CAP-1 | Глобальная горячая клавиша запускает захват из любого приложения, программа при этом работает в фоне. Клавиша или сочетание задаётся в настройках, по умолчанию Print Screen. Если она занята системой или другой программой, приложение сообщает об этом и предлагает выбрать другую | M |
-| CAP-2 | Снимается содержимое всех мониторов в момент нажатия. Оверлей появляется не позже чем через 300 мс | M |
-| CAP-3 | Выделение области мышью: рамка, размеры в пикселях, лупа ×4 у курсора, перемещение и изменение рамки до подтверждения | M |
-| CAP-4 | Подтверждение — отпускание мыши (быстрый режим) или Enter (точный режим), задаётся в настройках. Esc отменяет захват | M |
-| CAP-5 | Подсветка окна под курсором и захват окна одним кликом (только Windows и X11) | S |
-| CAP-6 | Захват на мониторах с разным масштабом (100–200 %) без размытия: снимок хранится в физических пикселях | M |
-| CAP-7 | Запуск захвата из командной строки `pointshot --capture` в уже работающий экземпляр (нужно для Wayland-окружений без портала клавиш) | M |
-| CAP-8 | Если в ленте уже 26 снимков, захват не начинается, лента подсвечивает сообщение «Набор заполнен» | M |
+| CAP-1 | A global hotkey starts a capture from any application while the program runs in the background. The key or shortcut is set in settings, Print Screen by default. If it is taken by the system or another program, the application reports it and suggests choosing another | M |
+| CAP-2 | The contents of all monitors at the moment of the press are captured. The overlay appears no later than 300 ms | M |
+| CAP-3 | Selecting an area with the mouse: a frame, size in pixels, a ×4 magnifier at the cursor, moving and resizing the frame before confirmation | M |
+| CAP-4 | Confirmation is releasing the mouse (quick mode) or Enter (precise mode), set in settings. Esc cancels the capture | M |
+| CAP-5 | Highlighting the window under the cursor and capturing a window with one click (Windows and X11 only) | S |
+| CAP-6 | Capture on monitors with different scales (100–200 %) without blur: the shot is stored in physical pixels | M |
+| CAP-7 | Starting a capture from the command line `pointshot --capture` in an already running instance (needed for Wayland environments without a hotkeys portal) | M |
+| CAP-8 | If the strip already has 26 shots, the capture does not start, and the strip highlights the message "The set is full" | M |
 
-### 5.2 Метки и редактирование снимка
+### 5.2 Marks and shot editing
 
-| ID | Требование | Приоритет |
+| ID | Requirement | Priority |
 | --- | --- | --- |
-| EDT-1 | Прямоугольная метка рисуется протягиванием мыши. Сразу после неё появляется поле комментария с фокусом | M |
-| EDT-2 | Нумерация автоматическая: A1, A2… При удалении метки номера остальных пересчитываются без пропусков | M |
-| EDT-3 | Значок номера — круг акцентного цвета с белой цифрой у левого верхнего угла рамки, не выходит за край снимка | M |
-| EDT-4 | Метку можно перемещать, менять размер, удалять (Delete), редактировать её комментарий двойным кликом | M |
-| EDT-5 | Комментарий — одна или несколько строк до 500 символов. Enter сохраняет, Shift+Enter — перенос строки | M |
-| EDT-6 | Размытие: протягиванием выделяется прямоугольник, внутри — пикселизация с блоком 12 px. Исходные пиксели в отданное изображение не попадают | M |
-| EDT-7 | Обрезка снимка с сохранением меток. Метки, оказавшиеся вне области, удаляются после подтверждения | M |
-| EDT-8 | Отмена и повтор (Ctrl+Z / Ctrl+Shift+Z) без ограничения глубины в пределах набора, включая удаление снимка | M |
-| EDT-9 | Стрелка и точка-маркер как альтернативные формы метки | C |
-| EDT-10 | Подписи комментариев прямо на картинке (опция «текст на изображении») | C |
+| EDT-1 | A rectangular mark is drawn by dragging the mouse. Right after it a focused comment field appears | M |
+| EDT-2 | Numbering is automatic: A1, A2… When a mark is deleted, the other numbers are recomputed without gaps | M |
+| EDT-3 | The number badge is a circle of the accent color with a white digit at the top-left corner of the frame, not going beyond the shot edge | M |
+| EDT-4 | A mark can be moved, resized, deleted (Delete), and its comment edited with a double click | M |
+| EDT-5 | A comment is one or several lines up to 500 characters. Enter saves, Shift+Enter inserts a line break | M |
+| EDT-6 | Blur: a rectangle is selected by dragging, inside it pixelation with a 12 px block. Source pixels do not get into the output image | M |
+| EDT-7 | Cropping a shot keeping the marks. Marks that end up outside the area are deleted after confirmation | M |
+| EDT-8 | Undo and redo (Ctrl+Z / Ctrl+Shift+Z) without a depth limit within the set, including deleting a shot | M |
+| EDT-9 | Arrow and point marker as alternative mark shapes | C |
+| EDT-10 | Comment captions right on the image (the "text on image" option) | C |
 
-### 5.3 Лента
+### 5.3 Strip
 
-| ID | Требование | Приоритет |
+| ID | Requirement | Priority |
 | --- | --- | --- |
-| STR-1 | Плавающая панель у края экрана поверх окон: миниатюры снимков с буквой и числом комментариев. В GNOME «поверх окон» и выбор позиции недоступны — там лента обычное окно (раздел 9) | M |
-| STR-2 | Кнопки «Новый снимок», «Вставить набор», «Очистить». Счётчик «3 снимка · 4 комментария» | M |
-| STR-3 | Клик по миниатюре открывает снимок на редактирование. Перетаскивание меняет порядок, буквы пересчитываются | S |
-| STR-4 | Удаление снимка с пересчётом букв последующих снимков и всех меток | M |
-| STR-5 | Ленту можно свернуть в значок и перетащить к другому краю, положение запоминается. Только Windows, X11 и композиторы с layer-shell | S |
-| STR-6 | Перетаскивание набора или одного снимка из ленты в другое приложение как файлов (drag-and-drop) | M |
+| STR-1 | A floating panel at the screen edge above windows: shot thumbnails with a letter and the number of comments. In GNOME "above windows" and choosing the position are unavailable, so there the strip is an ordinary window (section 9) | M |
+| STR-2 | Buttons "New shot", "Paste set", "Clear". A counter "3 shots · 4 comments" | M |
+| STR-3 | A click on a thumbnail opens the shot for editing. Dragging changes the order, letters are recomputed | S |
+| STR-4 | Deleting a shot with the letters of the following shots and all marks recomputed | M |
+| STR-5 | The strip can be collapsed to an icon and dragged to another edge, the position is remembered. Windows, X11 and compositors with layer-shell only | S |
+| STR-6 | Dragging the set or a single shot from the strip into another application as files (drag and drop) | M |
 
-### 5.4 Вставка набора
+### 5.4 Pasting the set
 
-| ID | Требование | Приоритет |
+| ID | Requirement | Priority |
 | --- | --- | --- |
-| PST-1 | Режим «последовательная вставка»: картинки A, B, C… по очереди, затем текст. Подробности — раздел 10 | M |
-| PST-2 | Запуск вставки: глобальная клавиша вставки набора (везде), перехват обычного Ctrl+V при непустом наборе и включённой опции (только Windows и X11), кнопка в ленте (режим 1 — только Windows и X11, на Wayland кнопка копирует набор в режиме 2). Клавиша по умолчанию не должна быть Ctrl+Shift+V: это вставка в терминалах и «вставить как текст» в браузерах, где картинки теряются. Кандидат — Ctrl+Alt+V, выбирается на прототипе | M |
-| PST-3 | Текст сообщения формируется по шаблону. По умолчанию — «Снимок A», затем строки «A1 комментарий», пустая строка между снимками | M |
-| PST-4 | Режим «файлы + текст»: в буфер одновременно кладутся список PNG-файлов и текст, вставка одним нативным Ctrl+V | M |
-| PST-5 | Режим «склейка»: все снимки собираются в одно изображение по вертикали с подписями A, B, C; текст идёт вторым элементом | M |
-| PST-6 | Предпросмотр того, что уйдёт в чат: запечённые картинки и итоговый текст | S |
-| PST-7 | Сжатие: PNG по умолчанию, JPEG 85 % при размере больше 5 МБ, ограничение длинной стороны 4096 px (настраиваемо) | S |
-| PST-8 | После вставки исходное содержимое буфера обмена восстанавливается | S |
-| PST-9 | Программа никогда сама не нажимает Enter и не отправляет сообщение | M |
+| PST-1 | The "sequential paste" mode: images A, B, C… one by one, then the text. Details in section 10 | M |
+| PST-2 | Starting a paste: the global paste-set key (everywhere), intercepting the ordinary Ctrl+V with a non-empty set and the option on (Windows and X11 only), a button in the strip (mode 1 on Windows and X11 only, on Wayland the button copies the set in mode 2). The default key must not be Ctrl+Shift+V: that is paste in terminals and "paste as text" in browsers, where images are lost. The candidate is Ctrl+Alt+V, chosen on the prototype | M |
+| PST-3 | The message text is built from a template. By default "Shot A", then lines "A1 comment", an empty line between shots | M |
+| PST-4 | The "files + text" mode: a list of PNG files and the text are put into the clipboard at once, pasted with one native Ctrl+V | M |
+| PST-5 | The "stitch" mode: all shots are assembled into one vertical image with captions A, B, C; the text goes as the second item | M |
+| PST-6 | A preview of what goes to the chat: the baked images and the final text | S |
+| PST-7 | Compression: PNG by default, JPEG 85 % when larger than 5 MB, the long side limited to 4096 px (configurable) | S |
+| PST-8 | After a paste the original clipboard content is restored | S |
+| PST-9 | The program never presses Enter by itself and never sends the message | M |
 
-### 5.5 Приложение и настройки
+### 5.5 Application and settings
 
-| ID | Требование | Приоритет |
+| ID | Requirement | Priority |
 | --- | --- | --- |
-| APP-1 | Работа в фоне со значком в трее: «Снять», «Показать ленту», «Настройки», «Выход». В GNOME (Fedora Workstation) трея без расширений нет, поэтому программа полностью управляется и без него: повторный запуск из меню приложений открывает ленту и настройки, захват и вставка — по глобальным клавишам | M |
-| APP-2 | Только один экземпляр. Повторный запуск передаёт команду работающему экземпляру | M |
-| APP-3 | Настройки: клавиши, режим вставки, шаблон текста, акцентный цвет меток, формат картинок, автозапуск, язык, автоочистка | M |
-| APP-4 | Мастер первого запуска: проверка захвата, клавиш и вставки на текущей системе, подсказки для Wayland | M |
-| APP-5 | Интерфейс на русском и английском, выбор по языку системы | M |
-| APP-6 | Сохранение набора в папку: PNG-файлы и `message.md` | C |
-| APP-7 | Автоматическая установка обновлений на Windows. На Linux — уведомление о новой версии, обновление через пакетный менеджер | S |
+| APP-1 | Running in the background with a tray icon: "Capture", "Show strip", "Settings", "Quit". In GNOME (Fedora Workstation) there is no tray without extensions, so the program is fully usable without it: a repeated start from the application menu opens the strip and settings, capture and paste go through global hotkeys | M |
+| APP-2 | A single instance only. A repeated start passes its command to the running instance | M |
+| APP-3 | Settings: hotkeys, paste mode, text template, mark accent color, image format, autostart, language, auto-clear | M |
+| APP-4 | A first-start wizard: checking capture, hotkeys and paste on the current system, hints for Wayland | M |
+| APP-5 | The UI in Russian and English, chosen by the system language | M |
+| APP-6 | Saving the set to a folder: PNG files and `message.md` | C |
+| APP-7 | Automatic installation of updates on Windows. On Linux, a notification about a new version, updating through the package manager | S |
 
-## 6. Нефункциональные требования
+## 6. Non-functional requirements
 
-| ID | Область | Требование |
+| ID | Area | Requirement |
 | --- | --- | --- |
-| NFR-1 | Скорость | От горячей клавиши до оверлея — не более 300 мс на 2 мониторах 4K на Windows и X11, не более 800 мс на Wayland: там снимок идёт через портал, цифра уточняется на прототипе. Вставка набора из 5 снимков — не более 3 с |
-| NFR-2 | Ресурсы | В фоне: до 60 МБ ОЗУ и 0 % CPU. С полным набором из 26 снимков 4K — до 600 МБ. Для этого исходники хранятся сжатыми (PNG в памяти), а в несжатом виде держится только снимок, открытый в редакторе: 26 несжатых кадров 4K занимают около 860 МБ |
-| NFR-3 | Размер | Установщик Windows — до 40 МБ. Пакеты .deb и .rpm без встроенного Qt — до 5 МБ |
-| NFR-4 | Приватность | Снимки и комментарии не покидают компьютер, кроме вставки самим пользователем. Телеметрии нет. Снимки не попадают в историю буфера обмена и облачную синхронизацию буфера (раздел 10). Единственный сетевой запрос — проверка новой версии в GitHub Releases, отключается в настройках |
-| NFR-5 | Хранение | Набор держится в памяти. При включённой опции «пережить перезапуск» — в каталоге данных пользователя с правами 0700 (Linux) или в %LOCALAPPDATA% (Windows) |
-| NFR-6 | Платформы | Windows 10 22H2 и Windows 11 x64. Linux x86_64. Эталон — Fedora 44 на Wayland (.rpm): GNOME 50, KDE Plasma 6.6, Sway Spin. Дополнительно: .deb для Ubuntu 24.04+ и Debian 12+, .rpm для openSUSE Tumbleweed. X11 — без гарантии одинаковых возможностей |
-| NFR-7 | Качество | Снимки без потерь (PNG), размытие необратимо, координаты меток в физических пикселях |
-| NFR-8 | Надёжность | Сбой захвата или вставки не роняет программу, пользователь видит понятное сообщение и запасной вариант |
-| NFR-9 | Доступность | Все действия доступны с клавиатуры. Контраст значков меток не ниже 4.5:1 |
-| NFR-10 | Локализация | Все строки во внешних файлах перевода. Шаблон текста сообщения локализуется отдельно от интерфейса |
-| NFR-11 | Переносимость | В ядре и интерфейсе нет кода под конкретную ОС: никаких `#ifdef _WIN32` вне каталога `platform/`. Пути — через `QStandardPaths`, клавиши — через абстракцию «основной модификатор» (Ctrl на Windows и Linux, ⌘ на macOS). Добавление macOS не требует правок ядра |
-| NFR-12 | Открытость | Сборка из исходников одной командой CMake на чистой системе. Все зависимости — свободные и есть в репозиториях целевых дистрибутивов |
+| NFR-1 | Speed | From the hotkey to the overlay no more than 300 ms on 2 4K monitors on Windows and X11, no more than 800 ms on Wayland: there the capture goes through a portal, the number is refined on the prototype. Pasting a set of 5 shots takes no more than 3 s |
+| NFR-2 | Resources | In the background: up to 60 MB RAM and 0 % CPU. With a full set of 26 4K shots, up to 600 MB. For this the sources are stored compressed (PNG in memory), and only the shot open in the editor is kept uncompressed: 26 uncompressed 4K frames take about 860 MB |
+| NFR-3 | Size | The Windows installer up to 40 MB. The .deb and .rpm packages without a bundled Qt up to 5 MB |
+| NFR-4 | Privacy | Shots and comments do not leave the computer except when the user pastes them. There is no telemetry. Shots do not get into the clipboard history and cloud clipboard sync (section 10). The only network request is the new version check against GitHub Releases, which can be turned off in settings |
+| NFR-5 | Storage | The set is kept in memory. With the "survive a restart" option on, in the user data directory with mode 0700 (Linux) or in %LOCALAPPDATA% (Windows) |
+| NFR-6 | Platforms | Windows 10 22H2 and Windows 11 x64. Linux x86_64. The reference is Fedora 44 on Wayland (.rpm): GNOME 50, KDE Plasma 6.6, Sway Spin. In addition: .deb for Ubuntu 24.04+ and Debian 12+, .rpm for openSUSE Tumbleweed. X11 without a guarantee of equal capabilities |
+| NFR-7 | Quality | Lossless shots (PNG), irreversible blur, mark coordinates in physical pixels |
+| NFR-8 | Reliability | A capture or paste failure does not crash the program, the user sees a clear message and a fallback |
+| NFR-9 | Accessibility | All actions are reachable from the keyboard. The contrast of mark badges is at least 4.5:1 |
+| NFR-10 | Localization | All strings are in external translation files. The message text template is localized separately from the UI |
+| NFR-11 | Portability | No OS-specific code in the core and the UI: no `#ifdef _WIN32` outside the `platform/` directory. Paths go through `QStandardPaths`, keys through the "primary modifier" abstraction (Ctrl on Windows and Linux, ⌘ on macOS). Adding macOS needs no core changes |
+| NFR-12 | Openness | Building from source with one CMake command on a clean system. All dependencies are free and available in the repositories of the target distributions |
 
-## 7. Стек
+## 7. Stack
 
-**Решение: C++20 + Qt 6 (Widgets и QPainter), сборка CMake, тонкий платформенный слой на WinAPI, xcb и D-Bus-порталах.** Вся логика, редактор, лента и рендер — общий код. Платформенный код ограничен четырьмя интерфейсами: захват, горячие клавиши, буфер обмена, эмуляция ввода.
+**Decision: C++20 + Qt 6 (Widgets and QPainter), a CMake build, a thin platform layer on WinAPI, xcb and D-Bus portals.** All logic, the editor, the strip and rendering are shared code. Platform code is limited to four interfaces: capture, global hotkeys, clipboard, input emulation.
 
-### Почему Qt
+### Why Qt
 
-- **Wayland без XWayland.** У Qt зрелый нативный Wayland-клиент, а это главная сложность проекта: полноэкранный оверлей, буфер обмена, масштаб мониторов.
-- **Буфер обмена с несколькими форматами сразу.** `QMimeData` кладёт в одну запись `image/png`, `text/uri-list` (на Windows — CF_HDROP), `text/html` и `text/plain`. Это нужно для режима «файлы + текст».
-- **Рисование.** QPainter даёт сглаженные рамки, значки, пикселизацию и быстрый вывод картинок 4K без WebView.
-- **D-Bus из коробки.** QtDBus позволяет вызывать порталы Screenshot, GlobalShortcuts и RemoteDesktop без лишних зависимостей.
-- **Размер.** Установщик с нужными модулями (Core, Gui, Widgets, DBus, WaylandClient) укладывается в 25–40 МБ — меньше, чем ~90 МБ у оригинала.
-- **Лицензия.** Qt под LGPLv3 совместим с открытой лицензией проекта GPL-3.0-or-later, а сам Qt уже есть в репозиториях всех целевых дистрибутивов.
+- **Wayland without XWayland.** Qt has a mature native Wayland client, and that is the project's main difficulty: a full-screen overlay, the clipboard, monitor scaling.
+- **A clipboard with several formats at once.** `QMimeData` puts `image/png`, `text/uri-list` (CF_HDROP on Windows), `text/html` and `text/plain` into one entry. This is needed for the "files + text" mode.
+- **Painting.** QPainter gives antialiased frames, badges, pixelation and fast output of 4K images without a WebView.
+- **D-Bus out of the box.** QtDBus allows calling the Screenshot, GlobalShortcuts and RemoteDesktop portals without extra dependencies.
+- **Size.** An installer with the needed modules (Core, Gui, Widgets, DBus, WaylandClient) fits into 25–40 MB, less than the original's ~90 MB.
+- **License.** Qt under LGPLv3 is compatible with the project's open GPL-3.0-or-later license, and Qt itself is already in the repositories of all target distributions.
 
-Версии Qt разные для двух платформ. На Windows Qt поставляется вместе с программой, берётся свежая версия 6.10 или новее (на октябрь 2026 актуальна 6.12, [Qt Releases](https://doc.qt.io/qt-6/qt-releases.html)). На Linux пакеты .deb и .rpm используют системный Qt, поэтому минимальная версия — 6.4: столько в Ubuntu 24.04 ([qt6-base-dev 6.4.2](https://packages.ubuntu.com/noble/qt6-base-dev)) и Debian 12. Код не должен использовать API новее Qt 6.4, это проверяется сборкой в CI на Ubuntu 24.04.
+The Qt versions differ for the two platforms. On Windows Qt is shipped with the program, a fresh 6.10 or newer is used (as of October 2026 6.12 is current, [Qt Releases](https://doc.qt.io/qt-6/qt-releases.html)). On Linux the .deb and .rpm packages use the system Qt, so the minimum version is 6.4: that is what Ubuntu 24.04 ([qt6-base-dev 6.4.2](https://packages.ubuntu.com/noble/qt6-base-dev)) and Debian 12 have. The code must not use API newer than Qt 6.4; this is checked by a CI build on Ubuntu 24.04.
 
-### Рассмотренные варианты
+### Options considered
 
-| Стек | Плюсы | Минусы | Итог |
+| Stack | Pros | Cons | Verdict |
 | --- | --- | --- | --- |
-| **C++20 + Qt 6** | Нативный Wayland, полный контроль над буфером и окнами, малый размер | Нужен опытный C++/Qt-разработчик, дольше писать UI | **Выбран** |
-| .NET 9 + Avalonia | Скорее всего, близко к оригиналу (Velopack, ~90 МБ). Быстрая разработка на C# | Wayland-поддержка менее зрелая, порталы и xcb — через P/Invoke и сторонние библиотеки, размер больше | Запасной, если команда на C# |
-| Rust + Tauri 2 | Небольшой размер, безопасный язык, готовые крейты для захвата и буфера | Интерфейс в WebKitGTK на Linux: прозрачный полноэкранный оверлей и много окон работают нестабильно, буфер с несколькими форматами — своими силами | Не выбран |
-| Electron | Самый быстрый UI на веб-технологиях | 100+ МБ, высокое потребление памяти, те же проблемы Wayland, нарушает NFR-2 и NFR-3 | Не выбран |
-| Flutter Desktop | Красивый UI | Слабая поддержка многооконности и оверлеев, мало готового для буфера и порталов | Не выбран |
+| **C++20 + Qt 6** | Native Wayland, full control over the clipboard and windows, small size | Needs an experienced C++/Qt developer, the UI takes longer to write | **Chosen** |
+| .NET 9 + Avalonia | Most likely close to the original (Velopack, ~90 MB). Fast development in C# | Less mature Wayland support, portals and xcb through P/Invoke and third-party libraries, larger size | A fallback if the team is on C# |
+| Rust + Tauri 2 | Small size, a safe language, ready crates for capture and the clipboard | The UI is WebKitGTK on Linux: a transparent full-screen overlay and many windows are unstable, a multi-format clipboard is on your own | Not chosen |
+| Electron | The fastest UI with web technologies | 100+ MB, high memory use, the same Wayland problems, violates NFR-2 and NFR-3 | Not chosen |
+| Flutter Desktop | A nice UI | Weak support for multiple windows and overlays, little ready-made for the clipboard and portals | Not chosen |
 
-### Состав стека
+### Stack components
 
-| Слой | Технология |
+| Layer | Technology |
 | --- | --- |
-| Язык и сборка | C++20, CMake 3.28+, Ninja. На Linux — только системные пакеты, на Windows — Qt через aqtinstall, остальное через vcpkg |
-| UI | Qt Widgets + QPainter: оверлей, редактор, лента, настройки |
-| Windows | WinAPI: `RegisterHotKey`, `SetWindowsHookEx(WH_KEYBOARD_LL)`, `SendInput`, захват через Qt / GDI `BitBlt` или DXGI Desktop Duplication |
-| Linux X11 | xcb + xcb-xtest: `XGrabKey`, эмуляция Ctrl+V, захват через `xcb_get_image` / MIT-SHM |
-| Linux Wayland | QtDBus → xdg-desktop-portal: Screenshot, ScreenCast (вариант быстрого захвата), GlobalShortcuts, RemoteDesktop, Clipboard, FileTransfer. Протоколы `ext-data-control-v1` / `wlr-data-control` и `virtual-keyboard-v1` — через отдельное подключение libwayland-client и wayland-scanner, как в wl-clipboard. Layer-shell для окон Qt — через LayerShellQt под Qt 6: он есть в Fedora 44 вместе с Plasma 6.6. Зависимость необязательная: без неё оверлей и лента работают как обычные окна. Свою реализацию layer-shell на окнах Qt не делаем — роль поверхности назначает плагин оболочки Qt через приватный API |
-| macOS (задел) | Каталог `platform/macos/` с заглушками интерфейсов, CMake-цель собирается в CI, но не выпускается (раздел 9) |
-| Изображения | QImage (PNG, JPEG), своя пикселизация |
-| Настройки | QSettings (INI) в каталоге конфигурации пользователя |
-| Логи | spdlog с ротацией, без содержимого снимков |
-| Тесты | GoogleTest для модели и рендера, Qt Test для UI, эталонные PNG для запекания |
-| Пакеты | Windows — Velopack (Setup.exe с автообновлением, portable ZIP). Linux — CPack (.deb и .rpm) |
-| CI | GitHub Actions: windows-2022, ubuntu-24.04, fedora (контейнер), macos (только сборка). Публикация в GitHub Releases |
+| Language and build | C++20, CMake 3.28+, Ninja. On Linux only system packages, on Windows Qt via aqtinstall, the rest via vcpkg |
+| UI | Qt Widgets + QPainter: overlay, editor, strip, settings |
+| Windows | WinAPI: `RegisterHotKey`, `SetWindowsHookEx(WH_KEYBOARD_LL)`, `SendInput`, capture through Qt / GDI `BitBlt` or DXGI Desktop Duplication |
+| Linux X11 | xcb + xcb-xtest: `XGrabKey`, Ctrl+V emulation, capture through `xcb_get_image` / MIT-SHM |
+| Linux Wayland | QtDBus → xdg-desktop-portal: Screenshot, ScreenCast (a fast capture option), GlobalShortcuts, RemoteDesktop, Clipboard, FileTransfer. The `ext-data-control-v1` / `wlr-data-control` and `virtual-keyboard-v1` protocols through a separate libwayland-client connection and wayland-scanner, as in wl-clipboard. Layer-shell for Qt windows through LayerShellQt for Qt 6: it is in Fedora 44 together with Plasma 6.6. The dependency is optional: without it the overlay and the strip work as ordinary windows. We do not write our own layer-shell implementation on Qt windows: the surface role is assigned by the Qt shell plugin through private API |
+| macOS (groundwork) | A `platform/macos/` directory with interface stubs, the CMake target is built in CI but not released (section 9) |
+| Images | QImage (PNG, JPEG), our own pixelation |
+| Settings | QSettings (INI) in the user's configuration directory |
+| Logs | spdlog with rotation, without shot contents |
+| Tests | GoogleTest for the model and rendering, Qt Test for the UI, reference PNGs for baking |
+| Packages | Windows: Velopack (Setup.exe with auto-update, a portable ZIP). Linux: CPack (.deb and .rpm) |
+| CI | GitHub Actions: windows-2022, ubuntu-24.04, fedora (container), macos (build only). Publishing to GitHub Releases |
 
-## 8. Архитектура
+## 8. Architecture
 
-Программа — один процесс с четырьмя слоями. Интерфейс и ядро не знают, на какой системе работают: всё платформенное спрятано за четырьмя интерфейсами, а нужная реализация выбирается при запуске.
+The program is one process with four layers. The UI and the core do not know which system they run on: everything platform-specific is hidden behind four interfaces, and the right implementation is chosen at startup.
 
 ```mermaid
 flowchart TB
-  subgraph UI["Интерфейс · Qt Widgets"]
-    O[Оверлей захвата]; E[Редактор снимка]; S[Лента]; N[Настройки, мастер]
+  subgraph UI["UI · Qt Widgets"]
+    O[Capture overlay]; E[Shot editor]; S[Strip]; N[Settings, wizard]
   end
-  subgraph CORE["Ядро · общий код"]
-    C["Контроллер<br/>клавиши, IPC, трей"]; M["Модель набора<br/>снимки, метки, отмена"]; R["Рендер<br/>запекание, склейка"]; P["Вставка<br/>режимы 1–4, текст"]
+  subgraph CORE["Core · shared code"]
+    C["Controller<br/>hotkeys, IPC, tray"]; M["Set model<br/>shots, marks, undo"]; R["Renderer<br/>baking, stitching"]; P["Paste<br/>modes 1–4, text"]
   end
-  subgraph IF["Платформенные интерфейсы"]
-    I1["ICapture<br/>снимок экрана"]; I2["IHotkeys<br/>глобальные клавиши"]; I3["IClipboard<br/>буфер из фона"]; I4["IInputInjector<br/>эмуляция Ctrl+V"]
+  subgraph IF["Platform interfaces"]
+    I1["ICapture<br/>screen capture"]; I2["IHotkeys<br/>global hotkeys"]; I3["IClipboard<br/>background clipboard"]; I4["IInputInjector<br/>Ctrl+V emulation"]
   end
-  subgraph IMPL["Реализации"]
-    W["Windows<br/>WinAPI, WGC / DXGI, SendInput"]; X["Linux X11<br/>xcb, MIT-SHM, XTest"]; WL["Linux Wayland<br/>порталы, layer-shell, data-control"]
+  subgraph IMPL["Implementations"]
+    W["Windows<br/>WinAPI, WGC / DXGI, SendInput"]; X["Linux X11<br/>xcb, MIT-SHM, XTest"]; WL["Linux Wayland<br/>portals, layer-shell, data-control"]
   end
-  UI -- команды и события --> CORE
-  CORE -- вызовы только через интерфейсы --> IF
-  IF -- реализация выбирается при запуске --> IMPL
+  UI -- commands and events --> CORE
+  CORE -- calls only through interfaces --> IF
+  IF -- implementation chosen at startup --> IMPL
 ```
 
-Ядро общается с платформой только через ICapture, IHotkeys, IClipboard и IInputInjector. Новую платформу (например, macOS) можно добавить, не трогая интерфейс и ядро.
+The core talks to the platform only through ICapture, IHotkeys, IClipboard and IInputInjector. A new platform (for example, macOS) can be added without touching the UI and the core.
 
-### Модули
+### Modules
 
-| Модуль | Отвечает за | Ключевые классы |
+| Module | Responsible for | Key classes |
 | --- | --- | --- |
-| Контроллер | Запуск, единственный экземпляр (QLocalServer), трей, команды от клавиш и CLI | `AppController`, `SingleInstance`, `TrayMenu` |
-| Модель набора | Снимки, метки, комментарии, нумерация, история отмен на `QUndoStack` | `CaptureSet`, `Shot`, `Mark`, `Redaction` |
-| Оверлей | Замороженный экран на каждом мониторе, выделение области, лупа | `CaptureOverlay`, `ScreenFrame` |
-| Редактор | Рисование меток, поле комментария, размытие, обрезка | `ShotEditor`, `MarkItem`, `CommentPopup` |
-| Лента | Миниатюры, перестановка, перетаскивание наружу, запуск вставки | `StripWindow`, `ShotThumb` |
-| Рендер | Запекание меток и размытия, склейка, сжатие | `ShotRenderer`, `Composer`, `ImageEncoder` |
-| Вставка | Шаблон текста, режимы 1–4, профили задержек, восстановление буфера | `MessageBuilder`, `PasteOrchestrator`, `AppProfiles` |
-| Платформа | Реализации четырёх интерфейсов, определение окружения | `PlatformFactory`, `WinCapture`, `X11Hotkeys`, `PortalScreenshot`, `WlDataControlClipboard` |
+| Controller | Startup, single instance (QLocalServer), tray, commands from hotkeys and the CLI | `AppController`, `SingleInstance`, `TrayMenu` |
+| Set model | Shots, marks, comments, numbering, undo history on `QUndoStack` | `CaptureSet`, `Shot`, `Mark`, `Redaction` |
+| Overlay | The frozen screen on each monitor, area selection, magnifier | `CaptureOverlay`, `ScreenFrame` |
+| Editor | Drawing marks, the comment field, blur, crop | `ShotEditor`, `MarkItem`, `CommentPopup` |
+| Strip | Thumbnails, reordering, dragging outside, starting a paste | `StripWindow`, `ShotThumb` |
+| Renderer | Baking marks and blur, stitching, compression | `ShotRenderer`, `Composer`, `ImageEncoder` |
+| Paste | Text template, modes 1–4, delay profiles, clipboard restore | `MessageBuilder`, `PasteOrchestrator`, `AppProfiles` |
+| Platform | Implementations of the four interfaces, environment detection | `PlatformFactory`, `WinCapture`, `X11Hotkeys`, `PortalScreenshot`, `WlDataControlClipboard` |
 
-### Модель данных
+### Data model
 
 ```cpp
 struct Mark {
     QUuid id;
-    QRect rect;            // в физических пикселях исходника
-    QString comment;       // до 500 символов
-};                         // номер = позиция в Shot::marks + 1
+    QRect rect;            // in physical pixels of the source
+    QString comment;       // up to 500 characters
+};                         // number = position in Shot::marks + 1
 
 struct Redaction {
-    QRect rect;            // область пикселизации
+    QRect rect;            // pixelation area
 };
 
 struct Shot {
     QUuid id;
-    QByteArray sourcePng;  // исходник без меток, сжатый (NFR-2)
+    QByteArray sourcePng;  // source without marks, compressed (NFR-2)
     QSize sourceSize;
     qreal devicePixelRatio;
-    QRect crop;            // обрезка без потери исходника, для отмены
+    QRect crop;            // crop without losing the source, for undo
     QList<Mark> marks;
     QList<Redaction> redactions;
-};                         // буква = позиция в CaptureSet::shots
+};                         // letter = position in CaptureSet::shots
 
 struct CaptureSet {
-    QList<Shot> shots;     // не больше 26
+    QList<Shot> shots;     // no more than 26
 };
 ```
 
-Номер метки и буква снимка не хранятся, а вычисляются из позиции в списке. Так перестановка, удаление и отмена не могут оставить рассинхронизированные номера. Обрезка не меняет исходник, а хранится как прямоугольник: её можно отменить без копии кадра.
+The mark number and the shot letter are not stored but computed from the position in the list. This way reordering, deleting and undo cannot leave numbers out of sync. The crop does not change the source but is kept as a rectangle: it can be undone without a copy of the frame.
 
-### Потоки
+### Threads
 
-- Интерфейс, модель и вызовы платформы — в главном потоке Qt. Ожидание ответов — асинхронно, через `QFuture` и сигналы, без блокировок и вложенных циклов событий.
-- Тяжёлая работа — декодирование кадра из портала, нарезка по мониторам, запекание, кодирование PNG — в пуле потоков `QtConcurrent`. `QScreen::grabWindow` вызывается только из главного потока, как требует Qt.
-- Последовательная вставка — конечный автомат на `QTimer` в главном потоке.
-- Подключение libwayland-client для data-control и virtual-keyboard обслуживается через `QSocketNotifier` в главном потоке.
+- The UI, the model and platform calls are in the Qt main thread. Answers are awaited asynchronously, through `QFuture` and signals, without blocking and nested event loops.
+- Heavy work (decoding a frame from the portal, cutting it by monitors, baking, PNG encoding) is in the `QtConcurrent` thread pool. `QScreen::grabWindow` is called only from the main thread, as Qt requires.
+- Sequential paste is a state machine on `QTimer` in the main thread.
+- The libwayland-client connection for data-control and virtual-keyboard is served through a `QSocketNotifier` in the main thread.
 
-### Платформенные интерфейсы
+### Platform interfaces
 
-Все четыре интерфейса асинхронные: на Wayland за вызовом может стоять диалог портала, и ответ приходит через секунды или не приходит вовсе. Режим вставки ядро выбирает по заявленным возможностям (`capabilities()`), а не по названию ОС — так новая платформа или новый композитор не требуют правок ядра.
+All four interfaces are asynchronous: on Wayland a portal dialog may stand behind a call, and the answer comes after seconds or never. The core chooses the paste mode by the declared capabilities (`capabilities()`), not by the OS name, so a new platform or a new compositor does not need core changes.
 
 ```cpp
 class ICapture : public QObject {
     Q_OBJECT
 public:
-    virtual QFuture<CaptureResult> captureAllScreens() = 0; // кадр + геометрия и масштаб мониторов
-    virtual CaptureCaps capabilities() const = 0;            // окно под курсором и т. п.
+    virtual QFuture<CaptureResult> captureAllScreens() = 0; // frame + monitor geometry and scale
+    virtual CaptureCaps capabilities() const = 0;            // window under the cursor, etc.
 };
 
 class IHotkeys : public QObject {
     Q_OBJECT
 public:
-    // Фактическое сочетание может отличаться: на Wayland его подтверждает пользователь
+    // The actual shortcut may differ: on Wayland the user confirms it
     virtual QFuture<BindResult> bind(Action action, const QKeySequence &preferred) = 0;
 signals:
-    void activated(Action action, const ActivationContext &ctx); // токен активации, если есть
-    void released(Action action);                                 // клавиша отпущена
+    void activated(Action action, const ActivationContext &ctx); // activation token, if any
+    void released(Action action);                                 // the key was released
 };
 
 class IClipboard : public QObject {
     Q_OBJECT
 public:
     virtual bool canWriteInBackground() const = 0;
-    virtual QFuture<void> write(const ClipboardPayload &data, ClipboardFlags flags) = 0; // флаги: не в историю, не в облако
-    virtual QFuture<ClipboardPayload> snapshot() = 0;  // для восстановления после вставки
+    virtual QFuture<void> write(const ClipboardPayload &data, ClipboardFlags flags) = 0; // flags: not into history, not into the cloud
+    virtual QFuture<ClipboardPayload> snapshot() = 0;  // for restoring after a paste
 };
 
 class IInputInjector : public QObject {
     Q_OBJECT
 public:
     virtual QFuture<void> waitModifiersReleased(std::chrono::milliseconds timeout) = 0;
-    virtual QFuture<void> sendPaste() = 0;              // по коду клавиши V, не по символу
-    virtual bool canDetectForegroundChange() const = 0; // на Wayland — false
+    virtual QFuture<void> sendPaste() = 0;              // by the V key code, not by the character
+    virtual bool canDetectForegroundChange() const = 0; // false on Wayland
 };
 ```
 
-## 9. Платформенные особенности
+## 9. Platform specifics
 
-Windows и Linux X11 дают всё нужное напрямую. На Wayland каждая возможность идёт через портал или протокол композитора, и на GNOME часть из них недоступна. Поэтому программа при старте определяет окружение (`XDG_SESSION_TYPE`, `XDG_CURRENT_DESKTOP`, список глобальных объектов Wayland, версии порталов) и включает доступные механизмы.
+Windows and Linux X11 give everything needed directly. On Wayland each capability goes through a portal or a compositor protocol, and on GNOME some of them are unavailable. So at startup the program detects the environment (`XDG_SESSION_TYPE`, `XDG_CURRENT_DESKTOP`, the list of Wayland globals, portal versions) and enables the available mechanisms.
 
-### Приоритет: Wayland на Fedora 44
+### Priority: Wayland on Fedora 44
 
-Эталонные окружения — три редакции Fedora 44, все на Wayland. Самое сложное из них — Workstation с GNOME: это редакция Fedora по умолчанию, и именно в ней меньше всего возможностей для фоновой вставки.
+The reference environments are three Fedora 44 editions, all on Wayland. The hardest of them is Workstation with GNOME: it is the default Fedora edition, and it has the fewest capabilities for background pasting.
 
-| Редакция Fedora 44 | Композитор | Буфер из фона | Ожидаемый режим вставки |
+| Fedora 44 edition | Compositor | Background clipboard | Expected paste mode |
 | --- | --- | --- | --- |
-| Workstation | GNOME 50 (Mutter) | Нет `ext-data-control-v1` ([wayland.app](https://wayland.app/protocols/ext-data-control-v1)). Проверить портал Clipboard | Режимы 2–4. Режим 1 — если подтвердится портал Clipboard |
-| KDE Plasma Desktop | Plasma 6.6 (KWin) | `ext-data-control-v1` заявлен для актуального KWin. Проверить на 6.6 | Режим 1, запасные 2–4 |
-| Sway Spin | Sway | `ext-data-control-v1` | Режим 1, клавиша через конфиг Sway |
+| Workstation | GNOME 50 (Mutter) | No `ext-data-control-v1` ([wayland.app](https://wayland.app/protocols/ext-data-control-v1)). Check the Clipboard portal | Modes 2–4. Mode 1 if the Clipboard portal is confirmed |
+| KDE Plasma Desktop | Plasma 6.6 (KWin) | `ext-data-control-v1` is declared for the current KWin. Check on 6.6 | Mode 1, fallbacks 2–4 |
+| Sway Spin | Sway | `ext-data-control-v1` | Mode 1, the key through the Sway config |
 
-Требования к Wayland-версии:
+Requirements for the Wayland version:
 
-- **Только нативный Wayland.** В сессии Wayland программа работает через Qt-платформу `wayland`, а не через XWayland. Под XWayland не работают глобальные клавиши и захват чужих окон, поэтому при таком запуске программа показывает предупреждение.
-- **Идентификатор приложения.** Программы вне Flatpak порталы узнают по имени systemd-юнита (`app-<id>-….scope`) или по явной регистрации через `org.freedesktop.host.portal.Registry` ([подробнее](https://blogs.gnome.org/ignapk/?p=69)). Без идентификатора порталы не могут связать с программой выданные разрешения и токены восстановления. Поэтому программа регистрируется первым же вызовом порталов, а идентификатор совпадает с именем .desktop-файла (раздел 11).
-- **Портал Clipboard — гипотеза для GNOME.** Портал `org.freedesktop.portal.Clipboard` даёт сессии RemoteDesktop доступ к буферу: программа объявляет MIME-типы и отдаёт данные по запросу без фокуса ([документация](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Clipboard.html)). Доступ запрашивается до старта сессии. Если бэкенд GNOME 50 его поддерживает, последовательная вставка заработает и в Workstation. Это проверяется в первую неделю прототипа.
-- **Фокус оверлея на GNOME.** Окно, открытое по глобальной клавише, GNOME может не активировать из-за защиты от кражи фокуса. Тогда мышь работает, а Esc и Enter — нет. Если портал GlobalShortcuts передаёт токен xdg-activation, программа им пользуется. Поведение проверяется на прототипе.
-- **Скорость захвата.** Портал Screenshot отдаёт PNG всего экрана через файл, на 2×4K это сотни миллисекунд. На прототипе сравниваются ускорения: сессия портала ScreenCast (PipeWire) и на KDE — интерфейс KWin ScreenShot2 для программ, объявленных доверенными в .desktop-файле.
-- **Сессия RemoteDesktop — на время вставки.** Пока сессия открыта, GNOME показывает индикатор удалённого управления. Поэтому она открывается по токену восстановления перед вставкой и сразу закрывается, а не держится постоянно.
-- **Запасные режимы — полноценные, а не аварийные.** На GNOME режимы «файлы + текст» и перетаскивание из ленты должны быть удобными по умолчанию: крупная кнопка «Скопировать набор» в ленте, подсказка «теперь нажмите Ctrl+V в чате».
-- **Одно окно мастера на все разрешения.** Скриншот, глобальная клавиша и RemoteDesktop запрашиваются подряд при первом запуске, токены восстановления сохраняются, чтобы диалоги не повторялись.
-- **Масштаб.** Дробное масштабирование Wayland (125 %, 150 %, 175 %) и мониторы с разным масштабом — обязательные сценарии, координаты меток считаются в физических пикселях снимка. В Qt 6.4 (Ubuntu 24.04, Debian 12) нет поддержки протокола дробного масштаба, она появилась около Qt 6.5. Там интерфейс программы может быть размытым, на Fedora 44 этой проблемы нет.
+- **Native Wayland only.** In a Wayland session the program runs on Qt's `wayland` platform, not through XWayland. Global hotkeys and capturing other windows do not work under XWayland, so in such a launch the program shows a warning.
+- **The application ID.** Portals identify programs outside Flatpak by the systemd unit name (`app-<id>-….scope`) or by explicit registration through `org.freedesktop.host.portal.Registry` ([details](https://blogs.gnome.org/ignapk/?p=69)). Without an ID portals cannot tie granted permissions and restore tokens to the program. So the program registers with the very first portal call, and the ID matches the .desktop file name (section 11).
+- **The Clipboard portal is a hypothesis for GNOME.** The `org.freedesktop.portal.Clipboard` portal gives a RemoteDesktop session access to the clipboard: the program declares MIME types and serves data on request without focus ([documentation](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Clipboard.html)). Access is requested before the session starts. If the GNOME 50 backend supports it, sequential paste will work in Workstation too. This is checked in the first week of the prototype.
+- **Overlay focus on GNOME.** A window opened by a global hotkey may not be activated by GNOME because of focus stealing prevention. Then the mouse works, but Esc and Enter do not. If the GlobalShortcuts portal passes an xdg-activation token, the program uses it. The behavior is checked on the prototype.
+- **Capture speed.** The Screenshot portal returns a PNG of the whole screen through a file; on 2×4K that takes hundreds of milliseconds. The prototype compares speedups: a ScreenCast portal session (PipeWire) and, on KDE, the KWin ScreenShot2 interface for programs declared trusted in the .desktop file.
+- **The RemoteDesktop session only for the duration of a paste.** While the session is open, GNOME shows a remote control indicator. So it is opened by the restore token before a paste and closed right after, not kept open all the time.
+- **Fallback modes are full-fledged, not emergency ones.** On GNOME the "files + text" mode and dragging from the strip must be convenient by default: a large "Copy set" button in the strip, the hint "now press Ctrl+V in the chat".
+- **One wizard window for all permissions.** Screenshot, the global hotkey and RemoteDesktop are requested one after another on the first start, and the restore tokens are saved so that the dialogs do not repeat.
+- **Scale.** Wayland fractional scaling (125 %, 150 %, 175 %) and monitors with different scales are mandatory scenarios; mark coordinates are computed in physical pixels of the shot. Qt 6.4 (Ubuntu 24.04, Debian 12) does not support the fractional scale protocol, it appeared around Qt 6.5. There the program UI may be blurry; Fedora 44 does not have this problem.
 
-### Матрица возможностей
+### Capability matrix
 
-| Возможность | Windows 10/11 | Linux X11 | Wayland: KDE Plasma 6 | Wayland: GNOME | Wayland: Sway, Hyprland |
+| Capability | Windows 10/11 | Linux X11 | Wayland: KDE Plasma 6 | Wayland: GNOME | Wayland: Sway, Hyprland |
 | --- | --- | --- | --- | --- | --- |
-| Снимок экрана | Windows.Graphics.Capture или DXGI, GDI как запасной | xcb, без разрешений | Портал Screenshot. Быстрее — KWin ScreenShot2 для доверенных программ | Портал Screenshot (первый раз — запрос разрешения) или сессия ScreenCast | Портал Screenshot (-wlr / -hyprland) или `ext-image-copy-capture` |
-| Глобальная клавиша | `RegisterHotKey`, для Print Screen — хук `WH_KEYBOARD_LL` | `XGrabKey` | Портал GlobalShortcuts | Портал GlobalShortcuts с GNOME 48 ([TWIG #189](https://thisweek.gnome.org/posts/2025/02/twig-189)). В GNOME 46–47 (Ubuntu 24.04) — своё сочетание в настройках GNOME на `pointshot --capture` | Hyprland — портал. Sway — привязка в конфиге к `pointshot --capture` |
-| Оверлей поверх всего | Окно без рамки, topmost | Окно `_NET_WM_STATE_FULLSCREEN` + above | Layer-shell (LayerShellQt) | Полноэкранное окно на каждом мониторе | Layer-shell, если собран с LayerShellQt, иначе полноэкранные окна |
-| Фокус оверлея после клавиши | Да | Да | Да | Не гарантирован (защита от кражи фокуса). Нужен токен активации — проверить | Да |
-| Лента поверх окон | Topmost-окно | Окно с флагом «поверх» | Layer-shell | **Невозможно** для обычного окна. Лента — обычное маленькое окно | Layer-shell |
-| Значок в трее | Да | Да | Да | **Нет** без расширения AppIndicator | Зависит от панели (swaybar, waybar — да) |
-| Смена буфера из фона | Да | Да | `ext-data-control-v1` (проверить на 6.6) или портал Clipboard | **Нет** data-control. Портал Clipboard — проверить | `ext-data-control-v1` / `wlr-data-control` |
-| Эмуляция Ctrl+V | `SendInput` | XTest | Портал RemoteDesktop | Портал RemoteDesktop | `virtual-keyboard-v1` |
-| Перехват обычного Ctrl+V | Хук `WH_KEYBOARD_LL` | `XGrabKey` на время активного набора | Нет — отдельная клавиша вставки | Нет — отдельная клавиша вставки | Нет — отдельная клавиша вставки |
-| Активное окно (профили задержек, контроль смены окна) | Да | Да | Нет | Нет | Нет |
-| Последовательная вставка | Да | Да | Да | Только если подтвердится портал Clipboard, иначе режимы 2–4 | Да |
+| Screen capture | Windows.Graphics.Capture or DXGI, GDI as a fallback | xcb, no permissions | The Screenshot portal. Faster: KWin ScreenShot2 for trusted programs | The Screenshot portal (a permission request the first time) or a ScreenCast session | The Screenshot portal (-wlr / -hyprland) or `ext-image-copy-capture` |
+| Global hotkey | `RegisterHotKey`, for Print Screen the `WH_KEYBOARD_LL` hook | `XGrabKey` | The GlobalShortcuts portal | The GlobalShortcuts portal since GNOME 48 ([TWIG #189](https://thisweek.gnome.org/posts/2025/02/twig-189)). In GNOME 46–47 (Ubuntu 24.04), a custom shortcut in the GNOME settings for `pointshot --capture` | Hyprland: the portal. Sway: a binding in the config to `pointshot --capture` |
+| Overlay above everything | A frameless topmost window | A `_NET_WM_STATE_FULLSCREEN` + above window | Layer-shell (LayerShellQt) | A full-screen window on each monitor | Layer-shell if built with LayerShellQt, otherwise full-screen windows |
+| Overlay focus after the key | Yes | Yes | Yes | Not guaranteed (focus stealing prevention). An activation token is needed, to be checked | Yes |
+| Strip above windows | A topmost window | A window with the "above" flag | Layer-shell | **Impossible** for an ordinary window. The strip is an ordinary small window | Layer-shell |
+| Tray icon | Yes | Yes | Yes | **No** without the AppIndicator extension | Depends on the bar (swaybar, waybar: yes) |
+| Changing the clipboard from the background | Yes | Yes | `ext-data-control-v1` (check on 6.6) or the Clipboard portal | **No** data-control. The Clipboard portal, to be checked | `ext-data-control-v1` / `wlr-data-control` |
+| Ctrl+V emulation | `SendInput` | XTest | The RemoteDesktop portal | The RemoteDesktop portal | `virtual-keyboard-v1` |
+| Intercepting the ordinary Ctrl+V | The `WH_KEYBOARD_LL` hook | `XGrabKey` while a set is active | No, a separate paste key | No, a separate paste key | No, a separate paste key |
+| Active window (delay profiles, window change control) | Yes | Yes | No | No | No |
+| Sequential paste | Yes | Yes | Yes | Only if the Clipboard portal is confirmed, otherwise modes 2–4 | Yes |
 
 ### Windows
 
-- **Print Screen.** В Windows 11 клавиша по умолчанию открывает «Ножницы», и `RegisterHotKey` её не получит. Нужен хук `WH_KEYBOARD_LL`, который глотает нажатие. Мастер первого запуска предлагает отключить параметр «Использовать Print Screen для открытия Ножниц».
-- **Масштаб.** Процесс работает в режиме Per-Monitor DPI Aware v2 (у Qt 6 по умолчанию). Координаты оверлея считаются в физических пикселях каждого монитора.
-- **Захват.** Основной путь — Windows.Graphics.Capture: он корректно снимает HDR-мониторы, а GDI `BitBlt` даёт на них выцветшую картинку. На Windows 10 этот API рисует жёлтую рамку вокруг захвата, отключить её можно только в Windows 11, поэтому там основной путь — DXGI Desktop Duplication.
-- **Свои нажатия.** Хук `WH_KEYBOARD_LL` видит и эмулированные события. Нажатия с флагом `LLKHF_INJECTED` пропускаются, иначе программа перехватит собственный Ctrl+V. Хук ставится, только пока он нужен, ничего не пишет в лог и отвечает мгновенно: медленный хук Windows молча отключает.
-- **История буфера.** Записи с картинками помечаются форматами `ExcludeClipboardContentFromMonitorProcessing`, `CanIncludeInClipboardHistory = 0` и `CanUploadToCloudClipboard = 0`. Иначе снимки попадут в историю Win+V и в облачную синхронизацию буфера.
-- **Повышенные права.** `SendInput` не может вставлять в окна, запущенные от администратора (UIPI). В этом случае программа показывает подсказку и переключается на режим «файлы + текст».
-- **SmartScreen.** Установщик подписывается через SignPath Foundation (раздел 11), иначе Windows показывает предупреждение, как у оригинала.
+- **Print Screen.** In Windows 11 the key opens the Snipping Tool by default, and `RegisterHotKey` will not get it. A `WH_KEYBOARD_LL` hook that swallows the press is needed. The first-start wizard suggests turning off the "Use the Print Screen key to open Snipping Tool" setting.
+- **Scale.** The process runs in Per-Monitor DPI Aware v2 mode (the Qt 6 default). Overlay coordinates are computed in physical pixels of each monitor.
+- **Capture.** The main path is Windows.Graphics.Capture: it captures HDR monitors correctly, while GDI `BitBlt` gives a washed-out picture on them. On Windows 10 this API draws a yellow border around the capture, which can be turned off only on Windows 11, so there the main path is DXGI Desktop Duplication.
+- **Own key presses.** The `WH_KEYBOARD_LL` hook sees emulated events too. Presses with the `LLKHF_INJECTED` flag are skipped, otherwise the program would intercept its own Ctrl+V. The hook is installed only while needed, writes nothing to the log and answers instantly: Windows silently disables a slow hook.
+- **Clipboard history.** Entries with images are marked with the `ExcludeClipboardContentFromMonitorProcessing`, `CanIncludeInClipboardHistory = 0` and `CanUploadToCloudClipboard = 0` formats. Otherwise the shots get into the Win+V history and cloud clipboard sync.
+- **Elevated rights.** `SendInput` cannot paste into windows started as administrator (UIPI). In that case the program shows a hint and switches to the "files + text" mode.
+- **SmartScreen.** The installer is signed through the SignPath Foundation (section 11), otherwise Windows shows a warning, as with the original.
 
 ### Linux X11
 
-- Захват всего корневого окна через MIT-SHM, затем нарезка по мониторам из XRandR.
-- Клавиша Print Screen часто занята окружением (GNOME, KDE на X11). Клавиша захвата — настраиваемый параметр: мастер проверяет, свободна ли она, и предлагает выбрать другую или отключить системную.
-- Буфер обмена в X11 живёт, пока жив процесс-владелец. Программа остаётся владельцем, пока набор не очищен.
+- Capturing the whole root window through MIT-SHM, then cutting it by monitors from XRandR.
+- The Print Screen key is often taken by the desktop (GNOME, KDE on X11). The capture key is a configurable setting: the wizard checks whether it is free and suggests choosing another one or turning off the system one.
+- On X11 the clipboard lives while the owner process lives. The program stays the owner until the set is cleared.
 
-* **Свои нажатия.** Перед эмуляцией Ctrl+V через XTest захват клавиши (`XGrabKey`) снимается, иначе программа перехватит собственное нажатие. После вставки захват возвращается.
+* **Own key presses.** Before emulating Ctrl+V through XTest the key grab (`XGrabKey`) is released, otherwise the program would intercept its own press. After the paste the grab comes back.
 
 ### Linux Wayland
 
-- **Снимок.** Портал Screenshot с `interactive=false` возвращает файл со всем экраном. Программа читает его, сразу удаляет и показывает свой оверлей поверх.
-- **Оверлей на GNOME.** Без layer-shell оверлей — это полноэкранное окно на каждом мониторе. Анимацию появления окон в GNOME программа отключить не может, поэтому оверлей может открываться с короткой анимацией поверх живого экрана. Насколько это заметно, проверяется на прототипе.
-- **Портал RemoteDesktop.** Запрашивается только для клавиатуры, с `persist_mode=2`, чтобы диалог разрешения появился один раз. Токен восстановления хранится в настройках.
-- **Без порталов.** На минимальных окружениях без xdg-desktop-portal программа сообщает, чего не хватает, и предлагает CLI-команды для привязки клавиш.
-- **Flatpak.** В 1.0 не выпускается. Когда появится, в песочнице будут работать только порталы, и data-control с virtual-keyboard придётся отключить. Полный набор возможностей — в пакетах .deb и .rpm.
+- **Capture.** The Screenshot portal with `interactive=false` returns a file with the whole screen. The program reads it, deletes it right away and shows its own overlay on top.
+- **Overlay on GNOME.** Without layer-shell the overlay is a full-screen window on each monitor. The program cannot turn off GNOME's window appearance animation, so the overlay may open with a short animation over the live screen. How noticeable this is gets checked on the prototype.
+- **The RemoteDesktop portal.** Requested for the keyboard only, with `persist_mode=2`, so that the permission dialog appears once. The restore token is kept in settings.
+- **Without portals.** On minimal environments without xdg-desktop-portal the program reports what is missing and suggests CLI commands for binding keys.
+- **Flatpak.** Not released in 1.0. When it appears, only portals will work in the sandbox, and data-control and virtual-keyboard will have to be disabled. The full set of capabilities is in the .deb and .rpm packages.
 
-* **Клавиша через портал.** На GNOME и KDE программа предлагает порталу GlobalShortcuts сочетание из настроек, а окончательно его подтверждает и может поменять пользователь в системном диалоге. Настройки программы показывают фактически назначенное сочетание.
+* **A key through the portal.** On GNOME and KDE the program suggests the shortcut from settings to the GlobalShortcuts portal, and the user confirms it for good and may change it in the system dialog. The program settings show the actually assigned shortcut.
 
-### macOS — задел, не входит в 1.0
+### macOS: groundwork, not in 1.0
 
-Версия для macOS может понадобиться позже, поэтому её путь закладывается сейчас. Ядро и интерфейс не меняются, добавляется только каталог `platform/macos/` с четырьмя реализациями.
+A macOS version may be needed later, so its path is laid now. The core and the UI do not change, only a `platform/macos/` directory with four implementations is added.
 
-| Интерфейс | macOS API | Особенность |
+| Interface | macOS API | Specifics |
 | --- | --- | --- |
-| ICapture | ScreenCaptureKit (`SCScreenshotManager`) | Разрешение «Запись экрана» при первом захвате |
-| IHotkeys | Carbon `RegisterEventHotKey` | Разрешений не требует |
-| IClipboard | `NSPasteboard` | Писать в буфер можно из фона, ограничений как на GNOME нет |
-| IInputInjector | `CGEventPost` (⌘V) | Разрешение «Универсальный доступ», как у оригинала Snapik |
+| ICapture | ScreenCaptureKit (`SCScreenshotManager`) | The "Screen Recording" permission on the first capture |
+| IHotkeys | Carbon `RegisterEventHotKey` | Needs no permissions |
+| IClipboard | `NSPasteboard` | The clipboard can be written from the background, no restrictions as on GNOME |
+| IInputInjector | `CGEventPost` (⌘V) | The "Accessibility" permission, as for the original Snapik |
 
-Что делаем уже в 1.0, чтобы перенос занял недели, а не месяцы:
+What is done already in 1.0 so that the port takes weeks rather than months:
 
-- CMake-цель для macOS собирается в CI с заглушками интерфейсов. Сборка не должна ломаться.
-- Модификатор вставки и сочетания клавиш хранятся в настройках в переносимом виде (`Primary+Shift+V`), а не как Ctrl.
-- Мастер первого запуска умеет показывать шаги выдачи системных разрешений — на macOS их два, на Wayland — порталы.
-- Иконки, переводы и шаблон сообщения не привязаны к платформе.
+- A CMake target for macOS is built in CI with interface stubs. The build must not break.
+- The paste modifier and shortcuts are stored in settings in a portable form (`Primary+Shift+V`), not as Ctrl.
+- The first-start wizard can show the steps of granting system permissions: two of them on macOS, portals on Wayland.
+- Icons, translations and the message template are not tied to the platform.
 
-Для выпуска понадобятся .dmg через macdeployqt, подпись и нотаризация Apple (платный аккаунт разработчика, 99 $ в год) — это решается отдельно.
+A release will need a .dmg via macdeployqt, Apple signing and notarization (a paid developer account, $99 a year); this is decided separately.
 
-## 10. Вставка набора и буфер обмена
+## 10. Pasting the set and the clipboard
 
-Буфер обмена не умеет хранить «несколько картинок и текст» так, чтобы любой чат вставил их одним Ctrl+V. Поэтому основной режим — последовательная вставка: программа сама кладёт элементы в буфер по одному и нажимает Ctrl+V за пользователя. Остальные режимы — запасные.
+The clipboard cannot hold "several images and text" so that any chat pastes them with one Ctrl+V. So the main mode is sequential paste: the program itself puts the items into the clipboard one at a time and presses Ctrl+V for the user. The other modes are fallbacks.
 
-### Текст сообщения
+### Message text
 
-Шаблон по умолчанию (русская локаль). Пустые комментарии дают строку только с номером, снимки без меток дают только заголовок.
+The default template (Russian locale). Empty comments give a line with just the number, shots without marks give just a header.
 
 ```markdown
 Снимок A
@@ -442,236 +444,238 @@ A2 Цену на карточках крупнее
 B1 Убрать этот блок
 ```
 
-Настраиваются: заголовок снимка, формат строки метки (`{id} {text}`, `{id}: {text}`, `**{id}** {text}`), вводная фраза в начале и в конце, а также место текста — после картинок или перед ними.
+(In English: "Shot A / A1 Make the 'Buy' button brighter / A2 Larger prices on the cards / Shot B / B1 Remove this block".)
 
-### Режим 1. Последовательная вставка (основной)
+Configurable: the shot header, the mark line format (`{id} {text}`, `{id}: {text}`, `**{id}** {text}`), an opening and a closing phrase, and the text position: after the images or before them.
 
-1. Пользователь запускает вставку: Ctrl+V при активном наборе (Windows, X11), отдельная клавиша или кнопка в ленте. Кнопка в ленте запускает режим 1 только на Windows и X11: там программа может вернуть фокус окну, которое было активно до этого. На Wayland вернуть фокус чужому окну нельзя, поэтому режим 1 запускается только глобальной клавишей из окна чата, а кнопка копирует набор в режиме 2.
-2. Программа сохраняет текущее содержимое буфера обмена.
-3. Для каждого снимка по порядку: запечь метки и размытие, положить PNG в буфер, подождать 80 мс, эмулировать Ctrl+V, подождать задержку профиля (по умолчанию 400 мс).
-4. Положить в буфер текст сообщения и эмулировать Ctrl+V.
-5. Через 1 с вернуть исходное содержимое буфера.
-6. Во время вставки поверх ленты виден индикатор «Вставляю 2 из 4», Esc прерывает процесс. Если активное окно сменилось, вставка останавливается (на Windows и X11; на Wayland смену окна отследить нельзя).
+### Mode 1. Sequential paste (the main one)
 
-Правила эмуляции ввода:
+1. The user starts the paste: Ctrl+V with an active set (Windows, X11), a separate key or the button in the strip. The strip button starts mode 1 only on Windows and X11: there the program can return focus to the window that was active before. On Wayland focus cannot be returned to someone else's window, so mode 1 is started only by the global key from the chat window, and the button copies the set in mode 2.
+2. The program saves the current clipboard content.
+3. For each shot in order: bake the marks and blur, put the PNG into the clipboard, wait 80 ms, emulate Ctrl+V, wait the profile delay (400 ms by default).
+4. Put the message text into the clipboard and emulate Ctrl+V.
+5. After 1 s, restore the original clipboard content.
+6. During the paste an indicator "Pasting 2 of 4" is visible over the strip, Esc interrupts the process. If the active window changed, the paste stops (on Windows and X11; on Wayland a window change cannot be tracked).
 
-- **Отпущенные модификаторы.** Перед первым Ctrl+V программа ждёт, пока пользователь отпустит клавиши сочетания (сигнал `released`, на Wayland — `Deactivated` портала GlobalShortcuts), и ещё 50 мс. Иначе зажатый Shift или Alt превратит эмулированный Ctrl+V в другое сочетание.
-- **Код клавиши, а не символ.** V нажимается по коду клавиши: `VK_V` на Windows, keycode 55 в X11, `KEY_V` в evdev для порталов. При русской раскладке символа «v» нет, и эмуляция по символу не сработает или переключит раскладку.
-- **Раскладка виртуальной клавиатуры.** `virtual-keyboard-v1` требует передать композитору раскладку. Передаётся стандартная `us` только для виртуального устройства, побочные эффекты для раскладки пользователя проверяются на Sway.
-- **Свои события.** Перехватчики Ctrl+V на Windows и X11 пропускают нажатия, которые эмулирует сама программа (раздел 9).
+Input emulation rules:
 
-Задержки берутся из профиля приложения, определённого по активному окну (имя процесса на Windows, `WM_CLASS` на X11). На Wayland активное окно узнать нельзя, используется общий профиль.
+- **Released modifiers.** Before the first Ctrl+V the program waits until the user releases the shortcut keys (the `released` signal, on Wayland the GlobalShortcuts portal's `Deactivated`), plus 50 ms. Otherwise a held Shift or Alt turns the emulated Ctrl+V into another shortcut.
+- **The key code, not the character.** V is pressed by the key code: `VK_V` on Windows, keycode 55 on X11, `KEY_V` in evdev for the portals. With a Russian layout there is no "v" character, and emulating by character would fail or switch the layout.
+- **The virtual keyboard layout.** `virtual-keyboard-v1` requires passing a keymap to the compositor. The standard `us` is passed for the virtual device only; side effects on the user's layout are checked on Sway.
+- **Own events.** The Ctrl+V interceptors on Windows and X11 skip presses emulated by the program itself (section 9).
 
-| Профиль | Задержка между картинками | Особенность |
+The delays come from the application profile determined by the active window (the process name on Windows, `WM_CLASS` on X11). On Wayland the active window cannot be found out, so a common profile is used.
+
+| Profile | Delay between images | Specifics |
 | --- | --- | --- |
-| По умолчанию | 400 мс | — |
-| Браузеры (ChatGPT, Claude) | 600 мс | Загрузка картинки идёт асинхронно, слишком быстрая вставка теряет элементы |
-| Telegram Desktop | 300 мс | Ожидается, что первая картинка откроет окно отправки, следующие добавятся в альбом, а текст уйдёт в подпись. Проверяется на прототипе |
-| Cursor, VS Code | 400 мс | — |
+| Default | 400 ms | — |
+| Browsers (ChatGPT, Claude) | 600 ms | Image upload is asynchronous, too fast a paste loses items |
+| Telegram Desktop | 300 ms | The first image is expected to open the send window, the next ones are added to an album, and the text goes into the caption. Checked on the prototype |
+| Cursor, VS Code | 400 ms | — |
 
-Значения задержек — стартовые, их уточняют на прототипе (раздел 12).
+The delay values are starting ones and are refined on the prototype (section 12).
 
-### Режим 2. Файлы + текст
+### Mode 2. Files + text
 
-Одна запись в буфере сразу с несколькими форматами. Программа пишет PNG во временную папку и кладёт:
+One clipboard entry with several formats at once. The program writes the PNGs into a temporary folder and puts:
 
-- `text/uri-list` (на Windows — CF_HDROP) — список файлов;
-- `x-special/gnome-copied-files` — для файловых менеджеров GNOME;
-- `text/plain` — текст сообщения;
-- `image/png` — первый снимок, для приложений, которые принимают только одну картинку.
+- `text/uri-list` (CF_HDROP on Windows): the list of files;
+- `x-special/gnome-copied-files`: for GNOME file managers;
+- `text/plain`: the message text;
+- `image/png`: the first shot, for applications that accept only one image.
 
-Это работает одним нативным Ctrl+V, но каждое приложение выбирает из записи свой формат. Часть программ возьмёт файлы и проигнорирует текст, часть — наоборот. Режим используется на GNOME Wayland и при ошибке эмуляции ввода. Временные файлы удаляются при очистке набора и при выходе.
+This works with one native Ctrl+V, but each application picks its own format from the entry. Some programs take the files and ignore the text, others the opposite. The mode is used on GNOME Wayland and on input emulation errors. The temporary files are deleted when the set is cleared and on exit.
 
-**Программы в песочнице.** Telegram Desktop из Flathub и браузеры в Snap или Flatpak не видят файлы во временной папке программы, поэтому список файлов из режимов 2 и 3 в них не вставится. Файлы дополнительно передаются через портал FileTransfer: программа регистрирует их в портале и кладёт в запись ключ `application/vnd.portal.filetransfer`, по которому получатель открывает файлы. Поддержка на стороне получателя разная и проверяется на прототипе. Если её нет, для таких программ остаются режим 1 (картинки через буфер, без файлов) и склейка.
+**Sandboxed programs.** Telegram Desktop from Flathub and browsers in Snap or Flatpak do not see the files in the program's temporary folder, so the file list from modes 2 and 3 will not paste into them. The files are additionally passed through the FileTransfer portal: the program registers them in the portal and puts the `application/vnd.portal.filetransfer` key into the entry, by which the receiver opens the files. Support on the receiver's side varies and is checked on the prototype. If there is none, mode 1 (images through the clipboard, no files) and stitching remain for such programs.
 
-### Режим 3. Перетаскивание
+### Mode 3. Drag and drop
 
-Из ленты набор перетаскивается в окно чата как список файлов. Это самый совместимый способ для браузеров и Telegram на любом окружении. Текст при этом копируется в буфер, и подсказка предлагает вставить его вторым действием.
+The set is dragged from the strip into the chat window as a list of files. This is the most compatible way for browsers and Telegram in any environment. The text is copied to the clipboard meanwhile, and a hint suggests pasting it as a second action.
 
-### Режим 4. Склейка
+### Mode 4. Stitching
 
-Все снимки собираются в одно изображение по вертикали, с отступом 16 px и буквой над каждым. Вставляются две записи: картинка, затем текст. Подходит для чатов, где разрешена одна картинка на сообщение.
+All shots are assembled into one vertical image, 16 px apart, with a letter above each. Two entries are pasted: the image, then the text. Suitable for chats that allow one image per message.
 
-### Запекание
+### Baking
 
-- Рамка метки — 3 px акцентного цвета (по умолчанию #FF5A1F) с белой обводкой 1 px для контраста на любом фоне.
-- Значок номера — круг 28 px с текстом «A1» белым полужирным, масштабируется по DPI снимка.
-- Размытие — пикселизация блоками 12 px, применяется до рисования меток.
-- Если длинная сторона больше 4096 px, снимок уменьшается. Если PNG больше 5 МБ, он кодируется в JPEG 85 %.
+- The mark frame is 3 px of the accent color (#FF5A1F by default) with a 1 px white outline for contrast on any background.
+- The number badge is a 28 px circle with the text "A1" in white bold, scaled by the shot's DPI.
+- Blur is pixelation with 12 px blocks, applied before drawing the marks.
+- If the long side is larger than 4096 px, the shot is downscaled. If the PNG is larger than 5 MB, it is encoded as JPEG 85 %.
 
-### Буфер обмена и приватность
+### Clipboard and privacy
 
-- **Windows.** Записи помечаются форматами, которые исключают их из истории Win+V и облачной синхронизации (раздел 9).
-- **KDE.** К записи добавляется `x-kde-passwordManagerHint` со значением `secret`, тогда Klipper её не сохраняет.
-- **GNOME и другие менеджеры буфера на Wayland** видят все записи, общего способа скрыть запись нет. Это сказано в справке, а восстановление исходного буфера (PST-8) сокращает время, пока снимок лежит в буфере.
-- **Восстановление.** Возвращаются только текст и картинки. Если в буфере был формат, который программа не умеет прочитать (файлы из файлового менеджера, данные офисных программ), он не восстанавливается, и пользователь видит подсказку.
+- **Windows.** Entries are marked with formats that exclude them from the Win+V history and cloud sync (section 9).
+- **KDE.** `x-kde-passwordManagerHint` with the value `secret` is added to the entry, then Klipper does not keep it.
+- **GNOME and other clipboard managers on Wayland** see all entries; there is no common way to hide an entry. This is stated in the help, and restoring the original clipboard (PST-8) shortens the time a shot stays in the clipboard.
+- **Restoring.** Only text and images come back. If the clipboard had a format the program cannot read (files from a file manager, office application data), it is not restored, and the user sees a hint.
 
-## 11. Настройки, данные, сборка и обновления
+## 11. Settings, data, build and updates
 
-### Где хранятся данные
+### Where data is stored
 
-| Что | Windows | Linux |
+| What | Windows | Linux |
 | --- | --- | --- |
-| Настройки (INI) | `%APPDATA%\Pointshot\settings.ini` | `$XDG_CONFIG_HOME/pointshot/settings.ini` |
-| Набор при опции «пережить перезапуск» | `%LOCALAPPDATA%\Pointshot\session\` | `$XDG_DATA_HOME/pointshot/session/` (права 0700) |
-| Временные PNG для режима «файлы + текст» | `%TEMP%\pointshot-<pid>\` | `$XDG_RUNTIME_DIR/pointshot/` |
-| Логи (без содержимого снимков и комментариев) | `%LOCALAPPDATA%\Pointshot\logs\` | `$XDG_STATE_HOME/pointshot/logs/` |
+| Settings (INI) | `%APPDATA%\Pointshot\settings.ini` | `$XDG_CONFIG_HOME/pointshot/settings.ini` |
+| The set with the "survive a restart" option | `%LOCALAPPDATA%\Pointshot\session\` | `$XDG_DATA_HOME/pointshot/session/` (mode 0700) |
+| Temporary PNGs for the "files + text" mode | `%TEMP%\pointshot-<pid>\` | `$XDG_RUNTIME_DIR/pointshot/` |
+| Logs (without shot contents and comments) | `%LOCALAPPDATA%\Pointshot\logs\` | `$XDG_STATE_HOME/pointshot/logs/` |
 
-Сессия сохраняется как `session.json` (снимки, метки, комментарии, порядок) и исходные PNG без запекания.
+The session is saved as `session.json` (shots, marks, comments, order) and the source PNGs without baking.
 
-### Настройки
+### Settings
 
-- **Клавиши:** захват, вставка набора, новый снимок, очистка.
-- **Вставка:** режим по умолчанию, перехват Ctrl+V (вкл./выкл.), задержки профилей, восстановление буфера.
-- **Сообщение:** шаблон заголовка и строки, вводная и заключительная фразы, текст до или после картинок.
-- **Вид:** акцентный цвет, размер значка, положение ленты, тёмная/светлая тема по системе.
-- **Изображения:** максимальный размер, порог перехода на JPEG, качество.
-- **Общие:** автозапуск, язык, автоочистка набора после вставки, проверка новой версии (вкл./выкл.).
+- **Hotkeys:** capture, paste set, new shot, clear.
+- **Paste:** the default mode, intercepting Ctrl+V (on/off), profile delays, clipboard restore.
+- **Message:** the header and line template, opening and closing phrases, text before or after the images.
+- **Appearance:** accent color, badge size, strip position, dark/light theme from the system.
+- **Images:** maximum size, the JPEG switch threshold, quality.
+- **General:** autostart, language, auto-clearing the set after a paste, the new version check (on/off).
 
-### Сборка и распространение
+### Build and distribution
 
-| Платформа | Пакет в 1.0 | Обновления |
+| Platform | Package in 1.0 | Updates |
 | --- | --- | --- |
-| Windows 10/11 x64 | `Pointshot-win-Setup.exe` (Velopack), установка в профиль без прав администратора, плюс portable ZIP | Автоматически из GitHub Releases, каналы `stable` и `beta` |
-| Ubuntu 24.04+, Debian 12+ | `.deb` (CPack), зависимости — системные пакеты Qt 6, libwayland-client, libxcb | Программа сообщает о новой версии. Установка — из репозитория проекта через apt |
-| Fedora 44+, openSUSE Tumbleweed | `.rpm` (CPack), те же системные зависимости | Программа сообщает о новой версии. Установка — из репозитория через dnf / zypper |
+| Windows 10/11 x64 | `Pointshot-win-Setup.exe` (Velopack), a per-user install without administrator rights, plus a portable ZIP | Automatically from GitHub Releases, `stable` and `beta` channels |
+| Ubuntu 24.04+, Debian 12+ | `.deb` (CPack), dependencies are the system packages Qt 6, libwayland-client, libxcb | The program reports a new version. Installed from the project repository through apt |
+| Fedora 44+, openSUSE Tumbleweed | `.rpm` (CPack), the same system dependencies | The program reports a new version. Installed from the repository through dnf / zypper |
 
-Репозитории пакетов для Linux удобнее всего вести через openSUSE Build Service: он бесплатен для открытых проектов и собирает .deb и .rpm под каждый дистрибутив из одного spec. Запасной вариант — пакеты в GitHub Releases для ручной установки. AppImage и Flatpak — во второй очереди.
+Linux package repositories are easiest to run through the openSUSE Build Service: it is free for open projects and builds .deb and .rpm for each distribution from one spec. The fallback is packages in GitHub Releases for manual installation. AppImage and Flatpak are in the second round.
 
-Автозапуск: на Windows — ключ `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, на Linux — файл `.desktop` в `~/.config/autostart`.
+Autostart: on Windows the `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` key, on Linux a `.desktop` file in `~/.config/autostart`.
 
-Идентификатор приложения — обратная доменная запись, рабочий вариант `io.github.pointshot.Pointshot`. Он одинаковый в имени .desktop-файла, в регистрации у порталов и в автозапуске, потому что от него зависят сохранённые разрешения порталов (раздел 9). После выбора окончательного названия идентификатор больше не меняется, иначе пользователи потеряют выданные разрешения.
+The application ID is a reverse domain name, the working variant is `io.github.pointshot.Pointshot`. It is the same in the .desktop file name, the portal registration and autostart, because the saved portal permissions depend on it (section 9). After the final name is chosen, the ID never changes again, otherwise users lose the granted permissions.
 
-Подпись: Windows-установщик подписывается бесплатно через [SignPath Foundation](https://signpath.org/), которая подписывает сборки открытых проектов прямо из CI — это убирает предупреждение SmartScreen. Пакеты .deb и .rpm и репозитории подписываются GPG-ключом проекта.
+Signing: the Windows installer is signed for free through the [SignPath Foundation](https://signpath.org/), which signs builds of open projects right from CI; this removes the SmartScreen warning. The .deb and .rpm packages and repositories are signed with the project's GPG key.
 
-### Лицензия и репозиторий
+### License and repository
 
-Проект бесплатный, с открытым исходным кодом. Пробного периода, ключей и сбора статистики нет.
+The project is free, with open source code. There is no trial period, no keys and no statistics collection.
 
-- **Лицензия — GPL-3.0-or-later.** Она совместима с Qt (LGPLv3) и гарантирует, что производные версии тоже останутся открытыми. Если нужна свобода встраивать код в закрытые продукты, подойдёт MIT — это решение принимается до первого публичного коммита.
-- **Репозиторий** публичный на GitHub: README со скриншотами, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, шаблоны задач для ошибок с полями «ОС, окружение, X11/Wayland, чат».
-- **Переводы** в формате Qt Linguist (`.ts`), чтобы сообщество могло добавлять языки без сборки.
-- **Релизы** собираются только в CI из тега, к каждому прикладываются контрольные суммы SHA-256.
+- **License: GPL-3.0-or-later.** It is compatible with Qt (LGPLv3) and guarantees that derived versions stay open too. If freedom to embed the code into closed products is needed, MIT fits; this decision is made before the first public commit.
+- **The repository** is public on GitHub: a README with screenshots, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, issue templates for bugs with the fields "OS, environment, X11/Wayland, chat".
+- **Translations** in the Qt Linguist format (`.ts`), so that the community can add languages without building.
+- **Releases** are built only in CI from a tag, each with SHA-256 checksums attached.
 
-## 12. Тестирование и приёмка
+## 12. Testing and acceptance
 
-### Автоматические тесты
+### Automated tests
 
-- **Модель набора:** нумерация, пересчёт после удаления и перестановки, отмена и повтор — покрытие не ниже 90 %.
-- **Шаблон текста:** все варианты формата, пустые комментарии, многострочные комментарии, 26 снимков.
-- **Запекание:** сравнение с эталонными PNG при масштабах 100 %, 125 %, 150 %, 200 %. Проверка, что в размытой области не осталось исходных пикселей.
-- **Wayland в CI:** контейнер Fedora 44 с безголовыми сессиями — `gnome-shell --headless` (не голый Mutter: портал GNOME работает через gnome-shell), `kwin_wayland --virtual`, `sway` с `WLR_BACKENDS=headless`. Автоматически проверяются запуск на нативном Wayland, регистрация идентификатора у порталов, data-control и virtual-keyboard на Sway и KWin.
-- **Порталы в CI** — через подменный бэкенд на python-dbusmock. Диалоги разрешений в CI не нажать, поэтому настоящие порталы проверяются вручную по матрице ниже.
-- **Буфер обмена:** запись и чтение всех форматов режима «файлы + текст» на Windows и Wayland, включая флаги исключения из истории.
-- **Сборка:** .rpm собирается и устанавливается в контейнере Fedora 44 на каждый коммит, Setup.exe — на чистом образе Windows.
+- **Set model:** numbering, recomputing after deletion and reordering, undo and redo; coverage at least 90 %.
+- **Text template:** all format variants, empty comments, multi-line comments, 26 shots.
+- **Baking:** comparison with reference PNGs at 100 %, 125 %, 150 %, 200 % scales. A check that no source pixels remain in a blurred area.
+- **Wayland in CI:** a Fedora 44 container with headless sessions: `gnome-shell --headless` (not bare Mutter: the GNOME portal works through gnome-shell), `kwin_wayland --virtual`, `sway` with `WLR_BACKENDS=headless`. Automatically checked: running on native Wayland, registering the ID with the portals, data-control and virtual-keyboard on Sway and KWin.
+- **Portals in CI** through a fake backend on python-dbusmock. Permission dialogs cannot be clicked in CI, so the real portals are checked by hand with the matrix below.
+- **Clipboard:** writing and reading all formats of the "files + text" mode on Windows and Wayland, including the history exclusion flags.
+- **Build:** the .rpm is built and installed in a Fedora 44 container on every commit, Setup.exe on a clean Windows image.
 
-### Ручная матрица совместимости
+### Manual compatibility matrix
 
-Каждый релиз проверяется на сочетаниях «окружение × чат × режим вставки». Ожидаемый результат — все снимки по порядку и текст в одном неотправленном сообщении.
+Each release is checked on combinations of "environment × chat × paste mode". The expected result is all shots in order and the text in one unsent message.
 
-| Окружение | Пакет | Приоритет | Чаты для проверки | Режимы |
+| Environment | Package | Priority | Chats to check | Modes |
 | --- | --- | --- | --- | --- |
-| Fedora 44 Workstation, GNOME 50, Wayland, 2 монитора 100 % + 150 % | .rpm | Эталон | ChatGPT и Claude в Firefox и Chrome, Telegram Desktop из RPM и из Flathub, Cursor | 2, 3, 4 (и 1, если подтвердится портал Clipboard) |
-| Fedora 44 KDE, Plasma 6.6, Wayland, дробный масштаб 125 % | .rpm | Эталон | ChatGPT в Firefox и Chrome, Telegram Desktop из Flathub, Cursor | 1, 2, 3, 4 |
-| Fedora 44 Sway Spin | .rpm | Эталон | ChatGPT в Firefox, Telegram Desktop | 1, 3 |
-| Windows 11, масштаб 150 %, 2 монитора, один HDR | Setup.exe | Эталон | ChatGPT и Claude в Chrome и Firefox, Telegram Desktop, WhatsApp Desktop, Cursor | 1, 2, 3, 4 |
-| Windows 10 22H2, 100 % | Setup.exe | Дополнительно | ChatGPT в Edge, Telegram Desktop | 1, 2 |
-| Ubuntu 24.04, GNOME 46, Wayland (клавиша — через своё сочетание GNOME) | .deb | Дополнительно | ChatGPT в Firefox из Snap, Telegram Desktop | 2, 3 |
-| Debian 12, X11 | .deb | Дополнительно | ChatGPT в Chrome, Telegram Desktop | 1, 2 |
+| Fedora 44 Workstation, GNOME 50, Wayland, 2 monitors 100 % + 150 % | .rpm | Reference | ChatGPT and Claude in Firefox and Chrome, Telegram Desktop from RPM and from Flathub, Cursor | 2, 3, 4 (and 1 if the Clipboard portal is confirmed) |
+| Fedora 44 KDE, Plasma 6.6, Wayland, fractional scale 125 % | .rpm | Reference | ChatGPT in Firefox and Chrome, Telegram Desktop from Flathub, Cursor | 1, 2, 3, 4 |
+| Fedora 44 Sway Spin | .rpm | Reference | ChatGPT in Firefox, Telegram Desktop | 1, 3 |
+| Windows 11, scale 150 %, 2 monitors, one HDR | Setup.exe | Reference | ChatGPT and Claude in Chrome and Firefox, Telegram Desktop, WhatsApp Desktop, Cursor | 1, 2, 3, 4 |
+| Windows 10 22H2, 100 % | Setup.exe | Additional | ChatGPT in Edge, Telegram Desktop | 1, 2 |
+| Ubuntu 24.04, GNOME 46, Wayland (the key through a custom GNOME shortcut) | .deb | Additional | ChatGPT in Firefox from Snap, Telegram Desktop | 2, 3 |
+| Debian 12, X11 | .deb | Additional | ChatGPT in Chrome, Telegram Desktop | 1, 2 |
 
-На каждом окружении отдельно проверяются: вставка при русской раскладке, отсутствие снимков в истории буфера и повторный запуск без повторных диалогов разрешений.
+On each environment the following are checked separately: pasting with a Russian layout, no shots in the clipboard history, and a repeated start without repeated permission dialogs.
 
-### Критерии приёмки версии 1.0
+### Acceptance criteria for version 1.0
 
-- [ ] Все требования с приоритетом M из раздела 5 выполнены на Windows 11 и на трёх редакциях Fedora 44: Workstation (GNOME 50), KDE (Plasma 6.6) и Sway Spin — все в сессии Wayland.
-- [ ] Программа на Fedora 44 работает через нативный Wayland, без XWayland.
-- [ ] Сценарий «3 снимка, 5 комментариев, вставка в ChatGPT» проходит меньше чем за 60 секунд у пяти тестовых пользователей, из них не меньше трёх — на Fedora 44.
-- [ ] Последовательная вставка проходит без потерь и перестановок в 50 запусках подряд на каждом окружении, где она поддерживается.
-- [ ] На Fedora 44 Workstation пользователь без подсказок разработчика получает набор в чате одним из режимов.
-- [ ] Разрешения порталов запрашиваются один раз и не повторяются после перезагрузки.
-- [ ] Сетевой монитор подтверждает: при захвате и вставке нет исходящих запросов.
-- [ ] Показатели NFR-1, NFR-2 и NFR-3 выполнены и замерены на эталонных машинах, включая Fedora 44 на Wayland.
-- [ ] Пакет .rpm ставится, обновляется и удаляется без ошибок на Fedora 44, `rpmlint` без ошибок. Пакет .deb — на Ubuntu 24.04, `lintian` без ошибок.
-- [ ] Проект собирается из исходников по README на чистой Fedora 44, CMake-цель macOS собирается в CI.
+- [ ] All requirements with priority M from section 5 are met on Windows 11 and on three Fedora 44 editions: Workstation (GNOME 50), KDE (Plasma 6.6) and Sway Spin, all in a Wayland session.
+- [ ] On Fedora 44 the program works through native Wayland, without XWayland.
+- [ ] The scenario "3 shots, 5 comments, paste into ChatGPT" takes less than 60 seconds for five test users, at least three of them on Fedora 44.
+- [ ] Sequential paste goes without losses and reorderings in 50 runs in a row on every environment where it is supported.
+- [ ] On Fedora 44 Workstation a user without hints from the developer gets the set into a chat with one of the modes.
+- [ ] Portal permissions are requested once and are not repeated after a reboot.
+- [ ] A network monitor confirms: there are no outgoing requests during capture and paste.
+- [ ] The NFR-1, NFR-2 and NFR-3 targets are met and measured on the reference machines, including Fedora 44 on Wayland.
+- [ ] The .rpm package installs, updates and uninstalls without errors on Fedora 44, `rpmlint` without errors. The .deb package on Ubuntu 24.04, `lintian` without errors.
+- [ ] The project builds from source following the README on a clean Fedora 44, the macOS CMake target builds in CI.
 
-## 13. Этапы и оценка
+## 13. Stages and estimate
 
-Версия 1.0 — примерно 17 недель для одного опытного C++/Qt-разработчика и тестировщика на полставки с недели 12. С двумя разработчиками Linux-этапы идут параллельно с Windows, и срок сокращается до 11–12 недель. Оценка дана без резерва: на неизвестные особенности порталов и композиторов стоит заложить ещё 20–25 %, то есть 3–4 недели.
+Version 1.0 takes about 17 weeks for one experienced C++/Qt developer and a half-time tester from week 12. With two developers the Linux stages run in parallel with Windows, and the time shrinks to 11–12 weeks. The estimate has no reserve: another 20–25 %, i.e. 3–4 weeks, should be planned for unknown specifics of portals and compositors.
 
 ```mermaid
 gantt
-  title Версия 1.0 за 17 недель одного разработчика
+  title Version 1.0 in 17 weeks of one developer
   dateFormat X
   axisFormat %s
-  section Этапы
-  Прототип вставки           :0, 2
-  Гейт — режимы вставки      :milestone, 2, 0
-  Ядро и Windows             :2, 6
+  section Stages
+  Paste prototype            :0, 2
+  Gate: paste modes          :milestone, 2, 0
+  Core and Windows           :2, 6
   Linux Wayland              :6, 11
   Linux X11                  :11, 12
-  Сборки, мастер, переводы   :12, 14
-  Бета и стабилизация        :14, 17
-  Релиз 1.0                  :milestone, 17, 0
+  Builds, wizard, translations :12, 14
+  Beta and stabilization     :14, 17
+  Release 1.0                :milestone, 17, 0
 ```
 
-Гейт после прототипа решает, какие режимы вставки станут основными на каждой платформе, в том числе — работает ли портал Clipboard на Fedora 44 Workstation. Wayland идёт сразу после ядра и получает больше всего времени, X11 — в конце и по остаточному принципу. Если последовательная вставка в целевые чаты работает ненадёжно, план пересматривается до начала основной работы.
+The gate after the prototype decides which paste modes become the main ones on each platform, including whether the Clipboard portal works on Fedora 44 Workstation. Wayland comes right after the core and gets the most time, X11 comes at the end with the lowest priority. If sequential paste into the target chats works unreliably, the plan is revised before the main work starts.
 
-| Этап | Результат |
+| Stage | Result |
 | --- | --- |
-| Прототип вставки | Консольная утилита, которая вставляет 3 PNG и текст режимами 1 и 2. Заполненная матрица совместимости для Windows 11 и трёх редакций Fedora 44 на Wayland. Ответ на вопрос о портале Clipboard в GNOME 50 и `ext-data-control-v1` в Plasma 6.6 |
-| Ядро и Windows | Модель, оверлей, редактор, лента, рендер, все режимы вставки на Windows. Внутренняя сборка для Windows |
-| Linux Wayland | Порталы Screenshot, GlobalShortcuts, RemoteDesktop и Clipboard, layer-shell, data-control, virtual-keyboard. Определение окружения и автовыбор режима. Удобные запасные режимы для GNOME. Сборка .rpm для Fedora 44 и безголовые тесты в CI |
-| Linux X11 | Реализации четырёх интерфейсов на xcb в минимальном объёме: захват, клавиша, буфер, эмуляция вставки |
-| Сборки, мастер, переводы | Setup.exe и portable ZIP, .deb и .rpm, репозитории пакетов, автообновление на Windows, подпись через SignPath, мастер первого запуска с разрешениями порталов, русский и английский |
-| Бета и стабилизация | Закрытая бета на 10–20 пользователях, большинство — на Fedora 44. Прогон матрицы из раздела 12, исправление ошибок, замеры производительности |
+| Paste prototype | A console utility that pastes 3 PNGs and text in modes 1 and 2. A filled compatibility matrix for Windows 11 and three Fedora 44 editions on Wayland. An answer about the Clipboard portal in GNOME 50 and `ext-data-control-v1` in Plasma 6.6 |
+| Core and Windows | The model, overlay, editor, strip, renderer, all paste modes on Windows. An internal Windows build |
+| Linux Wayland | The Screenshot, GlobalShortcuts, RemoteDesktop and Clipboard portals, layer-shell, data-control, virtual-keyboard. Environment detection and automatic mode selection. Convenient fallback modes for GNOME. The .rpm build for Fedora 44 and headless tests in CI |
+| Linux X11 | Implementations of the four interfaces on xcb in a minimal scope: capture, the key, the clipboard, paste emulation |
+| Builds, wizard, translations | Setup.exe and the portable ZIP, .deb and .rpm, package repositories, auto-update on Windows, signing through SignPath, the first-start wizard with portal permissions, Russian and English |
+| Beta and stabilization | A closed beta with 10–20 users, most of them on Fedora 44. Running the matrix from section 12, fixing bugs, performance measurements |
 
-## 14. Риски и открытые вопросы
+## 14. Risks and open questions
 
-| Риск | Вероятность | Что делаем |
+| Risk | Likelihood | What we do |
 | --- | --- | --- |
-| На Fedora 44 Workstation (GNOME 50) нет `ext-data-control-v1` и «поверх всех окон», последовательная вставка невозможна | Высокая (это свойство Mutter) | Проверить портал Clipboard в первую неделю. Если не работает — удобные запасные режимы 2–4 как основной сценарий на GNOME |
-| KWin в Plasma 6.6 не поддерживает `ext-data-control-v1` | Средняя | Проверить на прототипе. Запасной путь — портал Clipboard в сессии RemoteDesktop |
-| В GNOME оверлей не получает фокус клавиатуры после глобальной клавиши | Средняя | Токен активации от портала, если он есть. Иначе все действия оверлея доступны мышью, подсказка «кликните, чтобы начать» |
-| Без идентификатора приложения порталы каждый раз спрашивают разрешения | Высокая, если не сделать | Регистрация через host Registry первым вызовом, единый идентификатор в .desktop-файле и автозапуске |
-| Программы в песочнице (Telegram из Flathub, браузеры в Snap) не принимают список файлов | Высокая | Портал FileTransfer для режимов 2 и 3, режим 1 и склейка как запасные. Telegram из Flathub — в матрице тестов |
-| Эмуляция Ctrl+V ломается при русской раскладке или зажатых модификаторах | Высокая, если не сделать | Ввод по коду клавиши, ожидание отпускания сочетания (раздел 10) |
-| Снимки с паролями попадают в историю буфера или облачную синхронизацию | Средняя | Форматы-исключения на Windows, подсказка для Klipper, восстановление буфера после вставки |
-| Программу запускают под XWayland (переменная `QT_QPA_PLATFORM=xcb`, старые ярлыки) | Средняя | Проверка платформы при старте и предупреждение. В .desktop-файле платформа не задаётся принудительно |
-| Чаты по-разному понимают режим «файлы + текст»: кто-то вставит только текст | Высокая | Проверить на прототипе в первые две недели, зафиксировать матрицу и выбрать режим по умолчанию для каждого окружения |
-| Слишком быстрая последовательная вставка теряет картинки в веб-чатах | Средняя | Профили задержек, проверка смены активного окна там, где это возможно, индикатор с возможностью прервать |
-| Пользователь не даёт разрешение порталу RemoteDesktop или Screenshot | Средняя | Повторный запрос из настроек, CLI-режим, запасные режимы вставки |
-| Клавиша по умолчанию занята системой (Ножницы, GNOME, KDE) | Высокая | Клавиша настраивается. Хук на Windows, проверка занятости и выбор другой клавиши в мастере |
-| Старый системный Qt в дистрибутивах (6.4 в Ubuntu 24.04 и Debian 12): нет дробного масштаба и Qt 6-версии LayerShellQt | Средняя | Не использовать API новее 6.4, сборка в CI на самой старой поддерживаемой системе. Эти дистрибутивы — дополнительные, без паритета с Fedora 44 |
-| SmartScreen и антивирусы реагируют на хук клавиатуры и `SendInput` | Средняя | Подпись через SignPath, хук только на время активного набора, открытый код для проверки |
-| Изменения порталов и протоколов Wayland в новых GNOME и Plasma ломают совместимость | Средняя | Платформенный слой за интерфейсами, ночные прогоны в контейнере Fedora 44 и Fedora Rawhide |
+| Fedora 44 Workstation (GNOME 50) has no `ext-data-control-v1` and no "above all windows", sequential paste is impossible | High (a property of Mutter) | Check the Clipboard portal in the first week. If it does not work, convenient fallback modes 2–4 as the main scenario on GNOME |
+| KWin in Plasma 6.6 does not support `ext-data-control-v1` | Medium | Check on the prototype. The fallback is the Clipboard portal in a RemoteDesktop session |
+| In GNOME the overlay does not get keyboard focus after the global key | Medium | An activation token from the portal, if there is one. Otherwise all overlay actions are available with the mouse, with the hint "click to start" |
+| Without an application ID the portals ask for permissions every time | High, if not done | Registration through the host Registry with the first call, one ID in the .desktop file and autostart |
+| Sandboxed programs (Telegram from Flathub, browsers in Snap) do not accept a file list | High | The FileTransfer portal for modes 2 and 3, mode 1 and stitching as fallbacks. Telegram from Flathub is in the test matrix |
+| Ctrl+V emulation breaks with a Russian layout or held modifiers | High, if not done | Input by key code, waiting for the shortcut release (section 10) |
+| Shots with passwords get into the clipboard history or cloud sync | Medium | Exclusion formats on Windows, a hint for Klipper, restoring the clipboard after a paste |
+| The program is run under XWayland (the `QT_QPA_PLATFORM=xcb` variable, old shortcuts) | Medium | A platform check at startup and a warning. The .desktop file does not force the platform |
+| Chats understand the "files + text" mode differently: some paste only the text | High | Check on the prototype in the first two weeks, record the matrix and choose the default mode for each environment |
+| Too fast a sequential paste loses images in web chats | Medium | Delay profiles, checking the active window change where possible, an indicator with the option to interrupt |
+| The user does not grant the RemoteDesktop or Screenshot portal permission | Medium | A repeated request from settings, the CLI mode, fallback paste modes |
+| The default key is taken by the system (Snipping Tool, GNOME, KDE) | High | The key is configurable. A hook on Windows, a busy check and choosing another key in the wizard |
+| An old system Qt in distributions (6.4 in Ubuntu 24.04 and Debian 12): no fractional scaling and no Qt 6 version of LayerShellQt | Medium | Do not use API newer than 6.4, build in CI on the oldest supported system. These distributions are additional, without parity with Fedora 44 |
+| SmartScreen and antivirus software react to the keyboard hook and `SendInput` | Medium | Signing through SignPath, the hook only while a set is active, open source for review |
+| Changes to portals and Wayland protocols in new GNOME and Plasma releases break compatibility | Medium | The platform layer behind interfaces, nightly runs in Fedora 44 and Fedora Rawhide containers |
 
-### Принятые решения
+### Decisions made
 
-- Проект открытый и бесплатный, лицензия по умолчанию — GPL-3.0-or-later.
-- macOS не входит в 1.0, но архитектура и CI готовят перенос (раздел 9).
-- Клавиша захвата — настраиваемый параметр, по умолчанию Print Screen.
-- Linux в 1.0 — только пакеты .deb и .rpm. AppImage и Flatpak отложены.
+- The project is open and free, the default license is GPL-3.0-or-later.
+- macOS is not in 1.0, but the architecture and CI prepare the port (section 9).
+- The capture key is a configurable setting, Print Screen by default.
+- Linux in 1.0 means only .deb and .rpm packages. AppImage and Flatpak are postponed.
 
-### Открытые вопросы — решаются позже
+### Open questions, decided later
 
-На разработку прототипа и ядра они не влияют, но лицензию и название нужно выбрать до первого публичного релиза.
+They do not affect the development of the prototype and the core, but the license and the name must be chosen before the first public release.
 
-- GPL-3.0-or-later или MIT? Решить до первого публичного коммита.
-- Окончательное название проекта вместо рабочего Pointshot (нужна проверка на свободность имени пакета в Debian, Fedora и на GitHub).
-- Вести ли собственные репозитории через openSUSE Build Service с первого релиза или начать с пакетов в GitHub Releases?
+- GPL-3.0-or-later or MIT? Decide before the first public commit.
+- The final project name instead of the working Pointshot (needs a check that the package name is free in Debian, Fedora and on GitHub).
+- Run our own repositories through the openSUSE Build Service from the first release, or start with packages in GitHub Releases?
 
-## Источники
+## Sources
 
-- [Snapik — сайт (RU)](https://getsnapik.com/ru) и [EN](https://getsnapik.com)
-- [Snapik — страница загрузки](https://getsnapik.com/download)
-- [Snapik — политика конфиденциальности](https://getsnapik.com/privacy)
-- [Snapik — условия использования](https://getsnapik.com/terms)
-- [Snapik — релиз 1.9.8 на GitHub](https://github.com/getsnapik/releases/releases/tag/1.9.8)
-- [Qt Releases — поддерживаемые версии Qt 6](https://doc.qt.io/qt-6/qt-releases.html)
-- [qt6-base-dev в Ubuntu 24.04](https://packages.ubuntu.com/noble/qt6-base-dev)
-- [SignPath Foundation — подпись кода для открытых проектов](https://signpath.org/)
-- [This Week in GNOME #189 — портал GlobalShortcuts в GNOME](https://thisweek.gnome.org/posts/2025/02/twig-189)
-- [Fedora 44: GNOME 50 и KDE Plasma 6.6](https://linuxiac.com/fedora-44-officially-released-this-is-whats-new/)
-- [Fedora 43 убирает GNOME на X11](https://linuxiac.com/fedora-43-drops-gnome-x11-support/)
-- [ext-data-control-v1 — поддержка композиторами](https://wayland.app/protocols/ext-data-control-v1)
-- [Портал Clipboard — документация xdg-desktop-portal](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Clipboard.html)
+- [Snapik website (RU)](https://getsnapik.com/ru) and [EN](https://getsnapik.com)
+- [Snapik download page](https://getsnapik.com/download)
+- [Snapik privacy policy](https://getsnapik.com/privacy)
+- [Snapik terms of use](https://getsnapik.com/terms)
+- [Snapik release 1.9.8 on GitHub](https://github.com/getsnapik/releases/releases/tag/1.9.8)
+- [Qt Releases: supported Qt 6 versions](https://doc.qt.io/qt-6/qt-releases.html)
+- [qt6-base-dev in Ubuntu 24.04](https://packages.ubuntu.com/noble/qt6-base-dev)
+- [SignPath Foundation: code signing for open projects](https://signpath.org/)
+- [This Week in GNOME #189: the GlobalShortcuts portal in GNOME](https://thisweek.gnome.org/posts/2025/02/twig-189)
+- [Fedora 44: GNOME 50 and KDE Plasma 6.6](https://linuxiac.com/fedora-44-officially-released-this-is-whats-new/)
+- [Fedora 43 drops GNOME on X11](https://linuxiac.com/fedora-43-drops-gnome-x11-support/)
+- [ext-data-control-v1: compositor support](https://wayland.app/protocols/ext-data-control-v1)
+- [The Clipboard portal: xdg-desktop-portal documentation](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Clipboard.html)

@@ -1,102 +1,102 @@
-# 0019. Оформление окон: свои значки и кнопки, цвета системы, акцент из настроек
+# 0019. Window styling: our own icons and buttons, system colors, the accent from settings
 
-- Статус: принято (2026-10-20; окна настроек, мастера и предпросмотра — в тот же день)
-- Требования ТЗ: разд. 4 (шаг 3 — окно редактирования), разд. 11 «Настройки → Вид» (акцентный цвет, тёмная/светлая тема по системе), STR-1, STR-2, EDT-1, NFR-9
+- Status: accepted (2026-10-20; the settings, wizard and preview windows on the same day)
+- Spec items: section 4 (step 3, the editing window), section 11 "Settings → Appearance" (accent color, dark/light theme from the system), STR-1, STR-2, EDT-1, NFR-9
 
-## Контекст
+## Context
 
-Окно снимка и лента выглядели «как форма». Сравнение со Snapik (снимки пользователя, 2026-10-20) выявило проблемы:
+The shot window and the strip looked "like a form". A comparison with Snapik (the user's screenshots, 2026-10-20) revealed problems:
 
-- Вместо значков стояли символы шрифта (▭ ➚ ✎ ● ▦ ⛶ ↶ ↷). Их размер и толщина зависят от шрифта системы, на Windows ↶↷ получились крошечными.
-- Выбранный инструмент красился системным цветом выделения. На Windows с красным акцентом «Метка» выглядела как ошибка.
-- Не было главной кнопки: «Удалить снимок», «Новый снимок» и «Готово» одного веса.
-- Все элементы шли одной строкой, без групп.
-- Снимок лежал на том же фоне, что и окно. Комментарии — голый QListWidget.
-- В ленте было четыре одинаковые кнопки, в пустом наборе три из них неактивные. Шестерёнка Breeze, «💬» эмодзи.
+- Font symbols stood in for icons (▭ ➚ ✎ ● ▦ ⛶ ↶ ↷). Their size and weight depend on the system font; on Windows ↶↷ came out tiny.
+- The selected tool was painted in the system selection color. On Windows with a red accent "Mark" looked like an error.
+- There was no primary button: "Delete shot", "New shot" and "Done" had the same weight.
+- All elements were in one row, without groups.
+- The shot lay on the same background as the window. The comments were a bare QListWidget.
+- The strip had four identical buttons, three of them disabled with an empty set. A Breeze gear, a "💬" emoji.
 
-Пользователь одобрил макет нового вида (артефакт «Markpaste — новый дизайн»).
+The user approved a mock-up of the new look (the "Markpaste — new design" artifact).
 
-## Решение
+## Decision
 
-**Значки.** Свой набор линейных SVG в `data/icons/ui/`: 24×24, линия 1,8, цвет `currentColor`. Они встроены в программу как ресурс `:/icons/ui/`. `iconPixmap()` (`src/ui/Theme.cpp`) подставляет цвет состояния и рисует значок через `QSvgRenderer`, готовые картинки кэшируются. Новая зависимость — Qt Svg:
+**Icons.** Our own set of line SVGs in `data/icons/ui/`: 24×24, line 1.8, color `currentColor`. They are embedded into the program as the `:/icons/ui/` resource. `iconPixmap()` (`src/ui/Theme.cpp`) substitutes the state color and draws the icon with `QSvgRenderer`; finished pixmaps are cached. A new dependency is Qt Svg:
 - Fedora: `qt6-qtsvg-devel`;
 - Debian/Ubuntu: `libqt6svg6-dev`;
-- MinGW: `mingw64-qt6-qtsvg`. `Qt6Svg.dll` и раньше лежал в ZIP: он нужен плагину `qsvgicon`.
+- MinGW: `mingw64-qt6-qtsvg`. `Qt6Svg.dll` was in the ZIP before too: the `qsvgicon` plugin needs it.
 
-Зависимость пакета от библиотеки выводится автоматически: в .rpm из ELF, в .deb через shlibdeps. Три контура повторяют Lucide (ISC) — уведомление в `data/icons/ui/README.md`.
+The package dependency on the library is derived automatically: in .rpm from ELF, in .deb via shlibdeps. Three outlines follow Lucide (ISC), with a notice in `data/icons/ui/README.md`.
 
-**Цвета — `UiColors`** (`src/ui/Theme.h`).
-- Фон и текст берутся из системной палитры, поэтому светлая или тёмная тема — как в системе. Смена темы на ходу подхватывается.
-- Оттенки (подложка снимка, боковая панель, карточки, рамки, подсказки) — смесь фона окна с цветом текста. Так они подходят к любой теме, а не только к Breeze.
-- Цвет подсказок подбирается до контраста ≥ 4.5:1 с фоном (NFR-9).
-- Акцент — из настроек, тот же, что у меток. Для заливок под белым текстом (выбранный инструмент, главная кнопка, кружки букв) он затемняется так же, как фон значка метки (`badgeFillColor`, ADR 0003).
-- Системный цвет выделения остался только у ручек выделения на холсте.
+**Colors: `UiColors`** (`src/ui/Theme.h`).
+- Background and text come from the system palette, so the light or dark theme follows the system. A theme change on the fly is picked up.
+- Shades (the shot backdrop, the side panel, cards, borders, hints) are a mix of the window background and the text color. This way they suit any theme, not only Breeze.
+- The hint color is adjusted to a contrast ≥ 4.5:1 with the background (NFR-9).
+- The accent comes from settings, the same as for marks. For fills under white text (the selected tool, the primary button, letter circles) it is darkened the same way as the mark badge background (`badgeFillColor`, ADR 0003).
+- The system selection color is left only on the selection handles on the canvas.
 
-**Кнопки рисуются сами** (`src/ui/Controls.h`). На Breeze, Windows 11 и Fusion они выглядят одинаково, системный стиль их не трогает:
-- `FlatButton` (наследник QToolButton): инструменты, отмена и повтор, корзина, кнопки заголовка ленты, перо. Текст кнопки остаётся её именем для экранного диктора и тестов, а на самой кнопке виден значок.
-- `ActionButton` (наследник QPushButton): главная (залита акцентом) или второстепенная (с рамкой), со значком и сочетанием клавиш справа — «Вставить набор Alt+V».
-- `KeyHint` — «[Ctrl+Z] отменить», `Rule` — разделитель, `Panel` — фон боковой панели.
-- `PillButton` — вкладка-«пилюля»: выбранная подкрашена акцентом.
-- `Card` — скруглённая карточка с рамкой.
-- `StatusLine` — результат проверки: значок ✓, ⚠, ✗ или часы и текст цветом результата. Зелёный, жёлтый и красный подобраны отдельно для тёмной и светлой темы.
+**Buttons paint themselves** (`src/ui/Controls.h`). On Breeze, Windows 11 and Fusion they look the same; the system style does not touch them:
+- `FlatButton` (a QToolButton subclass): tools, undo and redo, trash, strip header buttons, pen. The button text remains its name for screen readers and tests, while the button itself shows the icon.
+- `ActionButton` (a QPushButton subclass): primary (filled with the accent) or secondary (with a border), with an icon and a shortcut on the right: "Paste set Alt+V".
+- `KeyHint` is "[Ctrl+Z] undo", `Rule` a separator, `Panel` the side panel background.
+- `PillButton` is a "pill" tab: the selected one is tinted with the accent.
+- `Card` is a rounded card with a border.
+- `StatusLine` is a check result: a ✓, ⚠, ✗ or clock icon and text in the result's color. Green, yellow and red are picked separately for the dark and light themes.
 
-В окнах-диалогах кнопки берут фокус с клавиатуры: при переходе по Tab вокруг кнопки появляется рамка цвета акцента, при щелчке мышью — нет.
+In dialog windows buttons take keyboard focus: when reached by Tab an accent-colored frame appears around the button, after a mouse click it does not.
 
-**Окно снимка.**
-- Панель инструментов: значки в группах «метка, стрелка, карандаш, точка | размыть, обрезать | цвет, толщина | отмена, повтор». Справа корзина «Удалить снимок», «Новый снимок» и главная «Готово».
-- Подсказка инструмента — во всплывающей подсказке: название, клавиша и что он делает.
-- Снимок лежит на тёмной подложке, с тенью и тонкой рамкой.
-- Справа — карточки комментариев со значком метки её цвета. Выделенная на холсте метка подсвечена рамкой акцента. Метка без комментария — пунктирная карточка «Добавить комментарий — без него метки нет в тексте» (ADR 0018). В заголовке панели — «в тексте N из M».
-- Внизу: название инструмента с короткой подсказкой и три сочетания (Ctrl+Z, Ctrl+Enter, Esc). Подпись у Esc — «отменить снимок» или «закрыть».
+**Shot window.**
+- Toolbar: icons in groups "mark, arrow, pen, point | blur, crop | color, width | undo, redo". On the right, the "Delete shot" trash, "New shot" and the primary "Done".
+- The tool hint is in the tooltip: the name, the key and what it does.
+- The shot lies on a dark backdrop, with a shadow and a thin border.
+- On the right, comment cards with the mark badge in its color. The mark selected on the canvas is highlighted with an accent border. A mark without a comment is a dashed card "Add a comment: without it the mark is not in the text" (ADR 0018). The panel header says "in the text: N of M".
+- At the bottom: the tool name with a short hint and three shortcuts (Ctrl+Z, Ctrl+Enter, Esc). The Esc label is "discard shot" or "close".
 
-**Лента.**
-- Заголовок: значок программы, «Markpaste», число снимков, корзина «Очистить», «⋯» (предпросмотр, сохранить в папку, настройки), «Свернуть в трей».
-- Пустой набор: пунктирная рамка «Набор пуст · [Print] — снять область» и одна главная кнопка «Новый снимок».
-- Есть снимки: главная «Вставить набор» с сочетанием, под ней «Новый снимок» и значок «Скопировать набор». Если главная кнопка сама копирует (Wayland без layer-shell), значок копирования скрыт.
-- Сочетания на ленте — фактически назначенные (`m_boundTriggers`). Из списка KDE «Ctrl+Alt+V, Alt+V» берётся самое короткое.
-- Миниатюры — скруглённые карточки на всю ширину. Буква — в кружке, число комментариев — значком. Открытый снимок обведён акцентом. В правом верхнем углу миниатюры — корзина «Удалить снимок» (STR-4): удаляет сразу, без подтверждения, потому что удаление идёт через стек отмены (EDT-8) и отменяется Ctrl+Z в редакторе. Корзина лежит на тёмной полупрозрачной подложке, как счётчик комментариев, чтобы не теряться на светлом снимке; при наведении подложка красная. То же удаление осталось в меню по правому клику.
-- Сообщения ленты — на скруглённой плашке, а не на системном цвете выделения.
-- Лента на layer-shell (KDE, Sway) стала прозрачной поверхностью, как раньше на Windows: углы скруглённые, фон с рамкой рисует `StripWindow::paintEvent`. Обычное окно (GNOME, X11) по-прежнему непрозрачное, в рамке системы.
+**Strip.**
+- Header: the program icon, "Markpaste", the number of shots, the "Clear" trash, "⋯" (preview, save to folder, settings), "Hide to tray".
+- Empty set: a dashed frame "The set is empty · [Print] capture an area" and one primary button "New shot".
+- With shots: the primary "Paste set" with its shortcut, below it "New shot" and a "Copy set" icon. If the primary button copies by itself (Wayland without layer-shell), the copy icon is hidden.
+- The shortcuts on the strip are the actually assigned ones (`m_boundTriggers`). From the KDE list "Ctrl+Alt+V, Alt+V" the shortest is taken.
+- Thumbnails are full-width rounded cards. The letter is in a circle, the number of comments has an icon. The open shot has an accent outline. In the top-right corner of a thumbnail there is a "Delete shot" trash (STR-4): it deletes right away, without confirmation, because the deletion goes through the undo stack (EDT-8) and is undone with Ctrl+Z in the editor. The trash lies on a dark semi-transparent backing, like the comment counter, so that it does not get lost on a light shot; on hover the backing turns red. The same deletion stays in the right-click menu.
+- Strip messages are on a rounded plate, not on the system selection color.
+- On layer-shell (KDE, Sway) the strip became a transparent surface, as on Windows before: rounded corners, `StripWindow::paintEvent` paints the background with its border. An ordinary window (GNOME, X11) is still opaque, in the system frame.
 
-**Окна настроек, мастера и предпросмотра.**
-- Поля, списки и флажки остаются системными: там системный стиль не мешает. `useAccentSelection` только перекрашивает в этих окнах цвет выделения, флажков и рамки фокуса в акцент. На Windows 11 для этого дополнительно задаётся `QPalette::Accent` — только при сборке с Qt ≥ 6.6, на Linux его нет.
-- Настройки:
-  - вместо `QTabWidget` — ряд вкладок-«пилюль» над страницами;
-  - внизу «Отмена» и главная «Сохранить» (по Enter) вместо «OK/Отмена»;
-  - цвет меток — кнопка с кружком цвета и пояснение, что им же выделены выбранный инструмент, главные кнопки и буквы снимков;
-  - сведения о системе — на карточке, примечания платформы — с ⚠;
-  - вкладка «Снять» названа «Захват», как остальные — существительным.
-- Мастер:
-  - заголовок «Проверка системы»;
-  - шаги — карточки с номером в кружке вместо `QGroupBox`;
-  - результаты проверок — `StatusLine`;
-  - внизу «Настройки…» и главная «Готово».
-- Предпросмотр:
-  - итог «В чат уйдут…» полужирным;
-  - картинки со скруглёнными углами и рамкой;
-  - текст сообщения на карточке;
-  - внизу «Копировать текст», «Сохранить в папку…» и главная «Закрыть».
+**Settings, wizard and preview windows.**
+- Fields, lists and checkboxes stay system ones: the system style does not get in the way there. `useAccentSelection` only recolors the selection, checkboxes and focus frame in these windows with the accent. On Windows 11 `QPalette::Accent` is also set for this, only when built with Qt ≥ 6.6; Linux does not have it.
+- Settings:
+  - instead of a `QTabWidget`, a row of "pill" tabs above the pages;
+  - at the bottom "Cancel" and the primary "Save" (on Enter) instead of "OK/Cancel";
+  - the mark color is a button with a color circle and an explanation that the same color marks the selected tool, primary buttons and shot letters;
+  - system details are on a card, platform notes with ⚠;
+  - the "Snap" tab is called "Capture", a noun like the others.
+- Wizard:
+  - the title "System check";
+  - steps are cards with a number in a circle instead of a `QGroupBox`;
+  - check results are `StatusLine`;
+  - at the bottom "Settings…" and the primary "Done".
+- Preview:
+  - the summary "The chat will get…" in bold;
+  - images with rounded corners and a border;
+  - the message text on a card;
+  - at the bottom "Copy text", "Save to folder…" and the primary "Close".
 
-**Проверка вида.** `markpaste-uipreview [--dark] DIR` рисует окна без дисплея (`--dark` — палитра Breeze Dark). `markpaste-uipreview --live 6 FILE.png` показывает ленту и окно снимка в настоящей сессии и снимает весь экран через spectacle. `--live-dialogs 0 ПРЕФИКС` показывает три окна по очереди и снимает только активное окно (`spectacle -a`): на Wayland окна нельзя расставить, а снимок всего экрана захватывает чужие окна.
+**Checking the look.** `markpaste-uipreview [--dark] DIR` renders the windows without a display (`--dark` is the Breeze Dark palette). `markpaste-uipreview --live 6 FILE.png` shows the strip and the shot window in a real session and captures the whole screen via spectacle. `--live-dialogs 0 PREFIX` shows three windows one after another and captures only the active window (`spectacle -a`): on Wayland windows cannot be arranged, and a capture of the whole screen includes other windows.
 
-## Рассмотренные варианты
+## Options considered
 
-- **Правка прямо на замороженном экране, как у Snapik** (панель инструментов под выделением). Отказались по нескольким причинам:
-  - ТЗ (разд. 4, шаг 3) описывает отдельное окно.
-  - На Wayland оверлей закрывает все мониторы, и пока идёт правка, ничего другого не видно.
-  - На GNOME с фокусом оверлея есть риски.
-  - Снимок, открытый из ленты, всё равно правится в окне — пришлось бы поддерживать два редактора.
+- **Editing right on the frozen screen, as in Snapik** (a toolbar under the selection). Rejected for several reasons:
+  - The spec (section 4, step 3) describes a separate window.
+  - On Wayland the overlay covers all monitors, and nothing else is visible while editing.
+  - On GNOME there are risks with overlay focus.
+  - A shot opened from the strip is edited in a window anyway, so two editors would have to be maintained.
 
-  Почти всё, что делает вид Snapik современным, — значки, акцент и главная кнопка — получилось и в окне.
-- **Свой тёмный стиль на всех системах** (Fusion + своя палитра, как у Snapik). Окна перестали бы следовать светлой теме системы. На Qt 6.4 нет `QStyleHints::colorScheme`, поэтому следить за сменой темы пришлось бы вручную.
-- **Таблицы стилей (QSS) для кнопок.** Цвета смешанных оттенков пришлось бы пересобирать в строку при каждой смене темы и акцента. Стиль Windows 11 и QSS местами конфликтуют. QSS осталась только у поля комментария (рамка цвета акцента).
-- **Значки из темы (Breeze) или нарисованные кодом.** Темы на Windows нет, а на других DE иконки разные. Рисовать 17 значков кодом — много кода без выигрыша, если Qt Svg и так есть в системах и в ZIP.
-- **Подписи у инструментов.** Сравнили в макете. Панель становится шире 1100 px и пестрит. Названия перенесены во всплывающую подсказку и в строку подсказки.
+  Almost everything that makes Snapik's look modern (icons, the accent and a primary button) worked in the window too.
+- **Our own dark style on all systems** (Fusion + our own palette, as in Snapik). The windows would stop following the system's light theme. Qt 6.4 has no `QStyleHints::colorScheme`, so theme changes would have to be tracked by hand.
+- **Style sheets (QSS) for buttons.** Mixed shades would have to be rebuilt into a string on every theme and accent change. The Windows 11 style and QSS conflict in places. QSS remains only on the comment field (an accent-colored border).
+- **Icons from the theme (Breeze) or drawn in code.** Windows has no theme, and other DEs have different icons. Drawing 17 icons in code is a lot of code without a gain when Qt Svg is already present on the systems and in the ZIP.
+- **Labels on tools.** Compared in the mock-up. The toolbar becomes wider than 1100 px and looks busy. The names moved to the tooltip and the hint line.
 
-## Последствия и ограничения
+## Consequences and limitations
 
-- Новая сборочная зависимость — Qt Svg.
-- STR-2: полный счётчик «2 снимка · 3 комментария» показывается во всплывающей подсказке к числу снимков в заголовке ленты, а не отдельной строкой (`docs/deviations.md`).
-- Окно снимка не уже ~800 px: столько занимает панель инструментов.
-- Лента стала шире: ~234 px вместо ~200, миниатюра — 212 px.
-- Кнопки рисуются кодом, поэтому системная тема влияет только на цвета, а не на форму. Фокусной рамки нет: кнопки окна снимка и ленты и раньше не брали фокус (`Qt::NoFocus`), всё доступно клавишами (NFR-9 в docs/status.md).
+- A new build dependency: Qt Svg.
+- STR-2: the full counter "2 shots · 3 comments" is shown in the tooltip of the shot count in the strip header rather than as a separate line (`docs/deviations.md`).
+- The shot window is no narrower than ~800 px: that is how much the toolbar takes.
+- The strip got wider: ~234 px instead of ~200, the thumbnail is 212 px.
+- Buttons are drawn in code, so the system theme affects only colors, not shapes. There is no focus frame: the buttons of the shot window and the strip did not take focus before either (`Qt::NoFocus`), everything is reachable with keys (NFR-9 in docs/status.md).

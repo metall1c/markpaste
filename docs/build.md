@@ -1,8 +1,8 @@
-# Сборка и окружение разработчика
+# Build and developer environment
 
-## Fedora 44 (главная платформа)
+## Fedora 44 (the main platform)
 
-Проверено 2026-10-19: Fedora 44 KDE, GCC 16.2.1, CMake 4.3.0, Qt 6.11.2.
+Checked on 2026-10-19: Fedora 44 KDE, GCC 16.2.1, CMake 4.3.0, Qt 6.11.2.
 
 ```bash
 sudo dnf install -y --setopt=install_weak_deps=False \
@@ -11,84 +11,97 @@ sudo dnf install -y --setopt=install_weak_deps=False \
   qt6-qtsvg-devel \
   layer-shell-qt-devel wayland-devel wayland-protocols-devel libxkbcommon-devel \
   gtest-devel gmock-devel \
-  xcb-util-keysyms-devel libXtst-devel        # для будущей X11-реализации
+  xcb-util-keysyms-devel libXtst-devel        # for the X11 implementation
 
 cmake -S . -B build -G Ninja
 cmake --build build
 ./build/tests/markpaste_core_tests
-cmake --build build --target dev-install-desktop   # обязательно, см. ниже
+cmake --build build --target dev-install-desktop   # required, see below
 ./build/src/app/markpaste
 ```
 
-`libxkbcommon-devel` нужен для раскладки virtual-keyboard-v1 (Sway, Hyprland). `qt6-qtsvg-devel` — значки интерфейса (с 2026-10-20, [ADR 0019](decisions/0019-ui-style.md)); в Debian/Ubuntu — `libqt6svg6-dev`. `spdlog-devel` и `python3-dbusmock` поставлены, но пока не используются: логи идут через `QLoggingCategory`, тестов порталов в CI ещё нет.
+`libxkbcommon-devel` is needed for the virtual-keyboard-v1 keymap (Sway, Hyprland). `qt6-qtsvg-devel` is for the UI icons (since 2026-10-20, [ADR 0019](decisions/0019-ui-style.md)); on Debian/Ubuntu it is `libqt6svg6-dev`. `spdlog-devel` and `python3-dbusmock` are installed but not used yet: logs go through `QLoggingCategory`, and there are no portal tests in CI yet.
 
-## Пакет .rpm (и .tar.gz)
+## The .rpm package (and .tar.gz)
 
-Проверено 2026-10-19 на Fedora 44: CPack 4.3.0, rpm-build 6.0.2.
+Checked on 2026-10-19 on Fedora 44: CPack 4.3.0, rpm-build 6.0.2.
 
 ```bash
 sudo dnf install -y rpm-build
 cmake -S . -B build-pkg -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release \
       -DMARKPASTE_BUILD_TESTS=OFF -DMARKPASTE_BUILD_TOOLS=OFF
 cmake --build build-pkg --target package
-# → build-pkg/markpaste-0.1.0-1.fc44.x86_64.rpm, build-pkg/markpaste-0.1.0-Linux.tar.gz
-sudo dnf install ./build-pkg/markpaste-0.1.0-1.fc44.x86_64.rpm
+# → build-pkg/markpaste-<version>-1.fc44.x86_64.rpm, build-pkg/markpaste-<version>-Linux.tar.gz
+sudo dnf install ./build-pkg/markpaste-<version>-1.fc44.x86_64.rpm
 ```
 
-- **`-DCMAKE_INSTALL_PREFIX=/usr` обязателен.** Путь в `Exec` .desktop-файла абсолютный и берётся из префикса установки: KWin пускает к ScreenShot2, только если он совпадает с исполняемым файлом процесса. С префиксом по умолчанию (`/usr/local`) пакет поставит программу в `/usr/local/bin`.
-- В пакете: `/usr/bin/markpaste`, `.desktop`-файл, значок SVG (`hicolor/scalable`), AppStream metainfo, LICENSE. Переводы встроены в программу.
-- Зависимости от библиотек (Qt 6, libwayland-client, LayerShellQt) rpm находит сам по связанным `.so`; вручную добавлен только `xdg-desktop-portal`. LayerShellQt становится обязательной зависимостью, если он был при сборке.
-- Пакет привязан к версии Qt сборки (`libQt6Core.so.6(Qt_6.11)`): rpm для Fedora 44 собирать на Fedora 44.
-- Проверка: `rpmlint build-pkg/*.rpm` — 0 ошибок, одно предупреждение (нет man-страницы); `desktop-file-validate`, `appstreamcli validate --no-net` — без замечаний.
-- **.deb** включается автоматически, если есть `dpkg-shlibdeps` (собирать на Ubuntu/Debian). На Fedora собирается только rpm и tar.gz. На Ubuntu 24.04 пока не проверено.
-- **Проверка новой версии** (ADR 0014) ходит по `MARKPASTE_UPDATE_URL` (по умолчанию — API последнего релиза на gitlab.525.su). Сборкам дистрибутивов, которые обновляются своим путём, — `-DMARKPASTE_UPDATE_URL=` (пусто): проверки нет. Страница в уведомлении — `MARKPASTE_RELEASES_URL`.
-- **Разработчику:** `~/.local/share/applications/su._525.Markpaste.desktop` от `dev-install-desktop` важнее системного из пакета (каталог пользователя ищется первым) и указывает на `build/`. Чтобы проверить установленный пакет, этот файл (и значок в `~/.local/share/icons/hicolor/scalable/apps/`) надо удалить.
+- **`-DCMAKE_INSTALL_PREFIX=/usr` is required.** The `Exec` path of the .desktop file is absolute and comes from the install prefix: KWin lets a program into ScreenShot2 only if it matches the process executable. With the default prefix (`/usr/local`) the package would install the program into `/usr/local/bin`.
+- The package contains `/usr/bin/markpaste`, the `.desktop` file, the SVG icon (`hicolor/scalable`), the AppStream metainfo and LICENSE. Translations are built into the program.
+- rpm finds the library dependencies (Qt 6, libwayland-client, LayerShellQt) by itself from the linked `.so` files; only `xdg-desktop-portal` is added by hand. LayerShellQt becomes a required dependency if it was present at build time.
+- The package is tied to the Qt version of the build (`libQt6Core.so.6(Qt_6.11)`): build the rpm for Fedora 44 on Fedora 44.
+- Check: `rpmlint build-pkg/*.rpm`: 0 errors, one warning (no man page); `desktop-file-validate`, `appstreamcli validate --no-net`: no remarks.
+- **.deb** is enabled automatically if `dpkg-shlibdeps` is present (build on Ubuntu/Debian). On Fedora only rpm and tar.gz are built. For a release the .deb is built in an Ubuntu 24.04 container, see "Release packages in containers" below.
+- **The new-version check** (ADR 0014, ADR 0024) uses `MARKPASTE_UPDATE_URL` (by default the GitHub API for the latest release of `MARKPASTE_GITHUB_REPO`, `metall1c/markpaste`). Distro builds that update their own way use `-DMARKPASTE_UPDATE_URL=` (empty): no check. The page in the notification is `MARKPASTE_RELEASES_URL`.
+- **Old build directories keep the old URLs.** The URL variables are CMake cache entries; after they changed (GitLab → GitHub, 2026-10-21) an existing build directory still has the old ones. Reset them: `cmake -U 'MARKPASTE_*URL' -U MARKPASTE_GITHUB_REPO <build dir>`.
+- **For the developer:** `~/.local/share/applications/su._525.Markpaste.desktop` from `dev-install-desktop` wins over the system one from the package (the user directory is searched first) and points to `build/`. To check an installed package, delete this file (and the icon in `~/.local/share/icons/hicolor/scalable/apps/`).
 
-## Проверка под Sway без отдельной системы
+## Release packages in containers
+
+The release builds the Linux packages in clean containers so that each package matches its distribution's Qt (`tools/package/build-in-container.sh`, docs/release.md). Docker or Podman is needed.
 
 ```bash
-sudo dnf install -y --setopt=install_weak_deps=False sway   # поставлен 2026-10-19, sway 1.11
+tools/package/build-in-container.sh fedora:44      # → dist/: .rpm and .tar.gz
+tools/package/build-in-container.sh ubuntu:24.04   # → dist/: .deb (Qt 6.4.2)
+```
+
+- The script mounts the sources read-only, builds in the container's own directory with the same CMake options as above, runs the core and UI tests, and copies the packages to `dist/`.
+- Building on Ubuntu 24.04 (Qt 6.4.2) also checks that the code uses no Qt API newer than 6.4 (spec section 7).
+
+## Checking under Sway without a separate system
+
+```bash
+sudo dnf install -y --setopt=install_weak_deps=False sway   # installed 2026-10-19, sway 1.11
 printf 'output HEADLESS-1 resolution 1280x800\n' > /tmp/sway-headless.conf
 WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WAYLAND_DISPLAY= sway -c /tmp/sway-headless.conf &
-# новый сокет — следующий свободный, обычно wayland-1
+# the new socket is the next free one, usually wayland-1
 WAYLAND_DISPLAY=wayland-1 QT_QPA_PLATFORM=wayland ./build/tools/pastetest/markpaste-pastetest --check
 WAYLAND_DISPLAY=wayland-1 QT_QPA_PLATFORM=wayland ./build/tools/pastetest/markpaste-pastetest --self-test
 ```
 
-Порталы при этом остаются от KDE (общая сессионная шина), поэтому так проверяются только протоколы Wayland: data-control, virtual-keyboard, layer-shell.
+The portals here stay KDE's (the shared session bus), so only Wayland protocols are checked this way: data-control, virtual-keyboard, layer-shell.
 
-- `pastetest --portal-clipboard` — проверка портала Clipboard: пишет через портал и читает обратно через data-control, затем показывает, что осталось в буфере после закрытия сессии. Первый раз KDE спрашивает разрешение.
-- Переменные для проверки запасных путей на KDE: `MARKPASTE_CLIPBOARD=portal` (буфер через портал), `MARKPASTE_INPUT=portal` (Ctrl+V только через RemoteDesktop).
+- `pastetest --portal-clipboard` checks the Clipboard portal: it writes through the portal and reads back through data-control, then shows what is left in the clipboard after the session closes. The first time KDE asks for permission.
+- Variables for checking the fallback paths on KDE: `MARKPASTE_CLIPBOARD=portal` (clipboard through the portal), `MARKPASTE_INPUT=portal` (Ctrl+V only through RemoteDesktop).
 
-## Проверка X11 без X11-сессии
+## Checking X11 without an X11 session
 
 ```bash
 Xvfb :97 -screen 0 1280x800x24 -nolisten tcp &
 export DISPLAY=:97 QT_QPA_PLATFORM=xcb WAYLAND_DISPLAY= XDG_SESSION_TYPE=x11
-./build/tools/pastetest/markpaste-pastetest --x11-hotkeys   # нажимает через xdotool
+./build/tools/pastetest/markpaste-pastetest --x11-hotkeys   # presses via xdotool
 ./build/tools/pastetest/markpaste-pastetest --self-test
 ```
 
-- Нужны `xorg-x11-server-Xvfb`, `xdotool`, для сборки — `libxcb-devel xcb-util-keysyms-devel` (xcb-xtest входит в libxcb).
-- Чтобы запустить саму программу рядом с работающей копией, нужны свои `XDG_RUNTIME_DIR` (сокет единственного экземпляра) и `XDG_CONFIG_HOME`. Путь сокета не длиннее 108 байт (`sun_path`), иначе «the socket cannot be created» — каталог в `/run/user/$UID/` подходит, длинный путь во временном каталоге — нет.
-- Группу с именем `general`/`General` в `QSettings` не использовать: в INI она пишется как `[%General]` (`[General]` — корень), а при следующем чтении файла ключ получает имя `General/…` — с большой буквы. Ключ `general/x` после перезапуска не находится (docs/problems.md, 2026-10-20). Флаги «уже показано» теперь в группе `once`.
-- Останавливать тестовые серверы — по PID (`pgrep -x Xvfb`), не `pkill -f`: шаблон совпадает с командной строкой самой оболочки.
+- Needs `xorg-x11-server-Xvfb`, `xdotool`, and for the build `libxcb-devel xcb-util-keysyms-devel` (xcb-xtest is part of libxcb).
+- To run the program itself next to a running copy, it needs its own `XDG_RUNTIME_DIR` (the single-instance socket) and `XDG_CONFIG_HOME`. The socket path must be no longer than 108 bytes (`sun_path`), otherwise "the socket cannot be created": a directory in `/run/user/$UID/` works, a long path in a temporary directory does not.
+- Do not use a group named `general`/`General` in `QSettings`: in INI it is written as `[%General]` (`[General]` is the root), and on the next read of the file the key gets the name `General/…`, with a capital letter. The key `general/x` is not found after a restart (docs/problems.md, 2026-10-20). The "already shown" flags are now in the `once` group.
+- Stop test servers by PID (`pgrep -x Xvfb`), not `pkill -f`: the pattern matches the shell's own command line.
 
-## Windows: кросс-сборка на Fedora и проверка под Wine
+## Windows: cross-compiling on Fedora and checking under Wine
 
-Проверено 2026-10-20: Fedora 44, MinGW-w64 GCC 16.2.1, Qt 6.11.2 (`mingw64-qt6-*`), Wine 11.0 Staging. Почему так — [ADR 0017](decisions/0017-windows-cross-build.md).
+Checked on 2026-10-20: Fedora 44, MinGW-w64 GCC 16.2.1, Qt 6.11.2 (`mingw64-qt6-*`), Wine 11.0 Staging. Why this way: [ADR 0017](decisions/0017-windows-cross-build.md).
 
 ```bash
 sudo dnf install -y mingw64-gcc-c++ mingw64-qt6-qtbase mingw64-qt6-qttools mingw64-qt6-qtsvg \
   mingw64-qt6-qtimageformats mingw64-qt6-qttranslations wine \
-  mingw32-nsis                               # makensis — для установщика
+  mingw32-nsis                               # makensis, for the installer
 cmake -G Ninja -S . -B build-win -DCMAKE_TOOLCHAIN_FILE=cmake/mingw64-fedora.cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build-win
-cmake --build build-win --target package   # → build-win/package/Markpaste-<версия>-win64-portable.zip
-cmake --build build-win --target installer # → build-win/package/Markpaste-<версия>-win64-setup.exe (ADR 0023)
+cmake --build build-win --target package   # → build-win/package/Markpaste-<version>-win64-portable.zip
+cmake --build build-win --target installer # → build-win/package/Markpaste-<version>-win64-setup.exe (ADR 0023)
 ```
 
-Тесты под Wine (DLL Qt берутся из sysroot MinGW):
+Tests under Wine (Qt DLLs are taken from the MinGW sysroot):
 
 ```bash
 export WINEPATH='Z:\usr\x86_64-w64-mingw32\sys-root\mingw\bin' WINEDEBUG=-all DXVK_LOG_LEVEL=none
@@ -97,76 +110,75 @@ QT_QPA_PLATFORM=offscreen wine build-win/tests/markpaste_ui_tests.exe
 QT_PLUGIN_PATH='Z:\usr\x86_64-w64-mingw32\sys-root\mingw\lib\qt6\plugins' wine build-win/tests/markpaste_windows_tests.exe
 ```
 
-Сама программа — из каталога установки, он самодостаточен (как ZIP): `cmake --install build-win --prefix build-win/stage --strip`, затем `wine build-win/stage/markpaste.exe`. Настройки — в реестре Wine (`HKCU\Software\markpaste\markpaste`), журнал — `~/.wine/drive_c/users/$USER/AppData/Local/markpaste/markpaste/logs/`.
+The program itself runs from the install directory, which is self-contained (like the ZIP): `cmake --install build-win --prefix build-win/stage --strip`, then `wine build-win/stage/markpaste.exe`. Settings are in the Wine registry (`HKCU\Software\markpaste\markpaste`), the log is in `~/.wine/drive_c/users/$USER/AppData/Local/markpaste/markpaste/logs/`.
 
-Сквозная проверка, не трогая рабочий стол, — Wine в Xvfb со своим префиксом и оконным менеджером:
+An end-to-end check without touching the desktop: Wine in Xvfb with its own prefix and a window manager:
 
 ```bash
 Xvfb :99 -screen 0 1600x900x24 &
-export DISPLAY=:99 WAYLAND_DISPLAY= WINEPREFIX=/путь/к/префиксу MARKPASTE_CAPTURE=gdi
+export DISPLAY=:99 WAYLAND_DISPLAY= WINEPREFIX=/path/to/prefix MARKPASTE_CAPTURE=gdi
 wineboot -i; xfwm4 --compositor=off &
 wine notepad & wine build-win/stage/markpaste.exe &
-xdotool mousemove 400 300 click 1; xdotool key Print        # дальше — xdotool и import -window root
+xdotool mousemove 400 300 click 1; xdotool key Print        # then xdotool and import -window root
 ```
 
-- **Тулчейн — `cmake/mingw64-fedora.cmake`, не обёртка `mingw64-cmake`.** У обёртки компиляторы заданы без пути через окружение, и при перезапуске cmake из ninja или в подпроекте googletest они «не находились» (docs/problems.md, 2026-10-20).
-- **googletest** для MinGW не упакован — скачивается `FetchContent` (нужна сеть при первой настройке).
-- **`gtest_discover_tests`** при кросс-сборке не может запустить `.exe` после сборки — режим `PRE_TEST`; тесты запускаем сами через Wine.
-- **Wine ≠ Windows.** DXGI Desktop Duplication в Wine не реализован (`DuplicateOutput: 0x887a0004`) — захват идёт через GDI. В Xvfb dxgi.dll из Wine падает с делением на ноль — там `MARKPASTE_CAPTURE=gdi`. Без оконного менеджера скрытые окна остаются на экране (картинка не обновляется) — запускайте xfwm4. Клавиши (`RegisterHotKey`, хук) Wine видит, только когда фокус в окне Wine.
-- **Размер ZIP — 35 МБ** (каталог 81 МБ): Qt из Fedora тянет ICU (32 МБ), OpenSSL, GLib. Для релиза — официальный Qt (ADR 0017).
+- **The toolchain is `cmake/mingw64-fedora.cmake`, not the `mingw64-cmake` wrapper.** The wrapper sets the compilers without a path through the environment, and on a cmake re-run from ninja or in the googletest subproject they were "not found" (docs/problems.md, 2026-10-20).
+- **googletest** is not packaged for MinGW: it is downloaded with `FetchContent` (network is needed on the first configure).
+- **`gtest_discover_tests`** cannot run the `.exe` after the build when cross-compiling: `PRE_TEST` mode; we run the tests ourselves through Wine.
+- **Wine ≠ Windows.** DXGI Desktop Duplication is not implemented in Wine (`DuplicateOutput: 0x887a0004`), so capture goes through GDI. In Xvfb Wine's dxgi.dll crashes with a division by zero; use `MARKPASTE_CAPTURE=gdi` there. Without a window manager hidden windows stay on the screen (the picture does not update), so run xfwm4. Wine sees hotkeys (`RegisterHotKey`, the hook) only while a Wine window has focus.
+- **The ZIP is 35 MB** (the directory is 81 MB): Fedora's Qt pulls in ICU (32 MB), OpenSSL, GLib. For a size-optimized release, the official Qt (ADR 0017).
+- **The installer (NSIS 3.11, `mingw32-nsis`).** The `installer` target installs the program into a temporary `build-win/installer/stage`, builds the uninstall file list from it and calls `makensis`. Without `makensis` there is no target (a message at cmake configure time). A check under Wine in a clean prefix: `WINEPREFIX=… wine Markpaste-…-setup.exe /S`, uninstall with `uninstall.exe /S` from `%LOCALAPPDATA%\Programs\Markpaste`.
+- **`markpaste.exe --version` and `--help` on Windows show a message box** (the program has no console) and wait for a click: do not call them in check scripts.
 
-- **Установщик (NSIS 3.11, `mingw32-nsis`).** Цель `installer` ставит программу во временный `build-win/installer/stage`, строит по нему список файлов для удаления и вызывает `makensis`. Без `makensis` цели нет (сообщение при настройке cmake). Проверка под Wine в чистом префиксе: `WINEPREFIX=… wine Markpaste-…-setup.exe /S`, удаление — `uninstall.exe /S` из `%LOCALAPPDATA%\Programs\Markpaste`.
-- **`markpaste.exe --version` и `--help` на Windows показывают окно сообщения** (программа без консоли) и ждут нажатия: в скриптах проверки их не вызывать.
+### Testing in VirtualBox
 
-### Проверка в VirtualBox
-
-Проверено 2026-10-20: VirtualBox 7.2, гость Windows 11 24H2 с Guest Additions 7.2.18, пользователь вошёл на консоли.
+Checked on 2026-10-20: VirtualBox 7.2, a Windows 11 24H2 guest with Guest Additions 7.2.18, the user logged in on the console.
 
 ```bash
 export MP_VM=Win11-test MP_VM_USER=admin MP_VM_PASS=…
-tools/dev/winvm/vm.sh setup                                   # помощники в C:\mp
-tools/dev/winvm/vm.sh deploy build-win/package/Markpaste-0.1.0-win64-portable.zip
-tools/dev/winvm/vm.sh start                                   # в сеансе пользователя
+tools/dev/winvm/vm.sh setup                                   # helpers to C:\mp
+tools/dev/winvm/vm.sh deploy build-win/package/Markpaste-<version>-win64-portable.zip
+tools/dev/winvm/vm.sh start                                   # in the user's session
 tools/dev/winvm/vm.sh key e0 2a e0 37 e0 b7 e0 aa             # Print Screen
 tools/dev/winvm/vm.sh drag 300 250 800 500; tools/dev/winvm/vm.sh shot /tmp/vm.png; tools/dev/winvm/vm.sh log
-tools/dev/winvm/vm.sh tests                                   # три набора тестов на настоящей Windows, ~10 с
+tools/dev/winvm/vm.sh tests                                   # three test suites on real Windows, ~10 s
 ```
 
-- Процесс от `guestcontrol run` живёт вне сеанса пользователя: его окон не видно. Программы запускаются задачей планировщика с `LogonType Interactive` (`run.ps1`).
-- Аргументы после `--` у `guestcontrol run` уходят программе целиком: имя программы повторять не надо (`-- /c dir`, а не `-- cmd /c dir`).
-- У `guestcontrol` урезанный токен администратора (UAC): повышенные действия (брандмауэр, HKLM) не проходят.
-- Мышь — `SendInput` из `input.ps1` через `conhost --headless`: обычное окно консоли забирает фокус, и вставка честно останавливается «окно сменилось».
-- Клавиши `keyboardputscancode` для Windows — настоящая клавиатура: так проверяется хук Print Screen. Они уходят в активное окно — перед нажатием проверить снимком экрана, что гостем сейчас никто не пользуется.
-- `deploy` сначала останавливает `markpaste.exe`: каталог запущенной программы не удаляется, и раньше новая сборка молча ложилась внутрь старой (problems.md, 2026-10-20).
-- `tests` кладёт в каталог программы тестовые `.exe`, `Qt6Test.dll` и `qoffscreen.dll`. Тесты ядра и окон сами включают платформу `offscreen`; без `qoffscreen.dll` (в ZIP его нет) Qt падает при запуске, и процесс бесконечно висит на невидимом окне ошибки без единой строки вывода.
-- Общий буфер VirtualBox (`clipboard=bidirectional`): VBoxTray открывает буфер гостя после каждой смены, как `rdpclip` в RDP. Тесты буфера ждут с обработкой событий (`QTest::qWaitFor`), а не блокирующим `QFuture::result()`: данные VBoxTray отдаёт наш поток.
-- `shot` не работает, пока экран гостя погашен: сначала любая клавиша (`key 2a aa` — Shift).
-- На экране входа раскладка по умолчанию может быть русской: перед паролем Win+Пробел (`key e0 5b 39 b9 e0 db`).
-- Первый запуск новой сборки и первая вставка после неё медленные (Защитник проверяет DLL и модули Qt при первой загрузке): у меня первая вставка шла 15–40 с, следующая — около 3 с.
+- A process from `guestcontrol run` lives outside the user's session: its windows are not visible. Programs are started by a Task Scheduler task with `LogonType Interactive` (`run.ps1`).
+- The arguments after `--` of `guestcontrol run` go to the program as a whole: the program name is not repeated (`-- /c dir`, not `-- cmd /c dir`).
+- `guestcontrol` has a filtered administrator token (UAC): elevated actions (firewall, HKLM) fail.
+- The mouse is `SendInput` from `input.ps1` via `conhost --headless`: an ordinary console window takes focus, and the paste honestly stops with "the window changed".
+- `keyboardputscancode` keys are a real keyboard for Windows: this is how the Print Screen hook is checked. They go to the active window: before pressing, check with a screenshot that nobody is using the guest.
+- `deploy` first stops `markpaste.exe`: the directory of a running program is not deleted, and the new build used to land silently inside the old one (problems.md, 2026-10-20).
+- `tests` puts the test `.exe` files, `Qt6Test.dll` and `qoffscreen.dll` into the program directory. The core and window tests enable the `offscreen` platform themselves; without `qoffscreen.dll` (not in the ZIP) Qt fails at startup, and the process hangs forever on an invisible error window without a single line of output.
+- The VirtualBox shared clipboard (`clipboard=bidirectional`): VBoxTray opens the guest's clipboard after every change, like `rdpclip` in RDP. The clipboard tests wait while processing events (`QTest::qWaitFor`) rather than with a blocking `QFuture::result()`: our thread serves the data to VBoxTray.
+- `shot` does not work while the guest's screen is off: press any key first (`key 2a aa` is Shift).
+- On the login screen the default layout may be Russian: press Win+Space before the password (`key e0 5b 39 b9 e0 db`).
+- The first start of a new build and the first paste after it are slow (Defender checks the DLLs and Qt modules on first load): the first paste took 15–40 s, the next one about 3 s.
 
-## Что получается
+## What you get
 
-| Файл | Что это |
+| File | What it is |
 | --- | --- |
-| `build/src/app/markpaste` | Программа |
-| `build/tests/markpaste_core_tests` | Тесты ядра (GoogleTest): модель, текст, запекание, оркестратор вставки, набор на диске и сохранение в папку |
-| `build/tests/markpaste_ui_tests` | Тесты окон (GoogleTest + QtTest, offscreen): клавиши редактора (Ctrl+Enter, Esc), рисование стрелки и карандаша мышью, панель пера, автозапуск, мастер первого запуска на заглушках платформы (`tests/FakePlatform.h`), предпросмотр сообщения, загрузка русского перевода. Сюда же собраны `app/LogFile.cpp` и `app/UpdateChecker.cpp` (ротация журнала, сравнение версий). `QTest::keyClicks` не умеет кириллицу — вводить текст через `insertPlainText` |
-| `build/tools/pastetest/markpaste-pastetest` | Прототип вставки и диагностика платформы (`--check`, `--self-test`, `--capture kwin\|portal`, `--mode 1\|2`) |
-| `tools/dev/kwin-probe.py "команда" [фильтр]` | Отправляет команду работающей программе и каждые 250 мс читает у KWin геометрию её окон. Для замеров на живой сессии KDE. Отладочные команды сокета: `debug-move-strip <экран> <left\|right> <отступ>`, `debug-ghost <x> <y> <w> <h>` |
-| `build/tools/bench/markpaste-bench [--shots 26] [--paste 5]` | Замеры NFR-1 и NFR-2 без экрана: память набора из снимков 4K, пик и время вставки, возврат памяти (docs/platform-matrix.md, «Замеры») |
-| `build-win/tests/markpaste_windows_tests.exe` | Windows-реализации платформы на настоящем модуле Qt `windows` (под Wine или на Windows): разбор сочетаний, форматы буфера (PNG, CF_DIB, CF_HDROP, пометки «не в историю»), CF_DIB чужой программы → PNG, `RegisterHotKey` и занятое сочетание, хук Print Screen, GDI-захват |
-| `build/tools/uipreview/markpaste-uipreview [--dark] DIR` | Рисует ленту (с набором и пустую), редактор на тестовом наборе (рамки, стрелка, карандаш разными перьями, размытие; отдельно — открытое поле комментария), панели цвета и толщины, мастер первого запуска, окно «О программе», окно предпросмотра, меню ленты, вкладки настроек и снимок с подписями на картинке без дисплея, сохраняет PNG в DIR. `--dark` — палитра Breeze Dark |
-| `build/tools/uipreview/markpaste-uipreview --live [СЕК [FILE.png]]` | Показывает ленту (layer-shell) и окно снимка в настоящей сессии на СЕК секунд; с FILE.png через 2,5 с снимает весь экран через spectacle (KDE) — вместе с чужими окнами. Работающую программу не трогает |
-| `build/tools/uipreview/markpaste-uipreview --live-dialogs 0 ПРЕФИКС` | Окна настроек, мастера и предпросмотра по очереди в настоящей сессии; каждое снимается отдельно (`spectacle -a`, только активное окно) в ПРЕФИКС-1…3.png |
-| `MARKPASTE_RENDER_SAMPLE=файл.png build/tests/markpaste_core_tests --gtest_filter='*Sample*'` | Запекает пример всех форм меток в PNG — для глазной проверки рендера |
+| `build/src/app/markpaste` | The program |
+| `build/tests/markpaste_core_tests` | Core tests (GoogleTest): model, text, baking, paste orchestrator, the set on disk and saving to a folder |
+| `build/tests/markpaste_ui_tests` | Window tests (GoogleTest + QtTest, offscreen): editor keys (Ctrl+Enter, Esc), drawing arrows and freehand with the mouse, the pen panel, autostart, the first-start wizard on platform stubs (`tests/FakePlatform.h`), the message preview, loading the Russian translation. `app/LogFile.cpp` and `app/UpdateChecker.cpp` are built in here too (log rotation, version comparison). `QTest::keyClicks` cannot type Cyrillic, so text is entered with `insertPlainText` |
+| `build/tools/pastetest/markpaste-pastetest` | Paste prototype and platform diagnostics (`--check`, `--self-test`, `--capture kwin\|portal`, `--mode 1\|2`) |
+| `tools/dev/kwin-probe.py "command" [filter]` | Sends a command to the running program and reads the geometry of its windows from KWin every 250 ms. For measurements in a live KDE session. Debug socket commands: `debug-move-strip <screen> <left\|right> <offset>`, `debug-ghost <x> <y> <w> <h>` |
+| `build/tools/bench/markpaste-bench [--shots 26] [--paste 5]` | NFR-1 and NFR-2 measurements without a screen: memory of a set of 4K shots, the paste peak and time, memory return (docs/platform-matrix.md, "Measurements") |
+| `build-win/tests/markpaste_windows_tests.exe` | The Windows platform implementations on the real Qt `windows` module (under Wine or on Windows): shortcut parsing, clipboard formats (PNG, CF_DIB, CF_HDROP, "not into history" marks), another program's CF_DIB → PNG, `RegisterHotKey` and a taken shortcut, the Print Screen hook, GDI capture |
+| `build/tools/uipreview/markpaste-uipreview [--dark] [--lang en\|ru] DIR` | Renders the strip (with a set and empty), the editor on a test set (frames, arrow, freehand with different pens, blur; separately with an open comment field), the color and width panels, the first-start wizard, the About window, the preview window, the strip menu, the settings tabs and a shot with captions on the image without a display, and saves PNGs to DIR. `--dark` is the Breeze Dark palette, `--lang` the UI and demo content language (Russian by default). The README screenshots in `docs/images/` are made with it |
+| `build/tools/uipreview/markpaste-uipreview --live [SEC [FILE.png]]` | Shows the strip (layer-shell) and the shot window in a real session for SEC seconds; with FILE.png it captures the whole screen via spectacle (KDE) after 2.5 s, other windows included. Does not touch a running program |
+| `build/tools/uipreview/markpaste-uipreview --live-dialogs 0 PREFIX` | The settings, wizard and preview windows one after another in a real session; each is captured separately (`spectacle -a`, active window only) into PREFIX-1…3.png |
+| `MARKPASTE_RENDER_SAMPLE=file.png build/tests/markpaste_core_tests --gtest_filter='*Sample*'` | Bakes a sample of all mark shapes into a PNG, for a visual check of the renderer |
 
-## Подводные камни
+## Pitfalls
 
-- **.desktop-файл нужен уже при разработке.** Без него портал отвечает «App info not found» на регистрацию app id, а KWin не пускает к ScreenShot2. Цель `dev-install-desktop` ставит `~/.local/share/applications/su._525.Markpaste.desktop` с `Exec` на бинарник из `build/` и значок `~/.local/share/icons/hicolor/scalable/apps/su._525.Markpaste.svg` (до 2026-10-20 значок ставил только пакет — у ярлыка разработчика его не было) и обновляет кэш KDE (`kbuildsycoca6`). Бинарник из `Exec` должен существовать, иначе GLib отбрасывает файл (docs/problems.md).
-- **Логи.** Когда stderr — не терминал, Qt пишет в journald. Для разработки:
+- **The .desktop file is needed already during development.** Without it the portal answers "App info not found" to the app id registration, and KWin does not let the program into ScreenShot2. The `dev-install-desktop` target installs `~/.local/share/applications/su._525.Markpaste.desktop` with `Exec` pointing to the binary in `build/` and the icon `~/.local/share/icons/hicolor/scalable/apps/su._525.Markpaste.svg` (before 2026-10-20 only the package installed the icon, and the developer shortcut had none) and refreshes the KDE cache (`kbuildsycoca6`). The binary from `Exec` must exist, otherwise GLib drops the file (docs/problems.md).
+- **Logs.** When stderr is not a terminal, Qt writes to journald. For development:
   `QT_FORCE_STDERR_LOGGING=1 QT_LOGGING_RULES="markpaste.*=true" ./build/src/app/markpaste`.
-  Без перенаправления лог — в `journalctl --user -f`.
-- **Управление запущенным экземпляром:** `markpaste --capture | --capture-to-strip | --paste | --copy | --show | --settings | --setup | --about | --clear | --quit`. `--capture-to-strip` — снимок сразу в ленту, без редактора (ADR 0022).
-- **`pkill -f build/src/app/markpaste` убивает и саму оболочку**, если путь есть в её командной строке. Используйте `pkill -x markpaste`.
-- **Переводы:** строки обновляются `cmake --build build --target update_translations` (lupdate), файлы — `i18n/*.ts`. `.qm` встраиваются в программу под `:/i18n`. Каждый `.ts` подключать через `qt_add_translations` только к одной цели, иначе параллельные lupdate портят файл (docs/problems.md); тестам — `qt_add_lrelease`.
-- **API Qt не новее 6.4.** На Fedora стоит 6.11, поэтому компилятор не поймает новые вызовы. Защита — будущая сборка в CI на Ubuntu 24.04 (Qt 6.4.2). Уже используется только то, что есть в 6.4: `QFuture::then/unwrap`, `QPromise`, `qt_add_translations`.
+  Without redirection the log is in `journalctl --user -f`.
+- **Controlling a running instance:** `markpaste --capture | --capture-to-strip | --paste | --copy | --show | --settings | --setup | --about | --clear | --quit`. `--capture-to-strip` is a shot straight to the strip, without the editor (ADR 0022).
+- **`pkill -f build/src/app/markpaste` kills the shell itself** if the path is in its command line. Use `pkill -x markpaste`.
+- **Translations:** strings are updated with `cmake --build build --target update_translations` (lupdate), the files are `i18n/*.ts`. The `.qm` files are embedded into the program under `:/i18n`. Attach each `.ts` via `qt_add_translations` to one target only, otherwise parallel lupdate runs corrupt the file (docs/problems.md); tests use `qt_add_lrelease`.
+- **No Qt API newer than 6.4.** Fedora has 6.11, so the compiler will not catch newer calls. The protection is the Ubuntu 24.04 (Qt 6.4.2) build in CI and in the release containers. Only what exists in 6.4 is used: `QFuture::then/unwrap`, `QPromise`, `qt_add_translations`.

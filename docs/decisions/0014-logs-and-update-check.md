@@ -1,35 +1,35 @@
-# 0014. Журнал в файл и уведомление о новой версии
+# 0014. Log file and new version notification
 
-- Статус: принято (2026-10-20); часть про GitLab заменена решением [0024](0024-github-home-and-releases.md) (2026-10-21)
+- Status: accepted (2026-10-20); the GitLab part is replaced by decision [0024](0024-github-home-and-releases.md) (2026-10-21)
 
-## Контекст
+## Context
 
-ТЗ разд. 7: «Логи — spdlog с ротацией, без содержимого снимков». APP-7: на Linux — уведомление о новой версии, обновление через пакетный менеджер. NFR-4: единственный сетевой запрос — проверка версии в GitHub Releases, отключается в настройках.
+Spec section 7: "Logs: spdlog with rotation, without shot contents". APP-7: on Linux, a notification about a new version, updating through the package manager. NFR-4: the only network request is the version check against GitHub Releases, which can be turned off in settings.
 
-## Решение
+## Decision
 
-**Журнал** — `LogFile`, обработчик `qInstallMessageHandler`.
-- Пишет все сообщения Qt-логирования (категории `markpaste.*`) в `~/.local/share/markpaste/logs/markpaste.log` (`AppLocalDataLocation/logs`), каталог 0700, файл 0600. Прежний обработчик (journald или stderr) работает дальше.
-- Ротация по размеру: 1 МБ, 3 старых файла (`markpaste.1.log` … `markpaste.3.log`); проверка при запуске и перед каждой записью. Сброс на диск после каждой строки — журнал нужен как раз при падении.
-- Ставится только у основного экземпляра: второй экземпляр живёт миг и только передаёт команду.
-- Кнопка «Открыть папку журнала» на вкладке «Система».
+**Log**: `LogFile`, a `qInstallMessageHandler` handler.
+- Writes every Qt logging message (categories `markpaste.*`) to `~/.local/share/markpaste/logs/markpaste.log` (`AppLocalDataLocation/logs`), directory 0700, file 0600. The previous handler (journald or stderr) keeps working.
+- Size-based rotation: 1 MB, 3 old files (`markpaste.1.log` … `markpaste.3.log`); checked at startup and before every write. Flushed to disk after every line: the log is needed exactly when the program crashes.
+- Installed only in the main instance: a second instance lives for a moment and only passes a command.
+- An "Open log folder" button on the "System" tab.
 
-**Проверка версии** — `UpdateChecker`.
-- Раз в сутки (время прошлой проверки — в настройках `updates/lastCheck`), первая — через 30 с после запуска. Один GET, таймаут 15 с.
-- Источник — **GitLab**, а не GitHub: проект живёт на gitlab.525.su. `GET /api/v4/projects/che%2Fmain%2Fmarkpaste/releases/permalink/latest` → `tag_name` (`v0.2.0` или `0.2.0`), сравнение через `QVersionNumber`. `upcoming_release` не считается.
-- Адрес задаётся при сборке: `-DMARKPASTE_UPDATE_URL=…`; пустой — проверки нет (для сборок дистрибутивов). Страница релизов — `MARKPASTE_RELEASES_URL`.
-- Новая версия — уведомление «Вышла Markpaste X. Обновите её через менеджер пакетов»; щелчок по уведомлению в трее открывает страницу релиза. Про одну версию сообщаем один раз (`updates/notifiedVersion`).
-- Ошибки сети и 404 — только в журнал, пользователю не показываются.
-- Галочка «Раз в день проверять, вышла ли новая версия» на вкладке «Система», по умолчанию включена (в ТЗ — «отключается в настройках»).
+**Version check**: `UpdateChecker`.
+- Once a day (the time of the last check is in the `updates/lastCheck` setting), the first one 30 s after startup. One GET, a 15 s timeout.
+- ~~The source is **GitLab**, not GitHub: the project lives on gitlab.525.su. `GET /api/v4/projects/che%2Fmain%2Fmarkpaste/releases/permalink/latest` → `tag_name` (`v0.2.0` or `0.2.0`), compared with `QVersionNumber`. An `upcoming_release` does not count.~~ Since 2026-10-21 the source is GitHub Releases (`/repos/<owner>/<name>/releases/latest`), see [ADR 0024](0024-github-home-and-releases.md). The GitLab answer is still understood.
+- The URL is set at build time: `-DMARKPASTE_UPDATE_URL=…`; empty means no check (for distro builds). The releases page is `MARKPASTE_RELEASES_URL`.
+- A new version gives the notification "Markpaste X is out. Update it through your package manager"; a click on the tray notification opens the release page. Each version is reported once (`updates/notifiedVersion`).
+- Network errors and 404 go only to the log and are not shown to the user.
+- The checkbox "Check once a day whether a new version is out" on the "System" tab, on by default (the spec says "can be turned off in settings").
 
-## Рассмотренные варианты
+## Options considered
 
-- **spdlog** (как в ТЗ). Отказ: новая зависимость ради записи в файл, а все сообщения программы и так идут через Qt-логирование с категориями. Обработчик Qt — 100 строк и ловит и сообщения самой Qt.
-- **Каталог журнала `StateLocation`** (`~/.local/state`, правильнее по XDG). Отказ: появился в Qt 6.7, а минимум — 6.4.
-- **GitHub Releases.** Репозитория на GitHub нет.
+- **spdlog** (as in the spec). Rejected: a new dependency just for writing a file, while all the program's messages already go through Qt logging with categories. The Qt handler is 100 lines and also catches Qt's own messages.
+- **`StateLocation` for the log directory** (`~/.local/state`, more correct per XDG). Rejected: it appeared in Qt 6.7, and the minimum is 6.4.
+- ~~**GitHub Releases.** There is no GitHub repository.~~ Chosen on 2026-10-21 (ADR 0024).
 
-## Последствия
+## Consequences
 
-- Отклонения от ТЗ: Qt-обработчик вместо spdlog, GitLab вместо GitHub — `docs/deviations.md`.
-- **Сейчас проверка не работает:** проект на gitlab.525.su закрыт, API без входа отвечает `404 Project Not Found` (проверено 2026-10-20). Заработает, когда проект или его релизы станут публичными и появится первый релиз с тегом. Пока в журнале: `update check failed: 404`.
-- Журнал содержит события (захват, вставка, порталы), но не содержимое снимков и комментариев: в коде комментарии в лог не пишутся.
+- Deviations from the spec: the Qt handler instead of spdlog (`docs/deviations.md`).
+- ~~**The check does not work at the moment:** the project on gitlab.525.su is private, the API answers `404 Project Not Found` without a login (checked 2026-10-20).~~ Outdated: since 0.2.0 the check goes to the public GitHub repository and starts working with the first published release.
+- The log contains events (capture, paste, portals), but not the contents of shots and comments: the code never writes comments to the log.

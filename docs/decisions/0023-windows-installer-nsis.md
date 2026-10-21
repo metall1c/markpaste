@@ -1,40 +1,40 @@
-# 0023. Установщик Windows на NSIS, установка в профиль
+# 0023. Windows installer with NSIS, per-user install
 
-- Статус: принято (2026-10-20); временное, до Velopack с автообновлением
-- Требования ТЗ: разд. 11 (Setup.exe с автообновлением и portable ZIP; установка в профиль без прав администратора), NFR-3 (установщик до 40 МБ), разд. 12 (сборка Setup.exe)
+- Status: accepted (2026-10-20); temporary, until Velopack with auto-update
+- Spec items: section 11 (Setup.exe with auto-update and a portable ZIP; per-user install without administrator rights), NFR-3 (installer up to 40 MB), section 12 (building Setup.exe)
 
-## Контекст
+## Context
 
-Пользователь попросил установщик для Windows. ТЗ называет Velopack: Setup.exe плюс автообновление из релизов. Velopack — это .NET-инструмент `vpk` и библиотека обновлений, которую надо встроить в программу и связать с релизами GitLab. Это отдельная работа. Установщик нужен сейчас, и собираться он должен там же, где Windows-версия, — кросс-сборкой на Fedora (ADR 0017).
+The user asked for a Windows installer. The spec names Velopack: Setup.exe plus auto-update from releases. Velopack is the .NET tool `vpk` and an update library that has to be built into the program and tied to the releases. That is separate work. The installer is needed now, and it must be built in the same place as the Windows version, by cross-compiling on Fedora (ADR 0017).
 
-## Решение
+## Decision
 
-- **NSIS 3.11** из пакетов Fedora (`mingw32-nsis`, даёт `/usr/bin/makensis`). Цель `installer` в `build-win`: `cmake --install` во временный каталог → список файлов для удаления → `makensis` → `build-win/package/Markpaste-<версия>-win64-setup.exe`. Сценарий — `data/windows/installer.nsi.in`, сборка — `cmake/WindowsInstaller.cmake`, `cmake/NsisFileList.cmake`. Без `makensis` цели нет, остальная сборка не ломается.
-- **Своя схема `.nsi`, не генератор NSIS из CPack.** Шаблон CPack ставит программу для всех пользователей и просит права администратора, а ТЗ требует установку в профиль.
-- **Установка:**
-  - в `%LOCALAPPDATA%\Programs\Markpaste`, папку можно сменить; `RequestExecutionLevel user` — без UAC;
-  - ярлык в меню «Пуск»;
-  - запись в «Приложения» — в `HKCU\…\Uninstall\su._525.Markpaste`: версия, размер, тихое удаление `/S`;
-  - на последней странице — «Запустить Markpaste»;
-  - язык мастера — по языку Windows (русский или английский);
-  - лицензия GPL показывается без обязательного «Принимаю».
-- **Запущенная программа.** Перед копированием файлов и перед удалением установщик вызывает `markpaste.exe --quit` из папки установки: тот же сокет единственного экземпляра, что у CLI. Иначе файлы заняты.
-- **Удаление:**
-  - удаляются только установленные файлы, по списку, который строится при сборке. `RMDir /r` по папке, которую мог выбрать пользователь, опасен;
-  - снимается автозапуск: значение `su._525.Markpaste` в `HKCU\…\Run` и отметка в `StartupApproved\Run`;
-  - настройки (`HKCU\Software\markpaste`) и журнал остаются.
-- **Тихая установка:** `Markpaste-…-setup.exe /S`, удаление — `uninstall.exe /S`.
+- **NSIS 3.11** from Fedora packages (`mingw32-nsis`, provides `/usr/bin/makensis`). The `installer` target in `build-win`: `cmake --install` into a temporary directory → the uninstall file list → `makensis` → `build-win/package/Markpaste-<version>-win64-setup.exe`. The script is `data/windows/installer.nsi.in`, the build is `cmake/WindowsInstaller.cmake`, `cmake/NsisFileList.cmake`. Without `makensis` there is no target, and the rest of the build does not break.
+- **Our own `.nsi`, not CPack's NSIS generator.** The CPack template installs the program for all users and asks for administrator rights, while the spec requires a per-user install.
+- **Installation:**
+  - into `%LOCALAPPDATA%\Programs\Markpaste`, the folder can be changed; `RequestExecutionLevel user`, no UAC;
+  - a Start menu shortcut;
+  - the "Apps" entry in `HKCU\…\Uninstall\su._525.Markpaste`: version, size, silent uninstall `/S`;
+  - "Run Markpaste" on the last page;
+  - the wizard language follows the Windows language (Russian or English);
+  - the GPL license is shown without a mandatory "I accept".
+- **A running program.** Before copying files and before uninstalling, the installer calls `markpaste.exe --quit` from the install folder: the same single-instance socket as the CLI. Otherwise the files are locked.
+- **Uninstall:**
+  - only the installed files are deleted, from a list built at build time. `RMDir /r` on a folder the user may have chosen is dangerous;
+  - autostart is removed: the `su._525.Markpaste` value in `HKCU\…\Run` and the mark in `StartupApproved\Run`;
+  - settings (`HKCU\Software\markpaste`) and the log stay.
+- **Silent install:** `Markpaste-…-setup.exe /S`, uninstall `uninstall.exe /S`.
 
-## Рассмотренные варианты
+## Options considered
 
-- **Velopack сейчас.** Нужны .NET SDK, сборка пакета для Windows с Linux и встраивание обновлений в программу. Это следующий шаг вместе с APP-7 — проверка версии уже есть (ADR 0014).
-- **Генератор NSIS из CPack.** Установка для всех пользователей, права администратора — противоречит ТЗ. Чтобы это поменять, пришлось бы переписать его шаблон.
-- **Inno Setup.** Только под Windows: на Fedora — через Wine, с загрузкой самого Inno Setup. NSIS есть в пакетах Fedora.
-- **MSI (wixl из msitools).** Установка в профиль в MSI неудобна, своего мастера с языками нет.
+- **Velopack now.** Needs the .NET SDK, building a Windows package from Linux and building updates into the program. That is the next step together with APP-7; the version check already exists (ADR 0014).
+- **CPack's NSIS generator.** An all-users install with administrator rights contradicts the spec. Changing that would mean rewriting its template.
+- **Inno Setup.** Windows only: on Fedora through Wine, with Inno Setup itself downloaded. NSIS is in the Fedora packages.
+- **MSI (wixl from msitools).** A per-user install is awkward in MSI, and there is no own wizard with languages.
 
-## Последствия
+## Consequences
 
-- **Размер** Setup.exe 0.1.4 — 23,8 МБ (LZMA solid), меньше 40 МБ по NFR-3. Каталог программы — 80,6 МБ, из них ICU — 32 МБ (Qt Fedora, ADR 0017).
-- **Нет автообновления**: новую версию ставят поверх старой, запущенная копия закрывается сама. Если в новой версии файла больше нет, старый остаётся в папке до удаления программы.
-- **Установщик не подписан**: SmartScreen покажет «Неизвестный издатель». Подпись SignPath — вместе с релизной сборкой в CI (ТЗ разд. 11).
-- **Проверено** только под Wine 11.0 (2026-10-20): тихая и обычная установка, установка поверх запущенной программы, удаление (platform-matrix.md). На настоящей Windows 11 не проверено.
+- **The size** of Setup.exe 0.1.4 is 23.8 MB (LZMA solid), below the 40 MB of NFR-3. The program directory is 80.6 MB, of which ICU is 32 MB (Fedora's Qt, ADR 0017).
+- **No auto-update**: a new version is installed over the old one, and a running copy closes by itself. If a file no longer exists in the new version, the old one stays in the folder until the program is uninstalled.
+- **The installer is not signed**: SmartScreen shows "Unknown publisher". SignPath signing comes together with the release build in CI (spec section 11).
+- **Checked** only under Wine 11.0 (2026-10-20): silent and normal install, install over a running program, uninstall (platform-matrix.md). Not checked on real Windows 11.

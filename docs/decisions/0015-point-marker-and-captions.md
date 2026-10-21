@@ -1,32 +1,32 @@
-# 0015. Точка-маркер и подписи комментариев на картинке
+# 0015. Point marker and comment captions on the image
 
-- Статус: принято (2026-10-20)
+- Status: accepted (2026-10-20)
 
-## Контекст
+## Context
 
-EDT-9 — «стрелка и точка-маркер как альтернативные формы метки» (стрелка сделана в ADR 0006). EDT-10 — «подписи комментариев прямо на картинке (опция «текст на изображении»)».
+EDT-9: "arrow and point marker as alternative mark shapes" (the arrow was done in ADR 0006). EDT-10: "comment captions right on the image (the "text on image" option)".
 
-## Решение
+## Decision
 
-**Точка-маркер** — `MarkShape::Point`, четвёртая форма метки в общей нумерации A1, A2…
-- Геометрия — одна точка в `Mark::points` (физические пиксели исходника), `rect` — 1×1 вокруг неё. Вне видимой области точка не ставится; при обрезке, оставившей её снаружи, удаляется, как остальные метки.
-- Вид: значок номера по центру точки и кольцо цвета метки вокруг него с белой подложкой (с 2026-10-20 — тёмная полупрозрачная кайма, ADR 0021). Кольцо несёт цвет, толщину и тип линии пера: без него точка не отличалась бы от значков других форм. У края снимка значок сдвигается внутрь (EDT-3), кольцо — вместе с ним.
-- Редактор: кнопка «● Точка», клавиша **D** (P занята карандашом). Ставится щелчком; если не отпускать мышь, точку можно сразу довести до места. Попадание мышью — по кругу значка с кольцом; выделенная точка обводится пунктирным кругом и тянется только целиком.
-- В `set.json` — `"shape": "point"` (ADR 0013).
+**Point marker**: `MarkShape::Point`, the fourth mark shape in the shared A1, A2… numbering.
+- The geometry is one point in `Mark::points` (physical pixels of the source), `rect` is 1×1 around it. A point is not placed outside the visible area; a crop that leaves it outside removes it, like other marks.
+- Look: the number badge centered on the point and a ring of the mark color around it with a white underlay (since 2026-10-20 a dark semi-transparent halo, ADR 0021). The ring carries the pen's color, width and line style: without it a point would not differ from the badges of other shapes. At the shot edge the badge moves inwards (EDT-3), and the ring moves with it.
+- Editor: the "● Point" button, key **D** (P is taken by the pen). Placed with a click; without releasing the mouse, the point can be moved to the right place right away. Mouse hit-testing is by the circle of the badge with the ring; a selected point gets a dashed circle and is dragged only as a whole.
+- In `set.json`: `"shape": "point"` (ADR 0013).
 
-**Подписи на картинке (EDT-10)** — опция «Писать комментарии и на картинке, рядом с номерами» на вкладке «Сообщение», `message/captionsOnImage`, по умолчанию выключена.
-- Белая плашка с рамкой цвета метки и тёмным текстом справа от значка; не помещается — слева; нет места и там — под значком. Плашка всегда целиком внутри снимка, длинный текст переносится по словам (ширина до 280 логических px).
-- Шрифт — половина диаметра значка, масштаб — по DPI снимка, как у значков.
-- Рисуется той же `paintMarks`: подписи видны в редакторе, миниатюрах, предпросмотре, при вставке и в «Сохранить в папку».
-- Текст сообщения не меняется: комментарии остаются и в нём.
+**Captions on the image (EDT-10)**: the option "Also write comments on the image, next to the numbers" on the "Message" tab, `message/captionsOnImage`, off by default.
+- A white plate with a border of the mark color and dark text to the right of the badge; if it does not fit, to the left; if there is no room there either, below the badge. The plate is always entirely inside the shot, long text wraps by words (width up to 280 logical px).
+- The font is half the badge diameter, scaled by the shot DPI, like the badges.
+- Drawn by the same `paintMarks`: captions are visible in the editor, thumbnails, the preview, the paste and "Save to folder".
+- The message text does not change: the comments stay in it too.
 
-## Рассмотренные варианты
+## Options considered
 
-- **Точка — маленький закрашенный кружок с номером рядом** (как булавка). Отказ: номер рядом с точкой спорит с соседними метками за место, а значок по центру сам показывает место.
-- **Подписи вместо текста сообщения** (картинки без текста). Отказ: текст в чате ищется и цитируется; это делается шаблоном (пустая строка метки), если понадобится.
-- **Отдельный инструмент «Текст»** — надпись в любом месте без номера. Отказ: в ТЗ речь о подписях комментариев; свободный текст без номера не попадает в сообщение и ломает связку «номер ↔ комментарий».
+- **A point as a small filled circle with the number next to it** (like a pin). Rejected: a number next to the point competes with neighboring marks for space, while a badge in the center shows the spot by itself.
+- **Captions instead of the message text** (images without text). Rejected: text in a chat can be searched and quoted; this can be done with the template (an empty mark line) if needed.
+- **A separate "Text" tool**, a label anywhere without a number. Rejected: the spec talks about comment captions; free text without a number does not get into the message and breaks the "number ↔ comment" link.
 
-## Последствия
+## Consequences
 
-- Подписи могут перекрывать друг друга и соседние метки, если метки стоят плотно: раскладки без пересечений нет.
-- На живой сессии не проверено; проверено тестами `Renderer.PointIsBadgeWithRingCenteredOnSpot`, `Renderer.CaptionsOnImageOnlyWhenEnabled`, `ShotEditorUi.PointToolPlacesPointByClick` и картинкой uipreview.
+- Captions can overlap each other and neighboring marks if the marks are dense: there is no overlap-free layout.
+- Not checked in a live session; checked by the tests `Renderer.PointIsBadgeWithRingCenteredOnSpot`, `Renderer.CaptionsOnImageOnlyWhenEnabled`, `ShotEditorUi.PointToolPlacesPointByClick` and the uipreview image.
