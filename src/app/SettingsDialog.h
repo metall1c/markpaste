@@ -14,6 +14,7 @@ class QSpinBox;
 namespace mp {
 
 class ActionButton;
+class StatusLine;
 
 // Settings (APP-3). The minimal set for 1.0: hotkeys, paste, message, appearance.
 class SettingsDialog : public QDialog
@@ -29,7 +30,13 @@ public:
     bool autostart() const;
 
 private:
+    void updatePasteKeyNote();
+
     Settings m_settings;
+    IHotkeys *m_hotkeys = nullptr;
+    IInputInjector *m_injector = nullptr;
+    StatusLine *m_pasteKeyNote = nullptr;
+    QPushButton *m_save = nullptr;
     QLineEdit *m_captureKey;
     QLineEdit *m_pasteKey;
     QLineEdit *m_toStripKey;

@@ -24,6 +24,7 @@ public:
     QFuture<Status> waitModifiersReleased(std::chrono::milliseconds timeout) override;
     QFuture<Status> sendPaste() override;
     QFuture<Status> sendModifierMask() override;
+    bool maskAddsCtrl() const override { return true; }
     bool canDetectForegroundChange() const override { return false; }
     QString name() const override { return QStringLiteral("xdg-desktop-portal RemoteDesktop"); }
 

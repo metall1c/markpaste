@@ -2,6 +2,7 @@
 
 #include "core/MessageBuilder.h"
 #include "paste/PasteOrchestrator.h"
+#include "platform/PlatformTypes.h"
 #include "render/ShotRenderer.h"
 
 #include <QString>
@@ -13,7 +14,7 @@ namespace mp {
 struct Settings {
     // Hotkeys
     QString captureHotkey = QStringLiteral("Print");
-    QString pasteHotkey = QStringLiteral("Primary+Alt+V");   // not Ctrl+Shift+V (PST-2)
+    QString pasteHotkey = defaultPasteHotkey();   // Ctrl+V on Windows, else Ctrl+Alt+V; not Ctrl+Shift+V (PST-2)
     QString captureToStripHotkey = QStringLiteral("Primary+Print");   // shot straight to the strip (ADR 0022)
 
     // Capture

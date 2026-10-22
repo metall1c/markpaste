@@ -28,13 +28,13 @@ On 2026-10-20 the shot window and the strip were redone after an approved mock-u
 | STR-5 moving the strip | S | ✅ | Left and right edges only |
 | STR-6 dragging into a chat | M | 🟡 | Done, not checked in chats |
 | PST-1, PST-3, PST-7, PST-8, PST-9 | M/S | ✅ | — |
-| PST-2 starting a paste | M | ✅ | Intercepting the ordinary Ctrl+V is for Windows and X11 only per the spec |
+| PST-2 starting a paste | M | ✅ | Ctrl+V interception: Windows, the default there since 2026-10-22 ([ADR 0027](decisions/0027-ctrl-v-on-windows.md)); not done on X11. On Linux the settings warn about Alt without Ctrl |
 | PST-4 "files + text" mode | M | 🟡 | Done, not checked in chats |
 | PST-5 stitching | M | 🟡 | Done, not checked in chats |
 | PST-6 message preview | S | 🟡 | A preview window: the same images and text as the paste gives ([ADR 0013](decisions/0013-set-on-disk.md)). A test and offscreen rendering; not checked in a live session |
 | APP-1 tray | M | ✅ | Not checked on GNOME without a tray |
 | APP-2 single instance | M | ✅ | — |
-| APP-3 settings | M | 🟡 | The new settings were checked by the user on 2026-10-20. All the spec's groups are there: hotkeys, paste, message, appearance (color, badge size, UI language), images (longest side, JPEG threshold, quality), system (autostart, the set between restarts, version check). Missing: Ctrl+V interception, per-program delay profiles, the strip position in the window (moved with the mouse), theme (the system one is used) |
+| APP-3 settings | M | 🟡 | The new settings were checked by the user on 2026-10-20. All the spec's groups are there: hotkeys, paste, message, appearance (color, badge size, UI language), images (longest side, JPEG threshold, quality), system (autostart, the set between restarts, version check). Missing: per-program delay profiles, the strip position in the window (moved with the mouse), theme (the system one is used) |
 | APP-4 first-start wizard | M | 🟡 | Done (ADR 0009): capture check, hotkeys, an end-to-end Ctrl+V check, autostart. Tests on stubs; in a live KDE session the user went through it on 2026-10-20 without remarks |
 | APP-5 Russian and English | M | ✅ | — |
 | APP-6 saving the set to a folder | C | 🟡 | `A.png`, `B.png`… and `message.md` in a new folder ([ADR 0013](decisions/0013-set-on-disk.md)). A test; not checked in a live session |
@@ -98,7 +98,7 @@ The Linux version is ready; the Windows version is cross-compiled on Fedora and 
 | Autostart, settings, log, NFR-5 | 🟡 | The `Run` registry key, settings in the registry, `%LOCALAPPDATA%`. A test under Wine; logging in was not checked |
 | First-start wizard | 🟡 | Works under Wine. No hint about the Snipping Tool on Print |
 | Portable ZIP | 🟡 | 35 MB, Fedora's Qt with ICU. Starts under Wine without Qt paths |
-| Intercepting the ordinary Ctrl+V (PST-2) | ❌ | A hook while the set is non-empty, skipping our own presses |
+| Intercepting the ordinary Ctrl+V (PST-2) | ✅ | The default paste key: the hook swallows Ctrl+V only while the set has shots and no Markpaste window is active ([ADR 0027](decisions/0027-ctrl-v-on-windows.md)). Checked on Windows 11 on 2026-10-22 (Notepad, Paint) |
 | Per-program delay profiles (section 10) | ❌ | The target process name is already written to the log |
 | Window under the cursor (CAP-5) | ❌ | |
 | UIPI → automatically the "files + text" mode | ❌ | Currently an error with a hint |

@@ -1,4 +1,5 @@
 #include "FakePlatform.h"
+#include "ui/Controls.h"
 #include "ui/SetupWizard.h"
 
 #include <QApplication>
@@ -184,4 +185,42 @@ TEST(SetupWizard, OffersToFreeKeyTakenByDesktop)
     again.hotkeyActivated(Action::Capture);
     for (QPushButton *b : again.findChildren<QPushButton *>())
         EXPECT_FALSE(b->text().startsWith(u"Give ") && !b->isHidden());
+}
+
+// Windows: Ctrl+V fires only with shots in the set, so the wizard does not ask to press it
+TEST(SetupWizard, ConditionalCtrlVNeedsNoTest)
+{
+    WizardFixture f;
+    auto hk = std::make_unique<FakeHotkeys>();
+    FakeHotkeys *hotkeys = hk.get();
+    f.platform.hotkeys = std::move(hk);
+    SetupWizard w(&f.platform, QStringLiteral("su._525.MarkpasteTest"));
+    w.setTriggers({{Action::Capture, QStringLiteral("Print")}, {Action::PasteSet, QStringLiteral("Ctrl+V")}});
+    w.hotkeyActivated(Action::Capture);
+    EXPECT_EQ(w.hotkeyResult(), SetupWizard::Result::Pending);   // no interception: an ordinary key
+
+    hotkeys->interceptPasteKey = true;
+    w.setTriggers({{Action::Capture, QStringLiteral("Print")}, {Action::PasteSet, QStringLiteral("Ctrl+V")}});
+    EXPECT_EQ(w.hotkeyResult(), SetupWizard::Result::Ok);
+}
+
+// Linux: the modifier mask is a Ctrl tap, so Alt+V gets a hint
+TEST(SetupWizard, AltWithoutCtrlGetsHint)
+{
+    WizardFixture f;
+    f.platform.hotkeys = std::make_unique<FakeHotkeys>();
+    SetupWizard w(&f.platform, QStringLiteral("su._525.MarkpasteTest"));
+    auto hotkeyText = [&w] {
+        QString all;
+        for (StatusLine *l : w.findChildren<StatusLine *>())
+            all += l->text();
+        return all;
+    };
+    w.setTriggers({{Action::Capture, QStringLiteral("Print")}, {Action::PasteSet, QStringLiteral("Alt+V")}});
+    EXPECT_FALSE(hotkeyText().contains(u"without Ctrl"));   // the mask is not Ctrl here (Windows)
+    f.injector->ctrlMask = true;
+    w.setTriggers({{Action::Capture, QStringLiteral("Print")}, {Action::PasteSet, QStringLiteral("Alt+V")}});
+    EXPECT_TRUE(hotkeyText().contains(u"without Ctrl"));
+    w.setTriggers({{Action::Capture, QStringLiteral("Print")}, {Action::PasteSet, QStringLiteral("Ctrl+Alt+V")}});
+    EXPECT_FALSE(hotkeyText().contains(u"without Ctrl"));
 }

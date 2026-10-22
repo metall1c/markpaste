@@ -1,5 +1,8 @@
 #include "TestUtil.h"
+#include "FakePlatform.h"
 #include "app/LogFile.h"
+#include "app/SettingsDialog.h"
+#include "ui/Controls.h"
 #include "app/UpdateChecker.h"
 #include "ui/AboutDialog.h"
 #include "ui/PreviewDialog.h"
@@ -9,6 +12,8 @@
 #include <QTest>
 
 #include <QLabel>
+#include <QLineEdit>
+#include <QPushButton>
 
 #include <gtest/gtest.h>
 
@@ -121,7 +126,50 @@ TEST(AppIconFile, SvgIsRecognizedByContent)
     // Content sniffing (shared-mime-info, glycin in GNOME 49+) looks for "<svg" in the first 256 bytes.
     // Later than that the file is application/xml, and GNOME shows an empty icon (problems.md 2026-10-21).
     QFile f(QStringLiteral(MARKPASTE_SOURCE_DIR "/data/icons/app.svg"));
+    if (!f.exists())
+        GTEST_SKIP() << "no source tree here (tests copied to a Windows VM)";
     ASSERT_TRUE(f.open(QIODevice::ReadOnly));
     const qsizetype at = f.read(256).indexOf("<svg");
     EXPECT_GE(at, 0);
+}
+
+// The note under the paste-set shortcut (PST-2, ADR 0027)
+TEST(SettingsDialog, PasteKeyNotes)
+{
+    Platform platform;
+    auto hk = std::make_unique<FakeHotkeys>();
+    FakeHotkeys *hotkeys = hk.get();
+    platform.hotkeys = std::move(hk);
+    auto cb = std::make_unique<FakeClipboard>();
+    auto inj = std::make_unique<FakeInjector>(cb.get());
+    inj->ctrlMask = true;   // Linux
+    platform.clipboard = std::move(cb);
+    platform.injector = std::move(inj);
+
+    Settings s;
+    s.pasteHotkey = QStringLiteral("Primary+Alt+V");
+    auto check = [&](const QString &key, StatusLine::State want, bool saveEnabled) {
+        SettingsDialog d(s, platform);
+        QLineEdit *edit = nullptr;
+        for (QLineEdit *e : d.findChildren<QLineEdit *>())
+            if (e->text() == s.pasteHotkey)
+                edit = e;
+        ASSERT_NE(edit, nullptr);
+        edit->setText(key);
+        StatusLine::State got = StatusLine::State::None;
+        for (StatusLine *l : d.findChildren<StatusLine *>())
+            if (!l->isHidden())
+                got = l->state();
+        EXPECT_EQ(got, want) << key.toStdString();
+        for (QPushButton *b : d.findChildren<QPushButton *>()) {
+            if (b->text() == u"Save") {
+                EXPECT_EQ(b->isEnabled(), saveEnabled) << key.toStdString();
+            }
+        }
+    };
+    check(QStringLiteral("Primary+Alt+V"), StatusLine::State::None, true);
+    check(QStringLiteral("Alt+V"), StatusLine::State::Warning, true);
+    check(QStringLiteral("Primary+V"), StatusLine::State::Failed, false);   // would take Ctrl+V from everyone
+    hotkeys->interceptPasteKey = true;   // Windows
+    check(QStringLiteral("Primary+V"), StatusLine::State::Ok, true);
 }

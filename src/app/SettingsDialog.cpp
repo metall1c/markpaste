@@ -96,6 +96,11 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     kf->addRow(tr("Shot with editor:"), m_captureKey);
     kf->addRow(tr("Shot without editor:"), m_toStripKey);
     kf->addRow(tr("Paste the set:"), m_pasteKey);
+    m_hotkeys = platform.hotkeys.get();
+    m_injector = platform.injector.get();
+    m_pasteKeyNote = new StatusLine;
+    kf->addRow(m_pasteKeyNote);
+    connect(m_pasteKey, &QLineEdit::textChanged, this, &SettingsDialog::updatePasteKeyNote);
     m_captureKey->setToolTip(tr("Select an area — the editor opens for marks and comments"));
     m_toStripKey->setToolTip(tr("Select an area — the shot goes straight to the strip, the editor does not open"));
     auto *keysNote = noteLabel(
@@ -312,6 +317,7 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     auto *save = new ActionButton(tr("Save"), ActionButton::Kind::Primary);
     save->setFocusPolicy(Qt::StrongFocus);
     save->setDefault(true);
+    m_save = save;
     connect(save, &QPushButton::clicked, this, &QDialog::accept);
     connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
     auto *buttons = new QHBoxLayout;
@@ -329,6 +335,38 @@ SettingsDialog::SettingsDialog(const Settings &settings, const Platform &platfor
     layout->addSpacing(8);
     layout->addLayout(buttons);
     resize(640, 460);
+    updatePasteKeyNote();
+}
+
+// What the paste-set shortcut means here (PST-2, ADR 0027): Ctrl+V works only where the program
+// can let it through (Windows); Alt without Ctrl is less reliable where the modifier mask is a Ctrl tap (Linux)
+void SettingsDialog::updatePasteKeyNote()
+{
+    const QString keys = m_pasteKey->text();
+    bool blocked = false;
+    if (triggersHavePlainPaste(keys)) {
+        if (m_hotkeys && m_hotkeys->canInterceptPasteKey()) {
+            m_pasteKeyNote->setState(StatusLine::State::Ok,
+                                     tr("Ctrl+V pastes the set while it has shots. With an empty set and in "
+                                        "Markpaste windows it is the ordinary paste."));
+        } else {
+            blocked = !m_systemKeys;
+            m_pasteKeyNote->setState(StatusLine::State::Failed,
+                                     tr("Ctrl+V cannot paste the set here: the system would take it from every "
+                                        "program. Use another shortcut, for example Ctrl+Alt+V."));
+        }
+    } else if (triggersHaveAltWithoutCtrl(keys) && m_injector && m_injector->maskAddsCtrl()) {
+        m_pasteKeyNote->setState(StatusLine::State::Warning,
+                                 tr("A shortcut with Alt but without Ctrl may paste unreliably here: the program "
+                                    "presses Ctrl so that the chat does not open its menu, and the desktop may take "
+                                    "that for the keys being released. A shortcut with Ctrl, for example Ctrl+Alt+V, "
+                                    "is more reliable."));
+    } else {
+        m_pasteKeyNote->setState(StatusLine::State::None, QString());
+    }
+    m_pasteKeyNote->setVisible(m_pasteKeyNote->state() != StatusLine::State::None);
+    if (m_save)
+        m_save->setEnabled(!blocked);
 }
 
 bool SettingsDialog::autostart() const

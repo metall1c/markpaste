@@ -17,7 +17,8 @@ namespace mp::win {
 // Ordinary shortcuts use RegisterHotKey on a hidden message window: the system itself handles
 // modifiers, sends no autorepeat (MOD_NOREPEAT) and reports if a shortcut is taken.
 // Print Screen goes through the WH_KEYBOARD_LL hook (KeyboardHook): on Windows 11 the key is taken by
-// the Snipping Tool, and RegisterHotKey does not receive it.
+// the Snipping Tool, and RegisterHotKey does not receive it. The ordinary Ctrl+V goes through the hook
+// too, as a conditional trigger: it fires only while the set has shots (PST-2, ADR 0027).
 //
 // RegisterHotKey does not report the release. The paste waits for it (release Alt before
 // pressing Ctrl+V), so after the hotkey fires we poll the keyboard until the key and the
@@ -32,6 +33,8 @@ public:
     QFuture<BindResult> bind(Action action, const QString &preferred) override;
     QFuture<QHash<Action, BindResult>> bindAll(const QHash<Action, QString> &preferred) override;
     QString name() const override { return QStringLiteral("RegisterHotKey"); }
+    bool canInterceptPasteKey() const override { return true; }
+    void setPasteKeyArmed(bool armed) override { m_hook.setArmed(armed); }
 
     // For the message window
     void onHotkey(int id);

@@ -128,6 +128,7 @@ Build 26100.9711, VBoxSVGA without 3D, one monitor 1920×967, 100 %. The portabl
 | Print Screen | the `WH_KEYBOARD_LL` hook | ✅ | 2026-10-20 | Fires, the Snipping Tool does not open (the Windows setting was not changed) |
 | The overlay gets the keyboard after Print | `forceActivate` | ✅ | 2026-10-20 | Esc closes the overlay right away |
 | Ctrl+Alt+V → pasting into Notepad | `RegisterHotKey` + `SendInput` | ✅ | 2026-10-20 | "Shot A / A1 button here" |
+| Ctrl+V as the paste key (PST-2, ADR 0027) | the `WH_KEYBOARD_LL` hook, conditional | ✅ | 2026-10-22 | Empty set: Ctrl+V pastes text in Notepad as usual. Editor open: no paste starts. One shot: Ctrl+V pastes it into Paint, our own `SendInput` Ctrl+V is not caught again. After clearing the set Ctrl+V is ordinary again; the clipboard was restored. Tests on Windows 11: windows 11, core 73, ui 49 |
 | The "Paste set" button on the strip → Paint | `WS_EX_NOACTIVATE` | ✅ | 2026-10-20 | The target is `mspaint.exe`, an image with the A1 mark was pasted |
 | Stopping on a window change | `GetForegroundWindow` | ✅ | 2026-10-20 | A console window took focus before the paste → "The active window changed: paste stopped", nothing extra was pasted |
 | First-start wizard | | ✅ | 2026-10-20 | Capture check ✓ (1 screen, 63 ms), Print ✓ |

@@ -24,6 +24,8 @@ namespace mp::win {
 //
 // Presses emulated by the program itself (LLKHF_INJECTED) are skipped: otherwise our own
 // Ctrl+V would get caught. A matching shortcut is swallowed, autorepeat included.
+// A conditional trigger (the ordinary Ctrl+V, PST-2) is swallowed only while armed and while
+// no window of our own process is active; otherwise the press goes on untouched (ADR 0027).
 // The hook writes nothing to the log.
 class KeyboardHook : public QObject
 {
@@ -32,6 +34,7 @@ public:
     struct Trigger {
         int id = 0;
         WinTrigger keys;
+        bool onlyWhenArmed = false;
     };
 
     explicit KeyboardHook(QObject *parent = nullptr);
@@ -40,6 +43,7 @@ public:
     // An empty list removes the hook and stops the thread
     void setTriggers(const QList<Trigger> &triggers);
     bool isRunning() const { return m_thread.joinable(); }
+    void setArmed(bool armed) { m_armed = armed; }
 
 signals:
     // From the hook thread; connections to main-thread objects go through the queue
@@ -61,6 +65,7 @@ private:
     std::atomic<DWORD> m_threadId{0};
     std::mutex m_mutex;
     QList<State> m_states;
+    std::atomic<bool> m_armed{false};
 };
 
 } // namespace mp::win

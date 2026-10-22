@@ -146,6 +146,7 @@ void AppController::start()
             m_saveTimer->start();
         if (m_strip && m_tray && m_settings.hideStripWhenEmpty && m_model.set().isEmpty() && !m_capturing)
             m_strip->hide();
+        armPasteKey();
     });
 
     if (m_platform.hotkeys) {
@@ -224,7 +225,15 @@ void AppController::bindHotkeys()
         if (m_wizard)
             m_wizard->setTriggers(m_boundTriggers);
         updatePasteCaption();
+        armPasteKey();
     });
+}
+
+// Ctrl+V as the paste key (Windows, PST-2) pastes the set only while it has shots
+void AppController::armPasteKey()
+{
+    if (m_platform.hotkeys)
+        m_platform.hotkeys->setPasteKeyArmed(!m_model.set().isEmpty());
 }
 
 void AppController::handleCommand(const QString &command)
@@ -438,16 +447,7 @@ void AppController::paste(bool fromHotkey)
         // Actual shortcuts: KDE reports all of them at once ("Ctrl+Alt+V, Alt+V") and does not say
         // which one was pressed. The mask is needed if at least one has Alt without Ctrl; an extra one
         // (with Ctrl+Alt+V) is harmless: pressing Ctrl while Ctrl is already held
-        const QString triggers = m_boundTriggers.value(Action::PasteSet, m_settings.pasteHotkey);
-        for (const QString &trigger : triggers.split(u',', Qt::SkipEmptyParts)) {
-            const QStringList keys = trigger.split(u'+', Qt::SkipEmptyParts);
-            auto has = [&keys](QStringView k) {
-                return std::any_of(keys.cbegin(), keys.cend(),
-                                   [k](const QString &x) { return x.trimmed().compare(k, Qt::CaseInsensitive) == 0; });
-            };
-            if (has(u"Alt") && !has(u"Ctrl") && !has(u"Control") && !has(u"Primary"))
-                opt.maskAltTap = true;
-        }
+        opt.maskAltTap = triggersHaveAltWithoutCtrl(m_boundTriggers.value(Action::PasteSet, m_settings.pasteHotkey));
     }
     const bool buttonCanSequence = m_paste->canSequential() && (!m_platform.nativeWayland || m_platform.supportsLayerShell);
     if (opt.mode != PasteMode::FilesAndText && (!m_paste->canSequential() || (!fromHotkey && !buttonCanSequence)))

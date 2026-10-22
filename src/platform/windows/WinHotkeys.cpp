@@ -25,6 +25,12 @@ int idFor(Action a)
     return 1 + int(a);   // RegisterHotKey ids are 0 to 0xBFFF, each action has its own
 }
 
+// RegisterHotKey would take Ctrl+V from every program, so it goes through the hook, conditionally
+bool isPlainPaste(const WinTrigger &t)
+{
+    return t.vk == 'V' && t.modifiers == MOD_CONTROL;
+}
+
 } // namespace
 
 WinHotkeys::WinHotkeys(QObject *parent)
@@ -81,7 +87,7 @@ void WinHotkeys::updateHook()
     QList<KeyboardHook::Trigger> triggers;
     for (const Binding &b : std::as_const(m_bindings))
         if (b.viaHook)
-            triggers << KeyboardHook::Trigger{b.id, b.trigger};
+            triggers << KeyboardHook::Trigger{b.id, b.trigger, isPlainPaste(b.trigger)};
     m_hook.setTriggers(triggers);
 }
 
@@ -98,7 +104,7 @@ BindResult WinHotkeys::grab(Action action, const QString &preferred)
     if (!b.trigger.valid())
         return {Status::failure(QStringLiteral("unsupported key: %1").arg(preferred)), QString()};
 
-    b.viaHook = b.trigger.vk == VK_SNAPSHOT;
+    b.viaHook = b.trigger.vk == VK_SNAPSHOT || isPlainPaste(b.trigger);
     if (!b.viaHook) {
         if (!m_window)
             return {Status::failure(QStringLiteral("no message window for hotkeys")), QString()};

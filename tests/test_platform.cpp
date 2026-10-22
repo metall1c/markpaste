@@ -1,4 +1,5 @@
 #include "platform/Autostart.h"
+#include "platform/PlatformTypes.h"
 
 #include <QFile>
 #include <QSettings>
@@ -7,6 +8,28 @@
 #include <gtest/gtest.h>
 
 using namespace mp;
+
+TEST(Shortcuts, AltWithoutCtrlAndPlainPaste)
+{
+    EXPECT_TRUE(triggersHaveAltWithoutCtrl(QStringLiteral("Alt+V")));
+    EXPECT_TRUE(triggersHaveAltWithoutCtrl(QStringLiteral("Ctrl+Alt+V, Alt+V")));   // KDE reports a list
+    EXPECT_FALSE(triggersHaveAltWithoutCtrl(QStringLiteral("Primary+Alt+V")));
+    EXPECT_FALSE(triggersHaveAltWithoutCtrl(QStringLiteral("Ctrl+Shift+V")));
+    EXPECT_FALSE(triggersHaveAltWithoutCtrl(QString()));
+
+    EXPECT_TRUE(triggersHavePlainPaste(QStringLiteral("Primary+V")));
+    EXPECT_TRUE(triggersHavePlainPaste(QStringLiteral("Control+v")));
+    EXPECT_TRUE(triggersHavePlainPaste(QStringLiteral("Ctrl+Alt+V, Ctrl+V")));
+    EXPECT_FALSE(triggersHavePlainPaste(QStringLiteral("Ctrl+Shift+V")));
+    EXPECT_FALSE(triggersHavePlainPaste(QStringLiteral("Ctrl+Alt+V")));
+    EXPECT_FALSE(triggersHavePlainPaste(QStringLiteral("V")));
+
+#ifdef Q_OS_WIN
+    EXPECT_EQ(defaultPasteHotkey(), QStringLiteral("Primary+V"));
+#else
+    EXPECT_EQ(defaultPasteHotkey(), QStringLiteral("Primary+Alt+V"));
+#endif
+}
 
 #ifndef Q_OS_WIN
 TEST(Autostart, WritesAndRemovesDesktopFile)

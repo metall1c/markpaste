@@ -801,6 +801,18 @@
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
+    <message>
+        <source>Ctrl+V pastes the set while it has shots. With an empty set and in Markpaste windows it is the ordinary paste.</source>
+        <translation>Ctrl+V вставляет набор, пока в нём есть снимки. С пустым набором и в окнах Markpaste это обычная вставка.</translation>
+    </message>
+    <message>
+        <source>Ctrl+V cannot paste the set here: the system would take it from every program. Use another shortcut, for example Ctrl+Alt+V.</source>
+        <translation>Здесь Ctrl+V не может вставлять набор: система забрала бы это сочетание у всех программ. Выберите другое, например Ctrl+Alt+V.</translation>
+    </message>
+    <message>
+        <source>A shortcut with Alt but without Ctrl may paste unreliably here: the program presses Ctrl so that the chat does not open its menu, and the desktop may take that for the keys being released. A shortcut with Ctrl, for example Ctrl+Alt+V, is more reliable.</source>
+        <translation>Сочетание с Alt, но без Ctrl, здесь может вставлять ненадёжно: программа нажимает Ctrl, чтобы чат не открыл своё меню, а система может принять это за отпускание клавиш. Надёжнее сочетание с Ctrl, например Ctrl+Alt+V.</translation>
+    </message>
 </context>
 <context>
     <name>mp::SetupWizard</name>
@@ -931,6 +943,14 @@
     <message>
         <source>not assigned</source>
         <translation>не назначена</translation>
+    </message>
+    <message>
+        <source>%1 — pastes the set while it has shots</source>
+        <translation>%1 — вставляет набор, пока в нём есть снимки</translation>
+    </message>
+    <message>
+        <source> (a shortcut without Ctrl may paste unreliably, see the settings)</source>
+        <translation> (сочетание без Ctrl может вставлять ненадёжно, см. настройки)</translation>
     </message>
     <message>
         <source>%1 is taken by %2, so Markpaste does not get it.</source>

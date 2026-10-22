@@ -5,6 +5,14 @@ namespace mp::win {
 namespace {
 // The hook is a global function without context: one instance per process
 std::atomic<KeyboardHook *> g_instance{nullptr};
+
+bool ownWindowActive()
+{
+    DWORD pid = 0;
+    if (HWND fg = GetForegroundWindow())
+        GetWindowThreadProcessId(fg, &pid);
+    return pid == GetCurrentProcessId();
+}
 } // namespace
 
 KeyboardHook::KeyboardHook(QObject *parent)
@@ -83,6 +91,9 @@ bool KeyboardHook::handle(unsigned vk, bool down)
             const unsigned all = MOD_SHIFT | MOD_CONTROL | MOD_ALT | MOD_WIN;
             const unsigned want = s.trigger.keys.modifiers;
             if (!s.down && (modifiersDown(all & ~want) || (want && !modifiersDownAll(want))))
+                continue;
+            // Ctrl+V with an empty set or in our own window (a comment field) is an ordinary paste
+            if (!s.down && s.trigger.onlyWhenArmed && (!m_armed || ownWindowActive()))
                 continue;
             if (!s.down) {
                 s.down = true;

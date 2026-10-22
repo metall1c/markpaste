@@ -88,6 +88,8 @@ public:
     }
     bool canDetectForegroundChange() const override { return false; }
     QString name() const override { return QStringLiteral("fake"); }
+    bool ctrlMask = false;   // the mask is a Ctrl tap, as on Linux
+    bool maskAddsCtrl() const override { return ctrlMask; }
 };
 
 class FakeCapture : public ICapture
@@ -117,6 +119,10 @@ public:
         return readyFuture(r);
     }
     QString name() const override { return QStringLiteral("fake hotkeys"); }
+    bool interceptPasteKey = false;   // Ctrl+V can be a conditional shortcut, as on Windows
+    bool armed = false;
+    bool canInterceptPasteKey() const override { return interceptPasteKey; }
+    void setPasteKeyArmed(bool a) override { armed = a; }
 
     // The desktop takes these keys first: key → who
     QHash<QString, QString> desktopHolders;

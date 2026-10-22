@@ -53,6 +53,7 @@ public slots:
 
 private:
     void bindHotkeys();
+    void armPasteKey();
     void startCapture(bool toStrip);
     void onCaptured(const QImage &image, qreal dpr, bool toStrip);
     void openEditor(const QUuid &shotId, bool fresh = false);

@@ -48,6 +48,11 @@ public:
     virtual Status releaseDesktopKey(const QString &trigger) { Q_UNUSED(trigger); return Status::failure(QStringLiteral("not supported")); }
     virtual bool canRestoreDesktopKeys() const { return false; }
     virtual Status restoreDesktopKeys() { return Status::success(); }
+    // PST-2: a shortcut may be the ordinary Ctrl+V. It then fires only while armed (the set has shots)
+    // and not in our own windows; otherwise the press goes on to the active window as usual.
+    // Without this (Wayland, X11 for now) Ctrl+V would be taken from every program, our own Ctrl+V included.
+    virtual bool canInterceptPasteKey() const { return false; }
+    virtual void setPasteKeyArmed(bool armed) { Q_UNUSED(armed); }
     virtual QString name() const = 0;
 
 signals:
@@ -88,6 +93,9 @@ public:
     // (Mattermost, Slack), Firefox and Windows programs open their menu on it, and our Ctrl+V
     // goes to the menu (docs/problems.md, 2026-10-20). A press between Alt↓ and Alt↑ prevents that.
     virtual QFuture<Status> sendModifierMask() { return readyFuture(Status::success()); }
+    // The mask is a Ctrl tap (Linux). With V still held, Alt+V becomes Ctrl+Alt+V for a moment, and the
+    // compositor may report the hotkey as released early: Alt shortcuts without Ctrl are less reliable here.
+    virtual bool maskAddsCtrl() const { return false; }
     virtual bool canDetectForegroundChange() const = 0;
     virtual QString name() const = 0;
 };

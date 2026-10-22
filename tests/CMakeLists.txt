@@ -43,9 +43,12 @@ add_executable(markpaste_ui_tests
     # Program parts with no dependency on the controller
     ${PROJECT_SOURCE_DIR}/src/app/LogFile.cpp
     ${PROJECT_SOURCE_DIR}/src/app/UpdateChecker.cpp
+    ${PROJECT_SOURCE_DIR}/src/app/Settings.cpp
+    ${PROJECT_SOURCE_DIR}/src/app/SettingsDialog.cpp
 )
 target_include_directories(markpaste_ui_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
-target_compile_definitions(markpaste_ui_tests PRIVATE MARKPASTE_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_compile_definitions(markpaste_ui_tests PRIVATE MARKPASTE_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+    MARKPASTE_APP_ID="su._525.MarkpasteTest")
 target_link_libraries(markpaste_ui_tests PRIVATE markpaste_ui Qt6::Network Qt6::Test GTest::gtest)
 gtest_discover_tests(markpaste_ui_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 # Only .qm, without an lupdate target: otherwise update_translations runs two lupdate

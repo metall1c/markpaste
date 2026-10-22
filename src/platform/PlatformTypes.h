@@ -78,6 +78,15 @@ struct ActivationContext {
     QString activationToken;   // xdg-activation, if the platform provided one
 };
 
+// The default paste-set shortcut in portable form (PST-2, ADR 0027): Ctrl+V on Windows, where the
+// keyboard hook lets the press through while the set is empty; Ctrl+Alt+V elsewhere.
+QString defaultPasteHotkey();
+
+// Shortcut lists as platforms report them: "Ctrl+Alt+V, Alt+V" (KDE gives several), the portable
+// "Primary+Alt+V". true if at least one shortcut in the list matches.
+bool triggersHaveAltWithoutCtrl(const QString &triggers);   // Alt+V: needs the modifier mask
+bool triggersHavePlainPaste(const QString &triggers);       // the ordinary Ctrl+V
+
 // --- Clipboard ---
 
 struct ClipboardEntry {

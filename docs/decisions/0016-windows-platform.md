@@ -71,4 +71,4 @@ The Linux version is ready, the next stage is Windows 10/11 (ADR 0001). The core
 ## Consequences and limitations
 
 - Checked under Wine 11 and on Windows 11 24H2 in VirtualBox (docs/platform-matrix.md): DXGI, Print Screen via the hook, `forceActivate`, pasting with the hotkey and the strip button, stopping on a window change. Not checked: RDP after the fix, HDR, monitors with different scales, UIPI, the Win+V history, autostart at login, Windows 10.
-- Not done: intercepting the ordinary Ctrl+V (PST-2), per-program delay profiles, capturing the window under the cursor (CAP-5), a wizard hint about the Snipping Tool, an automatic switch to "files + text" on UIPI.
+- Not done: ~~intercepting the ordinary Ctrl+V (PST-2)~~ (done on 2026-10-22, [ADR 0027](0027-ctrl-v-on-windows.md)), per-program delay profiles, capturing the window under the cursor (CAP-5), a wizard hint about the Snipping Tool, an automatic switch to "files + text" on UIPI.

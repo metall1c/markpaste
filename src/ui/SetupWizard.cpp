@@ -320,10 +320,17 @@ void SetupWizard::updateHotkeys()
             state = tr("not assigned");
         } else if (m_pressed.value(action)) {
             state = tr("%1 — works").arg(trigger);
+        } else if (action == Action::PasteSet && triggersHavePlainPaste(trigger)
+                   && m_platform->hotkeys->canInterceptPasteKey()) {
+            // Ctrl+V fires only with shots in the set and not in our windows: nothing to test here
+            state = tr("%1 — pastes the set while it has shots").arg(trigger);
         } else {
             allPressed = false;
             state = tr("press %1 to test").arg(trigger);
         }
+        if (action == Action::PasteSet && triggersHaveAltWithoutCtrl(trigger) && m_platform->injector
+            && m_platform->injector->maskAddsCtrl())
+            state += tr(" (a shortcut without Ctrl may paste unreliably, see the settings)");
         lines << QStringLiteral("%1: %2").arg(name, state);
     }
     const Result r = anyMissing ? Result::Warning : allPressed ? Result::Ok : Result::Pending;

@@ -162,7 +162,7 @@ Shots pile up in the strip at the screen edge: A, B, C… up to Z. Each thumbnai
 
 ### 4. Paste into a chat
 
-Click into the chat's input field and press **Ctrl+Alt+V** (Paste the set). Markpaste puts the images into the clipboard one by one and presses Ctrl+V for you, then pastes the text. The strip shows the progress; **Stop** interrupts. After the paste your previous clipboard content is restored (not on GNOME, see [On GNOME](#on-gnome)).
+Click into the chat's input field and press **Ctrl+Alt+V** (Paste the set; on Windows just **Ctrl+V**). Markpaste puts the images into the clipboard one by one and presses Ctrl+V for you, then pastes the text. The strip shows the progress; **Stop** interrupts. After the paste your previous clipboard content is restored (not on GNOME, see [On GNOME](#on-gnome)).
 
 You can also press **Paste set** in the strip: on KDE and Windows the strip does not take focus from the chat, so the button pastes the same way.
 
@@ -204,9 +204,11 @@ Global (they work in any program; on Wayland the desktop keeps them and you chan
 | --- | --- |
 | Capture with editor | Print |
 | Capture without editor (straight to the strip) | Ctrl+Print |
-| Paste the set | Ctrl+Alt+V |
+| Paste the set | Ctrl+V on Windows, Ctrl+Alt+V on Linux |
 
-The paste shortcut is not Ctrl+Shift+V on purpose: that is "paste as text" in browsers and paste in terminals. Alt+V works too: Markpaste makes sure the chat does not open its menu on the Alt release.
+On Windows the ordinary **Ctrl+V** pastes the set while the set has shots. With an empty set, and in Markpaste's own windows, Ctrl+V is the ordinary paste. Linux desktops cannot hand a global shortcut back to the active window, so there Ctrl+V would stop working in every program; the settings show an error for it.
+
+The paste shortcut is not Ctrl+Shift+V on purpose: that is "paste as text" in browsers and paste in terminals. On Linux prefer a shortcut with Ctrl. Alt+V works too, but may sometimes paste nothing: to keep the chat from opening its menu on the Alt release, Markpaste presses Ctrl, and the desktop may take that for the keys being released. The settings show a warning for such shortcuts.
 
 Area selection: drag, Enter or mouse release to confirm, click for the whole monitor, arrows to move by a pixel, Shift+arrows to resize, Esc to cancel.
 
