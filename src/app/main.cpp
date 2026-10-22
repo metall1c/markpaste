@@ -20,6 +20,7 @@ int main(int argc, char **argv)
     mp::prepareProcess();
 
     QApplication app(argc, argv);
+    mp::finishProcessSetup();
     QCoreApplication::setOrganizationName(QStringLiteral("markpaste"));
     QCoreApplication::setApplicationName(QStringLiteral("markpaste"));
     QCoreApplication::setApplicationVersion(QStringLiteral(MARKPASTE_VERSION));

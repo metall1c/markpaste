@@ -94,20 +94,22 @@ tools/package/build-in-container.sh static         # → dist/: markpaste-<versi
 
 ## The release packages: the static build
 
-ADR 0028. The image `tools/static/Dockerfile` (Debian 12) builds a static Qt 6.12 and LayerShellQt into `/opt/qt`; `tools/static/build.sh` builds Markpaste with it, runs the tests and packs one .deb (Debian 12+, Ubuntu 22.04+), one .rpm (Fedora, openSUSE) and the .tar.gz with `install.sh`.
+ADR 0028. The image `tools/static/Dockerfile` (Debian 12, with `build-qt.sh` and `build-kde.sh`) builds a static Qt 6.12 and LayerShellQt into `/opt/qt`; `tools/static/build.sh` builds Markpaste with it, runs the tests and packs one .deb (Debian 12+, Ubuntu 22.04+), one .rpm (Fedora, openSUSE) and the .tar.gz with `install.sh`.
 
 ```bash
 tools/static/build.sh                         # → dist/: markpaste_<version>-1_amd64.deb, markpaste-<version>-1.x86_64.rpm,
                                               #   markpaste-<version>-linux-x86_64.tar.gz; build/static/markpaste
 tools/package/build-in-container.sh static    # the same, as the CI target
-docker build -t markpaste-static tools/static # rebuild the image (Qt version: ARG QT_VERSION)
+tools/static/build.sh --image-name            # markpaste-static:<hash>, the image build.sh uses
+docker image ls markpaste-static              # old images stay; remove them with docker image rm
 ```
 
-- The image is built on first use: ~6 minutes on 16 cores (qtbase is ~2000 steps). The sources come from download.qt.io and download.kde.org; tarballs put into `tools/static/sources/` (ignored by git) are used instead, with the same SHA-256 checks. From here download.qt.io did not answer on 2026-10-22, a mirror worked: `https://mirrors.ocf.berkeley.edu/qt/official_releases/qt/` (`--build-arg QT_MIRROR=…`).
-- CMake finds a static Qt by the type of `Qt6::Core` (`MARKPASTE_STATIC_QT`). Then `markpaste_import_qt_plugins()` adds the plugins a static Qt does not link by default (wayland, offscreen, ibus, compose, the portal theme), the static LayerShellQt gets `Wayland::Client` and `Qt6::WaylandClientPrivate`, and `qtbase_ru.qm` goes into the resources.
+- The image is named by a hash of `Dockerfile`, `fetch.sh`, `build-qt.sh`, `build-kde.sh` and built when no image of that name exists: ~6 minutes on 16 cores (qtbase is ~2000 steps). `MARKPASTE_STATIC_IMAGE=<name>` makes `build.sh` use another image as it is. A new Qt version: change `QT` and the five checksums in `build-qt.sh` (the `.sha256` files next to the tarballs on download.qt.io); ECM and LayerShellQt are in `build-kde.sh`, CMake and wayland-protocols in the Dockerfile. In CI the image is built by buildx with the GitHub Actions cache, so Qt is compiled only when these files change (ADR 0028). The sources come from download.qt.io and download.kde.org; tarballs put into `tools/static/sources/` (ignored by git) are used instead, with the same SHA-256 checks; they are mounted only while a step runs (`RUN --mount`, needs BuildKit in Docker or buildah in Podman) and do not stay in the image. From here download.qt.io did not answer on 2026-10-22, a mirror worked: `https://mirrors.ocf.berkeley.edu/qt/official_releases/qt/` (`--build-arg QT_MIRROR=…`).
+- CMake finds a static Qt by the type of `Qt6::Core` (`MARKPASTE_STATIC_QT`). Then `markpaste_import_qt_plugins(<executable>)` adds the plugins a static Qt does not link by default (wayland, offscreen, ibus, compose, the portal theme); each executable calls it, the tools too (configure with `-DMARKPASTE_BUILD_TOOLS=ON` for `pastetest`, `uipreview`, `bench`), the static LayerShellQt gets `Wayland::Client` and `Qt6::WaylandClientPrivate`, and `qtbase_ru.qm` goes into the resources.
 - Pitfalls on Debian 12 (docs/problems.md, 2026-10-22): `INPUT_opengl=no`, not `FEATURE_opengl=OFF`; CMake 3.30+ for ECM; wayland-protocols 1.47 for `ext-data-control-v1`; the `wl_fixes` header clash; libdbus must be linked.
 - The xcb extensions and xcb-util are linked from their `.a` files: the image deletes the `libxcb-*.so` development links (not `libxcb.so`). Check the result: `objdump -p build/static/markpaste | grep NEEDED`.
 - A debug build for gdb: the same `cmake` in the image with `-DCMAKE_BUILD_TYPE=RelWithDebInfo` (`build.sh` strips the binary).
+- File dialogs: the program asks for the `xdgdesktopportal` theme itself (`QT_QPA_PLATFORMTHEME`, only when it is empty). Check which theme Qt took: `QT_LOGGING_RULES='qt.qpa.theme*=true' build/static/markpaste --version 2>&1 | grep Successfully`.
 
 ## Checking under Sway without a separate system
 

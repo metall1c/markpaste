@@ -20,12 +20,29 @@ jobs:
       fail-fast: false
       matrix:
         # static: the release Linux packages, one .deb, one .rpm and the .tar.gz for all
-        # distributions, with a static Qt (ADR 0028; builds Qt first: ~30 min); windows: the
-        # MinGW cross-build. The distribution targets build against the system Qt as a check
+        # distributions, with a static Qt (ADR 0028; the Qt image comes from the Actions cache,
+        # ~30 min only when tools/static changes); windows: the MinGW cross-build. The distribution targets build against the system Qt as a check
         # (ubuntu:24.04 has Qt 6.4, the API minimum); their packages are not released.
         target: ['static', 'windows', 'fedora:44', 'ubuntu:24.04', 'ubuntu:26.04', 'debian:13']
     steps:
       - uses: actions/checkout@v4
+      # The static Qt image: named by the hash of tools/static (build.sh --image-name), its layers
+      # kept in the Actions cache, so Qt is compiled again only when those files change
+      - name: Static Qt image name
+        if: matrix.target == 'static'
+        id: image
+        run: echo "name=$(tools/static/build.sh --image-name)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+        if: matrix.target == 'static'
+      - name: Static Qt image
+        if: matrix.target == 'static'
+        uses: docker/build-push-action@v6
+        with:
+          context: tools/static
+          tags: ${{ steps.image.outputs.name }}
+          load: true
+          cache-from: type=gha,scope=static-qt
+          cache-to: type=gha,scope=static-qt,mode=max
       - name: Build, test and package in a container
         env:
           CONTAINER_ENGINE: docker   # rootful: the packages come out owned by the runner user

@@ -9,6 +9,7 @@ target_compile_definitions(markpaste-uipreview PRIVATE MARKPASTE_APP_ID="su._525
     MARKPASTE_VERSION="${PROJECT_VERSION}" MARKPASTE_HOMEPAGE_URL="${MARKPASTE_HOMEPAGE_URL}")
 find_package(Qt6 REQUIRED COMPONENTS Test)
 target_link_libraries(markpaste-uipreview PRIVATE markpaste_ui Qt6::Test)
+markpaste_import_qt_plugins(markpaste-uipreview)
 # Only .qm: there must be one lupdate target per .ts (docs/problems.md)
 qt_add_lrelease(markpaste-uipreview
     TS_FILES ${PROJECT_SOURCE_DIR}/i18n/markpaste_ru.ts

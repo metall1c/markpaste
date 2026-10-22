@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(Markpaste VERSION 0.2.3 LANGUAGES C CXX)
+project(Markpaste VERSION 0.2.4 LANGUAGES C CXX)
 
 # Name and ID live in one place: the project name is a working one (spec, section 14).
 # The ID never changes after a release: portal permissions depend on it.
@@ -60,16 +60,22 @@ if(MARKPASTE_QT_CORE_TYPE STREQUAL "STATIC_LIBRARY")
 endif()
 
 # A static Qt links only its default plugins: add the Wayland platform (the main one), offscreen
-# (tests), input methods, the portal theme (file dialogs); drop the shells and formats we never use
+# (tests, tools), input methods, the portal theme (file dialogs, platform/common/Process.cpp);
+# drop the formats we never use. Each executable calls it: Qt reads these properties from the
+# executable target. The unused Wayland shells are not built at all (tools/static/build-qt.sh).
 function(markpaste_import_qt_plugins target)
     if(MARKPASTE_STATIC_QT AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        set(exclude)
+        foreach(p Qt6::QGifPlugin Qt6::QNetworkManagerNetworkInformationPlugin)
+            if(TARGET ${p})
+                list(APPEND exclude ${p})
+            endif()
+        endforeach()
         qt_import_plugins(${target}
             INCLUDE Qt6::QWaylandIntegrationPlugin Qt6::QOffscreenIntegrationPlugin
                     Qt6::QComposePlatformInputContextPlugin Qt6::QIbusPlatformInputContextPlugin
                     Qt6::QXdgDesktopPortalThemePlugin
-            EXCLUDE Qt6::QWaylandFullScreenShellV1IntegrationPlugin Qt6::QWaylandIviShellIntegrationPlugin
-                    Qt6::QWaylandQtShellIntegrationPlugin Qt6::QWaylandWlShellIntegrationPlugin
-                    Qt6::QGifPlugin Qt6::QNetworkManagerNetworkInformationPlugin)
+            EXCLUDE ${exclude})
     endif()
 endfunction()
 
@@ -258,8 +264,12 @@ if(MARKPASTE_RPMBUILD AND NOT WIN32)
         ${CMAKE_INSTALL_FULL_MANDIR}
         ${CMAKE_INSTALL_FULL_MANDIR}/man1)
     if(MARKPASTE_STATIC_QT)
-        # The lintian overrides are for the .deb only
-        set(CPACK_RPM_USER_FILELIST "%exclude ${CMAKE_INSTALL_FULL_DATADIR}/lintian")
+        # The .rpm and the .deb come from one install tree: the Debian-only files (lintian
+        # overrides, DEP-5 copyright, changelog.Debian) stay out of the .rpm
+        set(CPACK_RPM_USER_FILELIST
+            "%exclude ${CMAKE_INSTALL_FULL_DATADIR}/lintian"
+            "%exclude ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DOCDIR}/copyright"
+            "%exclude ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DOCDIR}/${MARKPASTE_CHANGELOG_NAME}.gz")
     endif()
 endif()
 

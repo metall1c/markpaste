@@ -2,6 +2,21 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [Semantic Versioning](https://semver.org/). Before 0.2.0 the project was developed privately; versions 0.1.x were internal builds.
 
+## [0.2.4] — 2026-10-22
+
+Fixes for the static Linux build.
+
+### Linux
+
+- File dialogs (choosing the save folder) are the system ones again, through the desktop portal. 0.2.2–0.2.3 showed Qt's own plain dialog.
+- `install.sh` from the archive:
+  - it waits until the running Markpaste has really quit before replacing it;
+  - updating over SSH or a text console works;
+  - `sudo ./install.sh --system` also closes the copies other users are running;
+  - a home folder with a space in its name no longer breaks the menu entry or KDE's capture without a dialog;
+  - the icon and KDE menu caches are refreshed.
+- The .rpm no longer carries Debian's changelog and copyright files.
+
 ## [0.2.3] — 2026-10-22
 
 The static build: the Linux program now carries its own Qt 6.12.

@@ -1,6 +1,6 @@
 # 0025. Release packages are built in containers by one script; GitHub Actions makes a draft release from a tag
 
-- Status: accepted (2026-10-21); the CI release job added the same day at the user's request
+- Status: accepted (2026-10-21); the CI release job added the same day at the user's request. Partly replaced by decision [0028](0028-static-linux-build.md) since 0.2.3: the released Linux packages are one static .deb and one .rpm; the per-release system-Qt packages of this decision are still built by the same script, as a CI check, and not released
 - Spec items: section 11 (packages, releases from CI with SHA-256 checksums), section 12 (building in a Fedora 44 container, Setup.exe on a clean Windows image), section 7 (Qt 6.4 minimum checked by a CI build on Ubuntu 24.04), NFR-3, NFR-12
 
 ## Context

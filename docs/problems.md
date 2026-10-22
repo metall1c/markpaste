@@ -4,6 +4,34 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 
 ---
 
+## 2026-10-22 · Static build: Qt's own file dialog instead of the system one
+
+- **Environment:** the static build 0.2.2–0.2.3 (Qt 6.12.0, the `xdgdesktopportal` theme plugin linked), Fedora 44 KDE Plasma, Wayland; GNOME the same way. Found in a code review.
+- **Symptom:** "Choose folder" in the preview window opens Qt's plain widget dialog, not the KDE or GTK one (0.2.1 with the system Qt opened the KDE dialog). `QT_LOGGING_RULES='qt.qpa.theme*=true' markpaste --version` says `Successfully created platform theme "kde"`.
+- **Cause:** Qt adds `xdgdesktopportal` to its theme list only inside flatpak or snap, or when `QT_QPA_PLATFORMTHEME` names it. Otherwise it takes the platform's names (`kde`, `generic`): the built-in themes, which have no native dialogs, and the static Qt has neither plasma-integration nor gtk3. Linking the plugin was not enough.
+- **Solution:** 0.2.4: `mp::prepareProcess()` sets `QT_QPA_PLATFORMTHEME=xdgdesktopportal` before `QApplication` when the variable is empty, and `finishProcessSetup()` removes it afterwards (programs we start do not inherit it). The portal theme keeps `kde`/`gnome` as its base for everything else. Checked on Fedora 44 KDE: the theme log says `"xdgdesktopportal"`, `dbus-monitor` shows `org.freedesktop.portal.FileChooser.OpenFile` for `getExistingDirectory`; start-up time is the same (0.02 s for `--version`). Pitfall when testing: the theme reads the FileChooser version asynchronously, so a dialog opened before the event loop runs is still Qt's own. ADR 0028.
+- **Status:** solved.
+
+## 2026-10-22 · Static Qt: the Wayland compositor is built although `FEATURE_wayland_server=OFF`
+
+- **Environment:** `tools/static/build-qt.sh`, Qt 6.12.0, the qtwayland step.
+- **Symptom:** the image has `libQt6WaylandCompositor.a`, `libQt6WlShellIntegration.a` and the wl-shell, fullscreen-shell, ivi-shell and qt-shell plugins; `qtgui-config_p.h` has `QT_FEATURE_wayland_server 1`.
+- **Cause:** since Qt 6.10 the Wayland features are defined in qtbase (`src/gui/configure.cmake`); a module cannot change a feature of the module it depends on, so the switch in the qtwayland step did nothing.
+- **Solution:** 0.2.4: `wayland_server`, `wayland_client_wl_shell` and `wayland_client_fullscreen_shell_v1` are off in the qtbase step, `wayland_client_ivi_shell` and `wayland_client_qt_shell` in the qtwayland step. The image keeps only xdg-shell and the decorations; it is 1.11 GB instead of 1.24 GB (also because `tools/static/sources/` is no longer copied into it).
+- **Status:** solved.
+
+## 2026-10-22 · Static archive: `install.sh` leaves an old copy running or reports a restart that did not happen
+
+- **Environment:** `install.sh` of 0.2.2–0.2.3. Found in a code review; the fixes checked in a test `HOME` with a space in its name, the installed copy running offscreen.
+- **Symptoms and causes:**
+  - `sudo ./install.sh --system`: `pgrep -u "$(id -u)"` looked for root's processes, so the user's running copy stayed on the replaced (deleted) file, and KWin refused it ScreenShot2.
+  - Over SSH or on a text console `markpaste --quit` could not open a display and failed silently; the script still said "Restarted the running copy".
+  - `--quit` returns as soon as the command is written, so the new copy could start while the old one was still listening, hand it `show` and exit: nothing left running.
+  - `Exec=` was written without quotes: a space in `$HOME` broke the menu entry and the KWin check.
+  - `gtk-update-icon-cache` without `-t` always failed (no `index.theme` in these hicolor directories); KDE's cache was not refreshed.
+- **Solution:** 0.2.4, see ADR 0028 ("The archive"): copies are found by `/proc/<pid>/exe`, `--quit` runs offscreen as the copy's owner, the script waits up to 5 s for each one to exit, restarts only the current user's copy and only with a display, quotes `Exec`, runs `gtk-update-icon-cache -t` and `kbuildsycoca6`. Checked: fresh install, update with a running copy without a display ("closed, start it again"), update with a display (restarted, the new process runs the new file), `--uninstall` with a running copy; `desktop-file-validate` accepts the quoted `Exec`. Not checked: `sudo … --system` with another user's copy running.
+- **Status:** solved.
+
 ## 2026-10-22 · Static Qt: crash in the tray code without libdbus
 
 - **Environment:** the static build (Qt 6.12.0, `FEATURE_dbus_linked=OFF`), a bare `fedora:44` container with Xvfb, no `dbus-libs`.

@@ -10,7 +10,7 @@ Releases are published on GitHub (`github.com/metall1c/markpaste`, [ADR 0024](de
    - A `## [X.Y.Z] — YYYY-MM-DD` section in `CHANGELOG.md` and the link at the bottom: it becomes the release text (`tools/package/release-notes.sh X.Y.Z` prints it).
    - Commit, push to `origin` and `github`, wait for the CI to pass.
 2. **Tag:** `git tag -a vX.Y.Z -m "Markpaste X.Y.Z"`, then `git push github vX.Y.Z` and `git push origin vX.Y.Z`.
-3. **GitHub builds the release.** The tag starts the CI: the package targets build and test in containers (the release files come from `static` and `windows`; `static` builds Qt first, so about 30 minutes), then the `release` job checks that the tag matches `CMakeLists.txt` and has a `CHANGELOG.md` section, computes `SHA256SUMS` and creates a **draft** release with all files and the notes. Watch it with `gh run watch --repo metall1c/markpaste`.
+3. **GitHub builds the release.** The tag starts the CI: the package targets build and test in containers (the release files come from `static` and `windows`; `static` takes its Qt image from the Actions cache, or builds Qt first, about 30 minutes, when `tools/static` changed or the cache expired), then the `release` job checks that the tag matches `CMakeLists.txt` and has a `CHANGELOG.md` section, computes `SHA256SUMS` and creates a **draft** release with all files and the notes. Watch it with `gh run watch --repo metall1c/markpaste`.
 4. **Check the draft** on the Releases page: the files, the text. Optionally install a package from it (step 6).
 5. **Publish:** the **Publish release** button or `gh release edit vX.Y.Z --repo metall1c/markpaste --draft=false`. Only a published release is visible to the update check (`/releases/latest` skips drafts and pre-releases).
 6. After publishing: update `docs/status.md` and `docs/platform-matrix.md` if anything was checked during the release.
@@ -40,7 +40,7 @@ The system-Qt targets (`fedora:44`, `ubuntu:24.04`, `ubuntu:26.04`, `debian:13`)
 
 `.github/workflows/ci.yml`:
 
-- `packages`: runs `build-in-container.sh` for `fedora:44`, `ubuntu:24.04`, `ubuntu:26.04`, `debian:13`, `windows` and `static` (it builds Qt first, ~30 minutes) on every push to `main`, on tags and on pull requests, and keeps the packages as workflow artifacts (90 days). Only the `static` and `windows` packages go into the release (artifacts `packages-*`); the system-Qt ones are kept as `distro-*` artifacts.
+- `packages`: runs `build-in-container.sh` for `fedora:44`, `ubuntu:24.04`, `ubuntu:26.04`, `debian:13`, `windows` and `static` (its Qt image comes from the Actions cache; ~30 minutes more when it has to be built) on every push to `main`, on tags and on pull requests, and keeps the packages as workflow artifacts (90 days). Only the `static` and `windows` packages go into the release (artifacts `packages-*`); the system-Qt ones are kept as `distro-*` artifacts.
 - `release`: only on a `v*` tag, after `packages`; the draft release as described above, from the `packages-*` artifacts. It uses the workflow's own `GITHUB_TOKEN` with `contents: write`, no secrets are needed.
 
 GitHub-hosted runners are free without a minutes limit for public repositories.

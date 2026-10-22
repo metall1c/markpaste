@@ -20,6 +20,9 @@ add_library(markpaste_platform STATIC
     Process.h common/Process.cpp
 )
 target_link_libraries(markpaste_platform PUBLIC markpaste_platform_api Qt6::Gui Qt6::Widgets)
+if(MARKPASTE_STATIC_QT)
+    target_compile_definitions(markpaste_platform PRIVATE MARKPASTE_STATIC_QT)   # Process.cpp
+endif()
 if(LayerShellQt_FOUND)
     target_link_libraries(markpaste_platform PRIVATE LayerShellQt::Interface)
     target_compile_definitions(markpaste_platform PRIVATE MARKPASTE_HAVE_LAYERSHELLQT)
