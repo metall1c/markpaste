@@ -59,6 +59,13 @@ public:
     // and loses "Always on Top": there the strip stays shown but fully transparent.
     void hideForCapture();
     void showAfterCapture();
+    // "Hide to tray". Where the compositor places windows itself (GNOME) a hidden window comes back in the
+    // middle of the screen, so there the strip is minimized instead and present() restores it in place
+    // through xdg-activation (problems.md 2026-10-22).
+    void hideToTray();
+    // Visible and not minimized to the tray
+    bool isShownOnScreen() const { return isVisible() && !m_minimized; }
+    bool isMinimizedToTray() const { return m_minimized; }
 
 signals:
     void shotActivated(const QUuid &shotId);
@@ -76,6 +83,7 @@ signals:
 protected:
     void paintEvent(QPaintEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
+    void changeEvent(QEvent *event) override;
 
 private:
     friend class ShotThumb;
@@ -93,6 +101,7 @@ private:
     QPoint topLeftFor(QScreen *screen, const PanelPlacement &placement) const;
     QPoint assumedTopLeft() const { return topLeftFor(currentScreen(), m_placement); }
     void unveil();              // undo hideForCapture()
+    bool compositorPlaces() const;   // Wayland without layer-shell: the compositor places our windows
     void snapToEdge();          // move to m_placement
     QRect placementArea(QScreen *screen) const;   // what the edge and offset are measured from
     void onMovedByUser();       // the user released the dragged strip
@@ -139,6 +148,7 @@ private:
     QString m_screenName;
     QPoint m_movePress;
     bool m_moving = false;
+    bool m_minimized = false;   // minimized by hideToTray(); the user may restore it from the dock
     bool m_veiled = false;   // transparent for a capture, see hideForCapture(); present() undoes it
     class MoveGhost *m_ghost = nullptr;
 

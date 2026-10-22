@@ -107,7 +107,7 @@ void AppController::start()
     connect(m_strip, &StripWindow::saveToFolderRequested, this, &AppController::saveSetToFolder);
     connect(m_strip, &StripWindow::aboutRequested, this, &AppController::showAbout);
     connect(m_strip, &StripWindow::hideRequested, this, [this] {
-        m_strip->hide();
+        m_strip->hideToTray();
         if (!m_tray)
             return;
         // Tell once where the strip went
@@ -145,7 +145,7 @@ void AppController::start()
         if (m_settings.keepSetOnRestart && m_saveTimer)
             m_saveTimer->start();
         if (m_strip && m_tray && m_settings.hideStripWhenEmpty && m_model.set().isEmpty() && !m_capturing)
-            m_strip->hide();
+            m_strip->hideToTray();
         armPasteKey();
     });
 
@@ -198,7 +198,7 @@ void AppController::start()
         notify(tr("Markpaste %1 is available. Update it with your package manager.").arg(version));
         // Clicking this notification opens the release page. Only this one: any later
         // notification resets the address (notify), otherwise a click on "Paste failed" would open the page.
-        if (m_tray && !(m_strip && m_strip->isVisible()))
+        if (m_tray && !(m_strip && m_strip->isShownOnScreen()))
             m_trayClickUrl = url;
     });
     m_updates->setEnabled(m_settings.checkUpdates);
@@ -308,7 +308,7 @@ void AppController::handleStartup(const QString &command)
 void AppController::hideOwnWindows()
 {
     m_editorWasVisible = m_editor && m_editor->isVisible();
-    m_stripWasVisible = m_strip && m_strip->isVisible();
+    m_stripWasVisible = m_strip && m_strip->isShownOnScreen();
     if (m_editorWasVisible)
         m_editor->hide();
     if (m_stripWasVisible)
@@ -353,7 +353,7 @@ void AppController::startCapture(bool toStrip)
     m_capturing = true;
 
     // Our own windows must not get into the shot. The compositor needs time to remove them.
-    const bool hadWindows = (m_editor && m_editor->isVisible()) || (m_strip && m_strip->isVisible());
+    const bool hadWindows = (m_editor && m_editor->isVisible()) || (m_strip && m_strip->isShownOnScreen());
     hideOwnWindows();
     auto timer = std::make_shared<QElapsedTimer>();
     timer->start();
@@ -370,6 +370,27 @@ void AppController::startCapture(bool toStrip)
                 return;
             }
             m_capture = new CaptureSession(r.frames, m_settings.quickCapture, this);
+            // A minimized strip (GNOME) is restored by activation, and GNOME accepts it only with a token from
+            // a focused window of ours: get one from the overlay before it closes (problems.md 2026-10-22)
+            m_capture->setBeforeClose([this](QWidget *overlay, std::function<void()> proceed) {
+                if (!m_strip->isMinimizedToTray()) {
+                    proceed();
+                    return;
+                }
+                auto pending = std::make_shared<std::function<void()>>(std::move(proceed));
+                auto finish = [this, pending](const QString &token) {
+                    if (!*pending)
+                        return;
+                    qCInfo(lcApp) << "strip restore after capture, activation token" << !token.isEmpty();
+                    setNextActivationToken(token);
+                    showStrip();
+                    std::exchange(*pending, nullptr)();
+                };
+                if (!requestActivationToken(overlay, finish))
+                    finish(QString());
+                else
+                    QTimer::singleShot(500, this, [finish] { finish(QString()); });   // no answer from the compositor
+            });
             connect(m_capture, &CaptureSession::selected, this, [this, toStrip](const CaptureSelection &sel) {
                 m_capturing = false;
                 m_capture->deleteLater();
@@ -559,7 +580,7 @@ void AppController::showSettings()
         m_updates->setEnabled(m_settings.checkUpdates, 5000);
     if (old.hideStripWhenEmpty != m_settings.hideStripWhenEmpty && m_tray && m_model.set().isEmpty()) {
         if (m_settings.hideStripWhenEmpty)
-            m_strip->hide();
+            m_strip->hideToTray();
         else
             showStrip();
     }
@@ -705,9 +726,12 @@ void AppController::setupTray()
     m_tray = new QSystemTrayIcon(appIcon(), this);
     m_tray->setToolTip(QStringLiteral("Markpaste"));
     auto *menu = new QMenu;
+    // "Show set" first: Ubuntu's appindicator extension opens this menu on a single left click,
+    // and only a double click within the GNOME double-click time (400 ms) reaches Activate
+    menu->addAction(tr("Show set"), this, &AppController::showStrip);
+    menu->addSeparator();
     menu->addAction(tr("Shot with editor"), this, &AppController::capture);
     menu->addAction(tr("Shot without editor"), this, &AppController::captureToStrip);
-    menu->addAction(tr("Show set"), this, &AppController::showStrip);
     menu->addAction(tr("Preview message…"), this, &AppController::showPreview);
     menu->addAction(tr("Save to folder…"), this, &AppController::saveSetToFolder);
     menu->addAction(tr("Settings"), this, &AppController::showSettings);
@@ -721,11 +745,12 @@ void AppController::setupTray()
             QDesktopServices::openUrl(url);
     });
     connect(m_tray, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason r) {
+        qCInfo(lcApp) << "tray activated, reason" << int(r) << "strip shown" << m_strip->isShownOnScreen();
         if (r != QSystemTrayIcon::Trigger)
             return;
         // Clicking the icon shows or hides the strip (even an empty one). Capturing is Print or the menu.
-        if (m_strip->isVisible())
-            m_strip->hide();
+        if (m_strip->isShownOnScreen())
+            m_strip->hideToTray();
         else
             showStrip();
     });
@@ -736,7 +761,7 @@ void AppController::notify(const QString &text)
 {
     qCInfo(lcApp) << "notify:" << text;
     m_trayClickUrl.clear();   // clicking a new notification opens nothing
-    if (m_strip && m_strip->isVisible())
+    if (m_strip && m_strip->isShownOnScreen())
         m_strip->showMessage(text, 6000);
     else if (m_tray)
         m_tray->showMessage(QStringLiteral("Markpaste"), text, appIcon(), 5000);

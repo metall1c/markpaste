@@ -1,5 +1,9 @@
 #pragma once
 
+#include <functional>
+
+class QString;
+
 class QPoint;
 class QWindow;
 
@@ -14,5 +18,9 @@ namespace mp::lx {
 // a mouse press in this window.
 bool canShowXdgWindowMenu();
 bool showXdgWindowMenu(QWindow *window, const QPoint &posInWindow);
+
+// An xdg-activation token requested on behalf of `window` with the last input serial (QtWayland's own
+// request). done gets the token, or is never called if the window goes away first. false: not available.
+bool requestXdgActivationToken(QWindow *window, std::function<void(const QString &)> done);
 
 } // namespace mp::lx

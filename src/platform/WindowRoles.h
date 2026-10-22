@@ -2,6 +2,8 @@
 
 #include <functional>
 
+#include <QString>
+
 class QWidget;
 class QScreen;
 class QPoint;
@@ -52,6 +54,14 @@ bool watchPanelMoves(QWidget *widget, std::function<void()> onMoveFinished);
 // false: not available (layer-shell, Windows, X11, Qt 6.4).
 bool canShowWindowMenu(QWidget *widget);
 bool showWindowMenu(QWidget *widget, const QPoint &posInWidget);
+
+// Wayland: an xdg-activation token on behalf of `focused`, a focused window of ours, so that another window
+// of ours can be activated after it closes (GNOME refuses activation without one and shows "… is ready").
+// done(token) comes asynchronously, or never if the window goes away: callers need a timeout.
+// false: not available (not Wayland, Qt 6.4).
+bool requestActivationToken(QWidget *focused, std::function<void(const QString &)> done);
+// The next activation of a window of ours uses this token (Qt reads XDG_ACTIVATION_TOKEN once)
+void setNextActivationToken(const QString &token);
 
 // Program windows appear and disappear without system animations. Before a capture the program hides
 // its windows: on Windows a window fades for ~200 ms, and the half-transparent editor got into the shot.

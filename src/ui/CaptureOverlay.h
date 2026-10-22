@@ -3,6 +3,8 @@
 #include "platform/PlatformTypes.h"
 
 #include <QImage>
+
+#include <functional>
 #include <QList>
 #include <QObject>
 #include <QPointer>
@@ -30,6 +32,12 @@ public:
 
     void start();
 
+    // Called when the area is confirmed, while the overlay still exists and has focus; the overlay closes and
+    // selected() comes when the hook calls proceed. For things only a focused window of ours can do
+    // (an xdg-activation token for a minimized strip on GNOME).
+    using BeforeClose = std::function<void(QWidget *focusedOverlay, std::function<void()> proceed)>;
+    void setBeforeClose(BeforeClose hook) { m_beforeClose = std::move(hook); }
+
 signals:
     void selected(const mp::CaptureSelection &selection);
     void cancelled();
@@ -45,6 +53,7 @@ private:
     QList<QPointer<OverlayWidget>> m_widgets;
     bool m_quick;
     bool m_done = false;
+    BeforeClose m_beforeClose;
 };
 
 class OverlayWidget : public QWidget

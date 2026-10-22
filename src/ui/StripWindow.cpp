@@ -813,6 +813,17 @@ void StripWindow::present()
     // After a capture the strip is shown by present() too (a new shot), not only by showAfterCapture()
     if (m_veiled)
         unveil();
+    if (m_minimized) {
+        // Wayland has no "unminimize" request: activation restores the window. The token comes from the tray
+        // (the SNI host calls ProvideXdgActivationToken before Activate) or from our focused window.
+        m_minimized = false;
+        setWindowState(windowState() & ~Qt::WindowMinimized);
+        adjustSize();
+        show();
+        raise();
+        activateWindow();
+        return;
+    }
     if (!m_roleApplied) {
         m_roleApplied = true;
         loadPlacement();
@@ -834,11 +845,37 @@ void StripWindow::present()
     show();
 }
 
+bool StripWindow::compositorPlaces() const
+{
+    return m_roleApplied && !m_layerShell && !m_snapToEdge
+           && QGuiApplication::platformName().startsWith(QStringLiteral("wayland"));
+}
+
+void StripWindow::hideToTray()
+{
+    if (!isVisible() || m_minimized)
+        return;
+    if (!compositorPlaces()) {
+        hide();
+        return;
+    }
+    if (m_veiled)
+        unveil();
+    m_minimized = true;
+    showMinimized();
+}
+
+void StripWindow::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    // Restored by the user (the dock, Alt+Tab): the compositor activates the window
+    if (event->type() == QEvent::ActivationChange && isActiveWindow())
+        m_minimized = false;
+}
+
 void StripWindow::hideForCapture()
 {
-    const bool compositorPlaces = m_roleApplied && !m_layerShell && !m_snapToEdge
-                                  && QGuiApplication::platformName().startsWith(QStringLiteral("wayland"));
-    if (!compositorPlaces) {
+    if (!compositorPlaces()) {
         hide();
         return;
     }

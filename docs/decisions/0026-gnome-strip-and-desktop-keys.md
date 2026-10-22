@@ -34,7 +34,20 @@ Wayland gives a program neither window positions nor "keep above". Before a capt
 ## Consequences
 
 - The program uses private Qt Gui headers in one call. Distribution packages are rebuilt with each Qt update anyway; the Ubuntu 24.04 build (Qt 6.4) has no window menu (no public input serial there). `QT_NO_PRIVATE_MODULE_WARNING` is set.
-- "Always on Top" lasts while the strip window exists: hiding the strip (tray, "hide when the set is empty") or a restart loses it, and GNOME places the strip anew.
+- "Always on Top" lasts while the strip window exists. ~~Hiding the strip (tray, "hide when the set is empty") or a restart loses it, and GNOME places the strip anew.~~ Since 2026-10-22 hiding minimizes the strip where the compositor places windows, so only a restart loses it (see the addendum below).
 - During a capture the transparent strip still exists in the compositor; the overlay covers it.
 - Releasing Print changes the user's GNOME settings; the old value is kept and can be restored from the program settings. Uninstalling the program does not restore it.
 - Checked on Ubuntu 26.04 GNOME on 2026-10-21 (remotely, problems.md): the icon, the strip staying in place and not in the frame, the window menu and "Always on Top" surviving captures, freeing Print and the capture by Print (also without a restart), "Give the freed keys back" in the settings.
+
+## Addendum 2026-10-22: hiding to the tray minimizes the strip
+
+The same problem as with captures: "—" and "hide when the set is empty" called `hide()`, and the strip always came back in the middle of the screen (problems.md 2026-10-22).
+
+- `StripWindow::hideToTray()`: where the compositor places windows (Wayland without layer-shell) the strip is minimized (`showMinimized()`, `xdg_toplevel.set_minimized`); elsewhere `hide()` as before. `isShownOnScreen()` treats a minimized strip as hidden (tray toggle, notifications, captures).
+- Wayland has no "unminimize" request, so `present()` restores the window by activation (`activateWindow()`, xdg-activation). GNOME honors a token only from a focused window of ours or one passed by the shell:
+  - The tray: the AppIndicator extension calls `ProvideXdgActivationToken` before `Activate`, and Qt uses the token.
+  - A capture: when the area is confirmed, `CaptureSession`'s before-close hook keeps the overlay open while the program asks for a token on the overlay's behalf. The overlay is focused; the request is QtWayland's private `QNativeInterface::Private::QWaylandWindow::requestXdgActivationToken` with the last input serial. The token goes into `XDG_ACTIVATION_TOKEN`, which Qt's xdg-shell plugin reads on the next activation; then the overlay closes. If no answer comes within 500 ms, the overlay closes anyway.
+  - Activating the strip after the overlay closed, or right from the hook through Qt's own token request, did not work: GNOME showed "Markpaste — set — Markpaste is ready" and left the strip minimized.
+  - The user may also restore it from the dock; activation clears the flag.
+- Options considered: a transparent, input-less window kept on screen (as during a capture). Rejected: it would stay in Alt+Tab and the dock as an invisible window, and an empty input region needs more private API.
+- Limitation: showing the strip with no user action of ours behind it (`markpaste --show` from a terminal) gets GNOME's "is ready" notification instead.

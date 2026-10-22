@@ -12,6 +12,7 @@
 
 #include <QtGui/qguiapplication_platform.h>
 #include <qpa/qplatformnativeinterface.h>
+#include <qpa/qplatformwindow_p.h>
 #endif
 
 Q_DECLARE_LOGGING_CATEGORY(lcWayland)
@@ -49,6 +50,30 @@ bool showXdgWindowMenu(QWindow *window, const QPoint &posInWindow)
 #else
     Q_UNUSED(window);
     Q_UNUSED(posInWindow);
+    return false;
+#endif
+}
+
+bool requestXdgActivationToken(QWindow *window, std::function<void(const QString &)> done)
+{
+#ifdef MARKPASTE_XDG_WINDOW_MENU
+    if (!window || !canShowXdgWindowMenu())
+        return false;
+    auto *wl = window->nativeInterface<QNativeInterface::Private::QWaylandWindow>();
+    auto *app = qGuiApp->nativeInterface<QNativeInterface::QWaylandApplication>();
+    if (!wl || !app)
+        return false;
+    auto conn = std::make_shared<QMetaObject::Connection>();
+    *conn = QObject::connect(wl, &QNativeInterface::Private::QWaylandWindow::xdgActivationTokenCreated, wl,
+                             [conn, done = std::move(done)](const QString &token) {
+                                 QObject::disconnect(*conn);
+                                 done(token);
+                             });
+    wl->requestXdgActivationToken(app->lastInputSerial());
+    return true;
+#else
+    Q_UNUSED(window);
+    Q_UNUSED(done);
     return false;
 #endif
 }

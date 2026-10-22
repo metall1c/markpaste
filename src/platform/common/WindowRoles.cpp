@@ -305,6 +305,26 @@ bool showWindowMenu(QWidget *widget, const QPoint &posInWidget)
 #endif
 }
 
+bool requestActivationToken(QWidget *focused, std::function<void(const QString &)> done)
+{
+#ifdef Q_OS_LINUX
+    QWidget *window = focused ? focused->window() : nullptr;
+    if (!window || !window->windowHandle())
+        return false;
+    return lx::requestXdgActivationToken(window->windowHandle(), std::move(done));
+#else
+    Q_UNUSED(focused);
+    Q_UNUSED(done);
+    return false;
+#endif
+}
+
+void setNextActivationToken(const QString &token)
+{
+    if (!token.isEmpty())
+        qputenv("XDG_ACTIVATION_TOKEN", token.toUtf8());
+}
+
 void disableWindowAnimations()
 {
 #ifdef Q_OS_WIN

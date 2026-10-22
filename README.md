@@ -260,9 +260,10 @@ markpaste --show | --settings | --setup | --about | --clear | --quit
 
 GNOME on Wayland gives programs less control than KDE, so some things work differently:
 
-- **The tray icon** (Ubuntu's AppIndicator extension): a single left click opens the menu, a **double click** shows or hides the strip. On KDE a single click does that.
+- **The tray icon** (Ubuntu's AppIndicator extension): a single left click opens the menu (its first item is **Show set**), a quick **double click** shows or hides the strip. On KDE a single click does that.
 - **Print opens the GNOME screenshot tool.** GNOME takes the key first. The setup check offers **Give Print to Markpaste**; **Settings → Capture → Give the freed keys back to the system** returns it.
-- **The strip is an ordinary window.** GNOME places it and may put other windows over it. Drag it by its header anywhere; **right-click the header** and choose **Always on Top** in the GNOME window menu to keep it above other windows (until the strip is hidden or Markpaste restarts).
+- **The strip is an ordinary window.** GNOME places it and may put other windows over it. Drag it by its header anywhere; **right-click the header** and choose **Always on Top** in the GNOME window menu to keep it above other windows (until Markpaste restarts).
+- **Hiding the strip minimizes it.** **—** and an empty set minimize the strip instead of hiding it, so it comes back where you left it; while minimized it stays in the dock.
 - **The clipboard is not restored after a paste.** After **Ctrl+Alt+V** the clipboard is empty instead of holding what you copied before: GNOME clears what was put into the clipboard during the paste when the paste ends.
 
 Report problems in [GitHub Issues](https://github.com/metall1c/markpaste/issues) with your OS, desktop, X11 or Wayland, and the chat.

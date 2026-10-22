@@ -93,8 +93,14 @@ void CaptureSession::confirm(OverlayWidget *source, const QRect &physicalRect)
     sel.image.setDevicePixelRatio(1.0);
     sel.devicePixelRatio = source->frame().scale;
     sel.screenName = source->frame().screenName;
-    closeAll();
-    emit selected(sel);
+    auto proceed = [this, sel] {
+        closeAll();
+        emit selected(sel);
+    };
+    if (m_beforeClose)
+        m_beforeClose(source, proceed);
+    else
+        proceed();
 }
 
 void CaptureSession::cancel()

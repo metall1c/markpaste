@@ -428,6 +428,7 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Cause:** the extension's `indicatorStatusIcon.js`: a single primary click on an item with a menu toggles the menu (after the double-click time), a double click calls `Activate` (our `QSystemTrayIcon::Trigger`), a middle click calls `SecondaryActivate`. Our item reports `ItemIsMenu = false`; the extension has no setting for a single-click activation.
 - **Solution:** none in the program; a double click shows or hides the strip (checked in the VM). Described in README "On GNOME".
 - **Status:** known difference.
+- **Update 2026-10-22:** the user reported that a double click opens the menu too. In the VM `ydotool` double clicks with 120–300 ms between presses showed and hid the strip every time, never the menu. The extension counts a double click only within the GNOME double-click time (`org.gnome.desktop.peripherals.mouse double-click`, 400 ms) and within the double-click distance, otherwise the first click opens the menu. Not reproduced; **Show set** is now the first menu item, and the log has `tray activated, reason …` for each activation. Status: open, waiting for the user's log.
 
 ## 2026-10-21 · KDE: Alt+V sometimes pastes nothing, and the set is cleared
 
@@ -436,3 +437,18 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 - **Cause:** in the log every failed paste has two `hotkey activated 1` about 160 ms apart; the successful ones have one. For Alt+V the program sends the Ctrl "mask" right away (so that a lone Alt does not open the chat's menu). If V is still held, Ctrl↓ turns Alt+V into Ctrl+Alt+V, which is bound to the same action: KDE reports `Deactivated` + `Activated`, and `Deactivated` again on Ctrl↑. The program took the first `Deactivated` for the release of the user's keys and sent Ctrl+V while Alt (and V) were still physically held, so the chat got Ctrl+Alt+V. The program cannot see that nothing was pasted, so "Clear the set after pasting" cleared the set. Switching windows did not matter: the user simply released the keys faster.
 - **Solution:** `PasteOrchestrator` counts a release only after `releaseSettleMs` (150 ms) without a new press; an activation of the paste shortcut while a paste waits for the release (`hotkeyPressed()`) makes it wait again, up to the first Ctrl+V, with its own timeout. The log now has `hotkey released`. Tests `ChordChangeIsNotARelease`, `LatePressBeforeFirstKeysWaitsAgain`.
 - **Status:** fixed, waiting for the user's check in daily use (it happens rarely). Not checked: only Alt+V bound (no Ctrl+Alt+V); KDE may then report `Deactivated` on Ctrl↓ with no new `Activated`. Since 2026-10-22 the settings warn about shortcuts with Alt but without Ctrl on Linux ([ADR 0027](decisions/0027-ctrl-v-on-windows.md)).
+
+## 2026-10-22 · GNOME: the strip shown from the tray always comes back in the middle of the screen
+
+- **Environment:** Ubuntu 26.04 GNOME 50, Wayland (Mutter, no layer-shell), Markpaste 0.2.1 test build.
+- **Symptom:** the strip moved to a corner, hidden with "—", shown again from the tray: it is in the middle of the screen.
+- **Cause:** `hide()` destroys the `xdg_toplevel`; the next `show()` is a new window, and Mutter places it in the middle (the program cannot set positions on Wayland). The same as the capture case of ADR 0026.
+- **Solution:** where the compositor places windows, hiding minimizes the strip; showing restores it by xdg-activation. The tray passes a token (`ProvideXdgActivationToken`).
+- **After a capture:** the strip stayed minimized, and GNOME showed "Markpaste — set — Markpaste is ready". Two tries failed:
+  - activating after the overlay closed;
+  - activating from the confirm handler through Qt's own `requestActivate`.
+  What worked: the program asks for a token explicitly on behalf of the still-open, focused overlay (QtWayland private API) and closes the overlay once the token comes. [ADR 0026](decisions/0026-gnome-strip-and-desktop-keys.md), addendum.
+- **Status:** checked in the VM on 2026-10-22:
+  - moved to the bottom-right corner, "—", a double click on the tray: back in the corner;
+  - moved to the top-left corner, "—", a capture to the strip: restored in the corner with the new shot (`activation token true` in the log);
+  - after that, "—" and the tray again: in place.
