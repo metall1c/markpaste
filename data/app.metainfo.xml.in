@@ -39,6 +39,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="0.2.4" date="2026-10-22">
+      <description>
+        <p>Linux fixes: file dialogs are the system ones again (through the desktop portal). The archive installer waits for the running copy to quit, works over SSH, closes other users' copies with --system and handles a home folder with a space.</p>
+      </description>
+    </release>
     <release version="0.2.3" date="2026-10-22">
       <description>
         <p>The static build: the Linux program carries its own Qt 6.12, so one .deb and one .rpm fit all distributions and keep working after distribution and Qt updates. A new archive with an installer for other distributions.</p>

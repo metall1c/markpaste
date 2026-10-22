@@ -100,6 +100,7 @@ The first public release.
 - On Ubuntu 24.04 there is no Qt 6 LayerShellQt: on KDE there the strip is an ordinary window, and its paste button copies the set instead of pasting it (the paste hotkey works).
 - KDE shows a "Remote control session started" notification on every paste (the portal's own notification).
 
+[0.2.4]: https://github.com/metall1c/markpaste/releases/tag/v0.2.4
 [0.2.3]: https://github.com/metall1c/markpaste/releases/tag/v0.2.3
 [0.2.1]: https://github.com/metall1c/markpaste/releases/tag/v0.2.1
 [0.2.0]: https://github.com/metall1c/markpaste/releases/tag/v0.2.0
