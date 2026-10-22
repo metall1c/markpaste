@@ -76,9 +76,10 @@ On 2026-10-20 the shot window and the strip were redone after an approved mock-u
 | What | Status |
 | --- | --- |
 | .rpm and .deb packages (CPack) | ✅ — 0.2.0: .rpm for Fedora 44, .deb for Ubuntu 24.04, Ubuntu 26.04 and Debian 13, built in containers; each installs in a clean container of its release, lintian clean, rpmlint 0/0 (docs/release.md). Not checked on a live desktop of those systems except Fedora 44 KDE |
+| An archive for any distribution | ✅ — since 0.2.2: the static build with its own Qt 6.12 (ADR 0028), `install.sh`; checked on Ubuntu 26.04 GNOME (the whole cycle) and in bare containers of six distributions (X11) |
 | Installing the .desktop file, icon and metainfo with `cmake --install` | ✅ — the icon `data/icons/app.svg` repeats the one drawn in code |
 | Autostart (`~/.config/autostart`) | 🟡 — a checkbox in settings ("System" tab), the file is written and deleted (a test); logging in with autostart was not checked |
-| CI: build on Fedora 44 and Ubuntu 24.04, tests, portals via python-dbusmock | 🟡 — GitHub Actions: build, tests and packages for Fedora 44, Ubuntu 24.04/26.04, Debian 13 and the Windows cross-build (`.github/workflows/ci.yml`); no portal tests |
+| CI: build on Fedora 44 and Ubuntu 24.04, tests, portals via python-dbusmock | 🟡 — GitHub Actions: build, tests and packages for Fedora 44, Ubuntu 24.04/26.04, Debian 13, the static build and the Windows cross-build (`.github/workflows/ci.yml`); no portal tests |
 | LICENSE, README, CONTRIBUTING | 🟡 — LICENSE (GPL-3.0-or-later), README in English and Russian with a user guide; no CONTRIBUTING |
 
 ## Windows (started 2026-10-20; a release platform since 0.2.0)

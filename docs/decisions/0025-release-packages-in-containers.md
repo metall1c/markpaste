@@ -29,4 +29,4 @@ The first public release 0.2.0 needs .rpm, .deb, a Linux archive and the Windows
 - 0.2.0 sizes: .rpm 0.6 MB, each .deb 0.7 MB (NFR-3: up to 5 MB), the Windows installer 23.8 MB (up to 40 MB), the portable ZIP 35 MB.
 - Ubuntu 24.04 has no Qt 6 LayerShellQt: there the strip and the overlay are ordinary windows (as on GNOME), and on KDE the strip's paste button copies the set instead of pasting it.
 - The Fedora image needs `--disablerepo="*openh264*"`: a mirror of the Cisco repository failed during the 0.2.0 build, and nothing from it is needed.
-- The `.tar.gz` comes from the Fedora build and needs a system Qt 6.11.
+- The `.tar.gz` comes from the Fedora build and needs a system Qt 6.11. Outdated since 0.2.2: the archive is the static build (ADR 0028).

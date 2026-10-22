@@ -2,6 +2,12 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [Semantic Versioning](https://semver.org/). Before 0.2.0 the project was developed privately; versions 0.1.x were internal builds.
 
+## [Unreleased]
+
+### Linux
+
+- A new archive for any distribution, `markpaste-X.Y.Z-linux-x86_64.tar.gz`: the program carries its own Qt 6.12, needs only libraries every desktop has, and keeps working after distribution and Qt updates. `install.sh` inside installs it into `~/.local` (or `/usr/local`) with the menu entry. It replaces the archive built on Fedora, which needed Qt 6.11.
+
 ## [0.2.1] — 2026-10-22
 
 Fixes for GNOME (checked on Ubuntu 26.04) and Ctrl+V on Windows.

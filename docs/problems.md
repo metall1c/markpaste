@@ -4,6 +4,22 @@ Each entry: date, environment, symptom, cause, solution, links. New entries go o
 
 ---
 
+## 2026-10-22 · Static Qt: crash in the tray code without libdbus
+
+- **Environment:** the static build (Qt 6.12.0, `FEATURE_dbus_linked=OFF`), a bare `fedora:44` container with Xvfb, no `dbus-libs`.
+- **Symptom:** `markpaste --about` exits with SIGSEGV. gdb: `QDBusAbstractInterface::callWithArgumentList` ← `QDBusConnectionInterface::isServiceRegistered` ← `QDBusMenuConnection` ← `QGenericUnixTheme::shouldUseDBusTray` ← `QSystemTrayIcon::isSystemTrayAvailable`.
+- **Cause:** with `dbus_linked=OFF` Qt loads `libdbus-1.so.3` itself; when it is missing, the D-Bus tray check calls through an invalid connection.
+- **Solution:** `tools/static/build-qt.sh` links libdbus (`FEATURE_dbus_linked=ON`): without it the loader now says which library is missing. Every desktop has libdbus (portals need it). ADR 0028.
+- **Status:** solved.
+
+## 2026-10-22 · Static Qt: LayerShellQt does not compile against Qt 6.12 on Debian 12
+
+- **Environment:** `debian:12` (libwayland 1.21), Qt 6.12.0 built from source, LayerShellQt 6.8.1.
+- **Symptom:** `qwayland-wayland.h:1317: error: 'wl_fixes' in namespace '::' does not name a type`.
+- **Cause:** since Qt 6.10 the Wayland client is in qtbase and generates the core protocol from its own newer `wayland.xml` (with `wl_fixes`). LayerShellQt includes the system `<wayland-client.h>` first; the system `wayland-client-protocol.h` has the same include guard as Qt's generated one, so Qt's is skipped.
+- **Solution:** LayerShellQt is built with `-include <Qt>/QtWaylandClient/private/wayland-wayland-client-protocol.h`, so Qt's header goes first (`tools/static/build-qt.sh`). Debian 12 also lacks `ext-data-control-v1` (wayland-protocols 1.31): the image installs wayland-protocols 1.47; ECM 6.31 needs CMake 3.30: the image takes CMake 3.31.8 from Kitware.
+- **Status:** solved.
+
 ## 2026-10-21 · GitHub renames .deb assets: "~" becomes "."
 
 - **Environment:** `gh release create` with `markpaste_0.2.0-1~ubuntu24.04_amd64.deb` and the other .deb files.

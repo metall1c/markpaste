@@ -36,8 +36,10 @@ int main(int argc, char **argv)
                                                  : QLocale();
     mp::setUiLocale(uiLocale);
     QTranslator qtTranslator;
+    // The static build carries qtbase_*.qm in its resources: its Qt has no translations directory
     if (qtTranslator.load(uiLocale, QStringLiteral("qtbase"), QStringLiteral("_"),
-                          QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
+                          QLibraryInfo::path(QLibraryInfo::TranslationsPath))
+        || qtTranslator.load(uiLocale, QStringLiteral("qtbase"), QStringLiteral("_"), QStringLiteral(":/i18n")))
         QCoreApplication::installTranslator(&qtTranslator);
     QTranslator appTranslator;
     if (appTranslator.load(uiLocale, QStringLiteral("markpaste"), QStringLiteral("_"), QStringLiteral(":/i18n")))

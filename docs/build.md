@@ -50,11 +50,12 @@ sudo dnf install ./build-pkg/markpaste-<version>-1.fc44.x86_64.rpm
 The release builds the Linux packages in clean containers so that each package matches its distribution's Qt (`tools/package/build-in-container.sh`, docs/release.md). Docker or Podman is needed.
 
 ```bash
-tools/package/build-in-container.sh fedora:44      # → dist/: .rpm and .tar.gz
+tools/package/build-in-container.sh fedora:44      # → dist/: .rpm
 tools/package/build-in-container.sh ubuntu:24.04   # → dist/: markpaste_<version>-1.ubuntu24.04_amd64.deb (Qt 6.4.2)
 tools/package/build-in-container.sh ubuntu:26.04   # → dist/: …-1.ubuntu26.04_amd64.deb
 tools/package/build-in-container.sh debian:13      # → dist/: …-1.debian13_amd64.deb
 tools/package/build-in-container.sh windows        # → dist/: the portable .zip and -setup.exe (MinGW in fedora:44)
+tools/package/build-in-container.sh static         # → dist/: markpaste-<version>-linux-x86_64.tar.gz (static Qt, see below)
 ```
 
 - The script mounts the sources read-only, builds in the container's own directory with the same CMake options as above, runs the core and UI tests (Linux targets), and copies the packages to `dist/`. `CONTAINER_ENGINE=docker|podman` picks the engine.
@@ -64,6 +65,22 @@ tools/package/build-in-container.sh windows        # → dist/: the portable .zi
 - **LayerShellQt older than 6.4** (Debian 13 has 6.3) has no `Window::setScreen`: the build failed with "'class LayerShellQt::Window' has no member named 'setScreen'". CMake now defines `MARKPASTE_LAYERSHELL_SET_SCREEN` only for 6.4+, and older versions set the output through `QWindow::setScreen` (docs/problems.md, 2026-10-21).
 - The Fedora image is used with `--disablerepo="*openh264*"`: during the 0.2.0 build a mirror of the Cisco openh264 repository failed ("All mirrors were tried"), and nothing from it is needed.
 - Debian packaging details required by lintian: a man page (`data/markpaste.1` → `markpaste.1.gz`), a DEP-5 `copyright` file (`data/copyright.in`), `changelog.Debian.gz` for a package with a Debian revision (`changelog.gz` otherwise), no `CPACK_DEBIAN_PACKAGE_DESCRIPTION` (CPack builds the synopsis from the summary itself). Checks: docs/release.md.
+
+## The static build (one archive for all distributions)
+
+ADR 0028. The image `tools/static/Dockerfile` (Debian 12) builds a static Qt 6.12 and LayerShellQt into `/opt/qt`; `tools/static/build.sh` builds Markpaste with it, runs the tests and packs the archive.
+
+```bash
+tools/static/build.sh                         # → dist/markpaste-<version>-linux-x86_64.tar.gz, build/static/markpaste
+tools/package/build-in-container.sh static    # the same, as the CI target
+docker build -t markpaste-static tools/static # rebuild the image (Qt version: ARG QT_VERSION)
+```
+
+- The image is built on first use: ~6 minutes on 16 cores (qtbase is ~2000 steps). The sources come from download.qt.io and download.kde.org; tarballs put into `tools/static/sources/` (ignored by git) are used instead, with the same SHA-256 checks. From here download.qt.io did not answer on 2026-10-22, a mirror worked: `https://mirrors.ocf.berkeley.edu/qt/official_releases/qt/` (`--build-arg QT_MIRROR=…`).
+- CMake finds a static Qt by the type of `Qt6::Core` (`MARKPASTE_STATIC_QT`). Then `markpaste_import_qt_plugins()` adds the plugins a static Qt does not link by default (wayland, offscreen, ibus, compose, the portal theme), the static LayerShellQt gets `Wayland::Client` and `Qt6::WaylandClientPrivate`, and `qtbase_ru.qm` goes into the resources.
+- Pitfalls on Debian 12 (docs/problems.md, 2026-10-22): `INPUT_opengl=no`, not `FEATURE_opengl=OFF`; CMake 3.30+ for ECM; wayland-protocols 1.47 for `ext-data-control-v1`; the `wl_fixes` header clash; libdbus must be linked.
+- The xcb extensions and xcb-util are linked from their `.a` files: the image deletes the `libxcb-*.so` development links (not `libxcb.so`). Check the result: `objdump -p build/static/markpaste | grep NEEDED`.
+- A debug build for gdb: the same `cmake` in the image with `-DCMAKE_BUILD_TYPE=RelWithDebInfo` (`build.sh` strips the binary).
 
 ## Checking under Sway without a separate system
 

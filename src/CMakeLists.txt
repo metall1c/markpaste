@@ -51,6 +51,7 @@ set_target_properties(markpaste PROPERTIES
     OUTPUT_NAME ${MARKPASTE_EXECUTABLE}
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/src/app)
 target_link_libraries(markpaste PRIVATE markpaste_ui Qt6::Network)
+markpaste_import_qt_plugins(markpaste)
 target_compile_definitions(markpaste PRIVATE
     MARKPASTE_APP_ID="${MARKPASTE_APP_ID}"
     MARKPASTE_VERSION="${PROJECT_VERSION}"
@@ -74,3 +75,15 @@ qt_add_translations(markpaste
     TS_FILES ${PROJECT_SOURCE_DIR}/i18n/markpaste_ru.ts ${PROJECT_SOURCE_DIR}/i18n/markpaste_en.ts
     RESOURCE_PREFIX /i18n
     LUPDATE_OPTIONS -locations none -no-obsolete)
+
+# Static Qt (ADR 0028): its translations directory does not exist on the user's machine,
+# so qtbase_ru.qm goes into the resources next to ours
+if(MARKPASTE_STATIC_QT)
+    set(qtbase_qm ${QT6_INSTALL_PREFIX}/${QT6_INSTALL_TRANSLATIONS}/qtbase_ru.qm)
+    if(EXISTS ${qtbase_qm})
+        qt_add_resources(markpaste qt_translations PREFIX /i18n BASE ${QT6_INSTALL_PREFIX}/${QT6_INSTALL_TRANSLATIONS}
+            FILES ${qtbase_qm})
+    else()
+        message(WARNING "${qtbase_qm} not found: standard dialog buttons stay English")
+    endif()
+endif()

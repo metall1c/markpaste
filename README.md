@@ -85,7 +85,14 @@ Global shortcuts through the portal need GNOME 48+ or KDE Plasma; on Ubuntu 24.0
 
 ### Other Linux distributions
 
-`markpaste-0.2.1-Linux.tar.gz` contains the program built on Fedora 44 (it needs the system Qt 6.11). It is easier to [build from source](#building-from-source): it is one CMake command.
+Since 0.2.2 there is `markpaste-X.Y.Z-linux-x86_64.tar.gz`: one program for any distribution with glibc 2.35 or newer (Debian 12, Ubuntu 22.04, Fedora 36, Arch, openSUSE Tumbleweed and later). It carries its own Qt, so distribution and Qt updates do not break it. Unpack it and run the installer:
+
+```bash
+tar xzf markpaste-X.Y.Z-linux-x86_64.tar.gz
+markpaste-X.Y.Z-linux-x86_64/install.sh            # into ~/.local; sudo … --system for /usr/local
+```
+
+Run it again to update, with `--uninstall` to remove. It uses its own look instead of the system style (Breeze), and fcitx input does not work in it (ibus does). Up to 0.2.1 the archive was the Fedora 44 build and needed the system Qt 6.11.
 
 ### Windows 10/11
 

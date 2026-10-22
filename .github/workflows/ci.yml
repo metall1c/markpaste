@@ -21,8 +21,9 @@ jobs:
       matrix:
         # fedora:44: the main platform, .rpm and .tar.gz; ubuntu:24.04: .deb with Qt 6.4,
         # which also checks that no newer Qt API is used; one .deb per release (they do not
-        # install across releases); windows: the MinGW cross-build
-        target: ['fedora:44', 'ubuntu:24.04', 'ubuntu:26.04', 'debian:13', 'windows']
+        # install across releases); windows: the MinGW cross-build; static: its own static Qt,
+        # the .tar.gz for any distribution (ADR 0028, builds Qt first: ~30 min)
+        target: ['fedora:44', 'ubuntu:24.04', 'ubuntu:26.04', 'debian:13', 'windows', 'static']
     steps:
       - uses: actions/checkout@v4
       - name: Build, test and package in a container

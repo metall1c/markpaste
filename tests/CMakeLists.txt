@@ -30,6 +30,7 @@ if(CMAKE_CROSSCOMPILING)
     set(CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE PRE_TEST)
 endif()
 # Font rendering needs QGuiApplication; in CI without a display, offscreen.
+markpaste_import_qt_plugins(markpaste_core_tests)
 gtest_discover_tests(markpaste_core_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
 find_package(Qt6 REQUIRED COMPONENTS Test)
@@ -50,6 +51,7 @@ target_include_directories(markpaste_ui_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_compile_definitions(markpaste_ui_tests PRIVATE MARKPASTE_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
     MARKPASTE_APP_ID="su._525.MarkpasteTest")
 target_link_libraries(markpaste_ui_tests PRIVATE markpaste_ui Qt6::Network Qt6::Test GTest::gtest)
+markpaste_import_qt_plugins(markpaste_ui_tests)
 gtest_discover_tests(markpaste_ui_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 # Only .qm, without an lupdate target: otherwise update_translations runs two lupdate
 # processes on the same markpaste_ru.ts at once and corrupts the file (docs/problems.md).

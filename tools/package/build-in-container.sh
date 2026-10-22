@@ -1,21 +1,23 @@
 #!/bin/sh
 # Builds the release packages in a clean container, so that each Linux package is linked
 # against its distribution's Qt (docs/build.md, "Release packages in containers").
-#   tools/package/build-in-container.sh fedora:44      # → dist/*.rpm, dist/*.tar.gz
+#   tools/package/build-in-container.sh fedora:44      # → dist/*.rpm
 #   tools/package/build-in-container.sh ubuntu:24.04   # → dist/*.ubuntu24.04_amd64.deb (Qt 6.4: also checks the API minimum)
 #   tools/package/build-in-container.sh ubuntu:26.04   # → dist/*.ubuntu26.04_amd64.deb; debian:13 the same way
 #   tools/package/build-in-container.sh windows        # → dist/*.zip, dist/*-setup.exe (MinGW on fedora:44)
+#   tools/package/build-in-container.sh static         # → dist/*-linux-x86_64.tar.gz: own static Qt, any distribution (ADR 0028)
 # The sources are mounted read-only; the core and UI tests run before packaging (Linux).
 # CONTAINER_ENGINE=docker|podman picks the engine (by default podman, then docker).
 set -eu
 
-target=${1:?usage: $0 <fedora:44|ubuntu:24.04|ubuntu:26.04|debian:13|windows>}
+target=${1:?usage: $0 <fedora:44|ubuntu:24.04|ubuntu:26.04|debian:13|windows|static>}
 image=$target
 root=$(cd "$(dirname "$0")/../.." && pwd)
 dist="$root/dist"
 mkdir -p "$dist"
 engine=${CONTAINER_ENGINE:-$(command -v podman || command -v docker || true)}
 [ -n "$engine" ] || { echo "podman or docker is needed" >&2; exit 1; }
+[ "$target" = static ] && exec "$root/tools/static/build.sh"
 
 configure='-DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DMARKPASTE_BUILD_TESTS=ON -DMARKPASTE_BUILD_TOOLS=OFF'
 tests='QT_QPA_PLATFORM=offscreen ./tests/markpaste_core_tests --gtest_brief=1
@@ -41,7 +43,8 @@ fedora:*)
         qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtwayland-devel qt6-qttools-devel qt6-linguist \
         qt6-qtsvg-devel layer-shell-qt-devel wayland-devel wayland-protocols-devel libxkbcommon-devel \
         gtest-devel gmock-devel libxcb-devel xcb-util-keysyms-devel libXtst-devel'
-    keep='*.rpm *.tar.gz'
+    # The archive for other distributions is the static build now (ADR 0028)
+    keep='*.rpm'
     ;;
 ubuntu:*|debian:*)
     # Library package names differ between releases (the t64 transition), so a .deb fits only the

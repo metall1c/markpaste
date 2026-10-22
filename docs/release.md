@@ -40,7 +40,7 @@ The Windows tests run under Wine from `build-win` (docs/build.md): core, UI and 
 
 `.github/workflows/ci.yml`:
 
-- `packages`: runs `build-in-container.sh` for `fedora:44`, `ubuntu:24.04`, `ubuntu:26.04`, `debian:13` and `windows` on every push to `main`, on tags and on pull requests, and keeps the packages as workflow artifacts (90 days).
+- `packages`: runs `build-in-container.sh` for `fedora:44`, `ubuntu:24.04`, `ubuntu:26.04`, `debian:13`, `windows` and `static` (it builds Qt first, ~30 minutes) on every push to `main`, on tags and on pull requests, and keeps the packages as workflow artifacts (90 days).
 - `release`: only on a `v*` tag, after `packages`; the draft release as described above. It uses the workflow's own `GITHUB_TOKEN` with `contents: write`, no secrets are needed.
 
 GitHub-hosted runners are free without a minutes limit for public repositories.
@@ -53,7 +53,7 @@ GitHub-hosted runners are free without a minutes limit for public repositories.
 | `markpaste_X.Y.Z-1.ubuntu24.04_amd64.deb` | Ubuntu 24.04 (Qt 6.4) |
 | `markpaste_X.Y.Z-1.ubuntu26.04_amd64.deb` | Ubuntu 26.04 |
 | `markpaste_X.Y.Z-1.debian13_amd64.deb` | Debian 13 |
-| `markpaste-X.Y.Z-Linux.tar.gz` | The Fedora 44 build as an archive (needs Qt 6.11) |
+| `markpaste-X.Y.Z-linux-x86_64.tar.gz` | Any distribution: the static build with its own Qt (ADR 0028), since 0.2.2. Until 0.2.1: `markpaste-X.Y.Z-Linux.tar.gz`, the Fedora build that needed Qt 6.11 |
 | `Markpaste-X.Y.Z-win64-setup.exe` | Windows 10/11 installer, per-user |
 | `Markpaste-X.Y.Z-win64-portable.zip` | Windows 10/11 portable |
 | `SHA256SUMS` | Checksums of all files |

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(Markpaste VERSION 0.2.1 LANGUAGES C CXX)
+project(Markpaste VERSION 0.2.2 LANGUAGES C CXX)
 
 # Name and ID live in one place: the project name is a working one (spec, section 14).
 # The ID never changes after a release: portal permissions depend on it.
@@ -52,6 +52,27 @@ option(MARKPASTE_BUILD_TOOLS "Build debugging utilities (paste prototype)" ON)
 # Svg: UI icons (docs/decisions/0019-ui-style.md)
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets Svg Concurrent Network LinguistTools)
 
+# A static Qt (tools/static, ADR 0028): one binary for all distributions
+get_target_property(MARKPASTE_QT_CORE_TYPE Qt6::Core TYPE)
+if(MARKPASTE_QT_CORE_TYPE STREQUAL "STATIC_LIBRARY")
+    set(MARKPASTE_STATIC_QT ON)
+    message(STATUS "Static Qt ${Qt6_VERSION}")
+endif()
+
+# A static Qt links only its default plugins: add the Wayland platform (the main one), offscreen
+# (tests), input methods, the portal theme (file dialogs); drop the shells and formats we never use
+function(markpaste_import_qt_plugins target)
+    if(MARKPASTE_STATIC_QT AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        qt_import_plugins(${target}
+            INCLUDE Qt6::QWaylandIntegrationPlugin Qt6::QOffscreenIntegrationPlugin
+                    Qt6::QComposePlatformInputContextPlugin Qt6::QIbusPlatformInputContextPlugin
+                    Qt6::QXdgDesktopPortalThemePlugin
+            EXCLUDE Qt6::QWaylandFullScreenShellV1IntegrationPlugin Qt6::QWaylandIviShellIntegrationPlugin
+                    Qt6::QWaylandQtShellIntegrationPlugin Qt6::QWaylandWlShellIntegrationPlugin
+                    Qt6::QGifPlugin Qt6::QNetworkManagerNetworkInformationPlugin)
+    endif()
+endfunction()
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(MARKPASTE_LINUX ON)
     find_package(Qt6 6.4 REQUIRED COMPONENTS DBus)
@@ -65,6 +86,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
 
     # LayerShellQt is optional: without it the overlay and the strip are ordinary windows (spec, section 7).
+    if(MARKPASTE_STATIC_QT)
+        # The static LayerShellQt links the targets of its own build: provide them.
+        # Private Qt modules are fine here: the binary carries its own Qt.
+        set(QT_NO_PRIVATE_MODULE_WARNING ON)
+        find_package(Qt6 REQUIRED COMPONENTS WaylandClient)
+        find_package(Qt6WaylandClientPrivate REQUIRED NO_MODULE)
+        if(NOT TARGET Wayland::Client)
+            add_library(Wayland::Client INTERFACE IMPORTED)
+            target_link_libraries(Wayland::Client INTERFACE PkgConfig::WAYLAND_CLIENT)
+        endif()
+    endif()
     find_package(LayerShellQt QUIET)
     if(LayerShellQt_FOUND)
         message(STATUS "LayerShellQt found: overlay and strip use layer-shell")

@@ -85,7 +85,14 @@ sudo apt install ./markpaste_0.2.1-1.debian13_amd64.deb      # Debian 13
 
 ### Другие дистрибутивы Linux
 
-`markpaste-0.2.1-Linux.tar.gz` — программа, собранная на Fedora 44 (нужен системный Qt 6.11). Проще [собрать из исходников](#сборка-из-исходников): это одна команда CMake.
+С версии 0.2.2 есть `markpaste-X.Y.Z-linux-x86_64.tar.gz`: одна программа для любого дистрибутива с glibc 2.35 и новее (Debian 12, Ubuntu 22.04, Fedora 36, Arch, openSUSE Tumbleweed и более новые). Qt у неё свой, поэтому обновления дистрибутива и Qt её не ломают. Распакуйте архив и запустите установщик:
+
+```bash
+tar xzf markpaste-X.Y.Z-linux-x86_64.tar.gz
+markpaste-X.Y.Z-linux-x86_64/install.sh            # в ~/.local; sudo … --system — в /usr/local
+```
+
+Повторный запуск обновляет программу, `--uninstall` удаляет. Она выглядит по-своему, а не в системном стиле (Breeze), и ввод через fcitx в ней не работает (ibus работает). До 0.2.1 архив был сборкой для Fedora 44 и требовал системный Qt 6.11.
 
 ### Windows 10/11
 
