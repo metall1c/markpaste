@@ -39,6 +39,11 @@
     </screenshot>
   </screenshots>
   <releases>
+    <release version="0.2.1" date="2026-10-22">
+      <description>
+        <p>GNOME fixes: the strip keeps its place and can stay on top, the setup check frees Print, the paste check no longer hangs. On Windows the ordinary Ctrl+V pastes the set. On KDE Alt+V no longer sometimes pastes nothing.</p>
+      </description>
+    </release>
     <release version="0.2.0" date="2026-10-21">
       <description>
         <p>The first public release.</p>

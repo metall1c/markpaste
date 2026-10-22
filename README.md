@@ -68,7 +68,7 @@ Download the packages from the [latest release](https://github.com/metall1c/mark
 ### Fedora 44
 
 ```bash
-sudo dnf install ./markpaste-0.2.0-1.fc44.x86_64.rpm
+sudo dnf install ./markpaste-0.2.1-1.fc44.x86_64.rpm
 ```
 
 ### Ubuntu and Debian
@@ -76,21 +76,21 @@ sudo dnf install ./markpaste-0.2.0-1.fc44.x86_64.rpm
 Take the package for your release (each one fits only its release):
 
 ```bash
-sudo apt install ./markpaste_0.2.0-1.ubuntu26.04_amd64.deb   # Ubuntu 26.04
-sudo apt install ./markpaste_0.2.0-1.ubuntu24.04_amd64.deb   # Ubuntu 24.04
-sudo apt install ./markpaste_0.2.0-1.debian13_amd64.deb      # Debian 13
+sudo apt install ./markpaste_0.2.1-1.ubuntu26.04_amd64.deb   # Ubuntu 26.04
+sudo apt install ./markpaste_0.2.1-1.ubuntu24.04_amd64.deb   # Ubuntu 24.04
+sudo apt install ./markpaste_0.2.1-1.debian13_amd64.deb      # Debian 13
 ```
 
 Global shortcuts through the portal need GNOME 48+ or KDE Plasma; on Ubuntu 24.04 (GNOME 46) bind `markpaste --capture` and `markpaste --paste` in the GNOME keyboard settings. Ubuntu 24.04 has no Qt 6 layer-shell library, so on KDE there the strip is an ordinary window and its paste button copies the set (the paste hotkey works as usual).
 
 ### Other Linux distributions
 
-`markpaste-0.2.0-Linux.tar.gz` contains the program built on Fedora 44 (it needs the system Qt 6.11). It is easier to [build from source](#building-from-source): it is one CMake command.
+`markpaste-0.2.1-Linux.tar.gz` contains the program built on Fedora 44 (it needs the system Qt 6.11). It is easier to [build from source](#building-from-source): it is one CMake command.
 
 ### Windows 10/11
 
-- `Markpaste-0.2.0-win64-setup.exe`: an installer, installs into your profile without administrator rights, with a Start menu shortcut and an entry in "Apps".
-- `Markpaste-0.2.0-win64-portable.zip`: unpack anywhere and run `markpaste.exe`.
+- `Markpaste-0.2.1-win64-setup.exe`: an installer, installs into your profile without administrator rights, with a Start menu shortcut and an entry in "Apps".
+- `Markpaste-0.2.1-win64-portable.zip`: unpack anywhere and run `markpaste.exe`.
 
 The files are not signed yet, so Windows SmartScreen may warn about an unknown publisher: choose **More info → Run anyway**. The first start of a new version can take up to a minute while Windows Defender checks the files.
 

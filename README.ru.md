@@ -68,7 +68,7 @@ A2 Цену крупнее
 ### Fedora 44
 
 ```bash
-sudo dnf install ./markpaste-0.2.0-1.fc44.x86_64.rpm
+sudo dnf install ./markpaste-0.2.1-1.fc44.x86_64.rpm
 ```
 
 ### Ubuntu и Debian
@@ -76,21 +76,21 @@ sudo dnf install ./markpaste-0.2.0-1.fc44.x86_64.rpm
 Возьмите пакет для своей версии (каждый подходит только к ней):
 
 ```bash
-sudo apt install ./markpaste_0.2.0-1.ubuntu26.04_amd64.deb   # Ubuntu 26.04
-sudo apt install ./markpaste_0.2.0-1.ubuntu24.04_amd64.deb   # Ubuntu 24.04
-sudo apt install ./markpaste_0.2.0-1.debian13_amd64.deb      # Debian 13
+sudo apt install ./markpaste_0.2.1-1.ubuntu26.04_amd64.deb   # Ubuntu 26.04
+sudo apt install ./markpaste_0.2.1-1.ubuntu24.04_amd64.deb   # Ubuntu 24.04
+sudo apt install ./markpaste_0.2.1-1.debian13_amd64.deb      # Debian 13
 ```
 
 Глобальные клавиши через портал работают в GNOME 48+ и KDE Plasma; в Ubuntu 24.04 (GNOME 46) привяжите `markpaste --capture` и `markpaste --paste` в настройках клавиатуры GNOME. В Ubuntu 24.04 нет библиотеки layer-shell для Qt 6, поэтому на KDE там лента — обычное окно, и её кнопка вставки копирует набор (сочетание вставки работает как обычно).
 
 ### Другие дистрибутивы Linux
 
-`markpaste-0.2.0-Linux.tar.gz` — программа, собранная на Fedora 44 (нужен системный Qt 6.11). Проще [собрать из исходников](#сборка-из-исходников): это одна команда CMake.
+`markpaste-0.2.1-Linux.tar.gz` — программа, собранная на Fedora 44 (нужен системный Qt 6.11). Проще [собрать из исходников](#сборка-из-исходников): это одна команда CMake.
 
 ### Windows 10/11
 
-- `Markpaste-0.2.0-win64-setup.exe` — установщик: ставит в профиль пользователя без прав администратора, добавляет ярлык в «Пуск» и запись в «Приложения».
-- `Markpaste-0.2.0-win64-portable.zip` — распакуйте куда угодно и запустите `markpaste.exe`.
+- `Markpaste-0.2.1-win64-setup.exe` — установщик: ставит в профиль пользователя без прав администратора, добавляет ярлык в «Пуск» и запись в «Приложения».
+- `Markpaste-0.2.1-win64-portable.zip` — распакуйте куда угодно и запустите `markpaste.exe`.
 
 Файлы пока не подписаны, поэтому SmartScreen может предупредить о неизвестном издателе: нажмите **Подробнее → Выполнить в любом случае**. Первый запуск новой версии может занять до минуты: Защитник Windows проверяет файлы.
 

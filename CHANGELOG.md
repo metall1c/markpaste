@@ -2,6 +2,35 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [Semantic Versioning](https://semver.org/). Before 0.2.0 the project was developed privately; versions 0.1.x were internal builds.
 
+## [0.2.1] — 2026-10-22
+
+Fixes for GNOME (checked on Ubuntu 26.04) and Ctrl+V on Windows.
+
+### Windows
+
+- The ordinary **Ctrl+V** is now the default paste-set key: it pastes the set while the set has shots. With an empty set, and in Markpaste's own windows, Ctrl+V is the ordinary paste. Existing installations keep their saved shortcut; type `Primary+V` in the settings to switch.
+
+### GNOME
+
+- The paste check in the setup wizard no longer hangs (the clipboard is served in its own thread).
+- The strip is one frameless window with one header. It stays in place after a capture and when hidden: hiding minimizes it, and it comes back where you left it.
+- **Always on Top** for the strip: right-click its header for the GNOME window menu.
+- The app icon shows in the app grid.
+- If Print opens the GNOME screenshot tool, the setup check frees it with one button. The settings can give the key back.
+- "Copy set" works; the strip keeps its size as shots are added and removed.
+- Shortcut labels are readable ("Ctrl+Alt+V" instead of "Press <Control><Alt>v").
+- The tray menu starts with **Show set**: the Ubuntu tray opens the menu on a single click.
+
+### Paste
+
+- KDE: Alt+V no longer sometimes pastes nothing (and clears the set with "Clear the set after pasting"). The Ctrl the program presses to keep the chat's menu closed changed Alt+V into Ctrl+Alt+V and was taken for the release of the keys.
+- Linux: the settings warn about paste shortcuts with Alt but without Ctrl, and refuse Ctrl+V (it would stop working in every program).
+
+### Known limitations
+
+- GNOME: the clipboard is empty after a paste (GNOME clears what was put into it during the paste).
+- GNOME: a tray double click counts only within the GNOME double-click time; a slower one opens the menu.
+
 ## [0.2.0] — 2026-10-21
 
 The first public release.
@@ -45,4 +74,5 @@ The first public release.
 - On Ubuntu 24.04 there is no Qt 6 LayerShellQt: on KDE there the strip is an ordinary window, and its paste button copies the set instead of pasting it (the paste hotkey works).
 - KDE shows a "Remote control session started" notification on every paste (the portal's own notification).
 
+[0.2.1]: https://github.com/metall1c/markpaste/releases/tag/v0.2.1
 [0.2.0]: https://github.com/metall1c/markpaste/releases/tag/v0.2.0
