@@ -52,7 +52,7 @@ A2 Цену крупнее
 | Окружение | Состояние |
 | --- | --- |
 | Fedora 44 KDE Plasma 6, Wayland | ✅ Главная платформа: проверено в ежедневной работе |
-| Другие дистрибутивы с KDE Plasma 6 на Wayland | ✅ Должно работать так же (нужны Qt 6.4+ и xdg-desktop-portal) |
+| Другие дистрибутивы с KDE Plasma 6 на Wayland | ✅ Должно работать так же (нужен xdg-desktop-portal) |
 | Sway, Hyprland | 🟡 Последовательная вставка проходит тесты; `markpaste --capture` привязывается в конфиге композитора (в Sway нет портала глобальных клавиш) |
 | GNOME 48+ на Wayland | 🟡 Проверено на Ubuntu 26.04 (GNOME, Wayland): снимок, метки, последовательная вставка, «Копировать набор», перетаскивание. Отличия — в разделе [В GNOME](#в-gnome) |
 | X11 (KDE, Xfce…) | 🟡 Глобальные клавиши и вставка проходят тесты (Xvfb); в настоящей сессии X11 не проверялось |
@@ -65,34 +65,37 @@ A2 Цену крупнее
 
 Пакеты — в [последнем релизе](https://github.com/metall1c/markpaste/releases/latest).
 
-### Fedora 44
+### Fedora, openSUSE и другие дистрибутивы с rpm
 
 ```bash
-sudo dnf install ./markpaste-0.2.1-1.fc44.x86_64.rpm
+sudo dnf install ./markpaste-0.2.3-1.x86_64.rpm                        # Fedora 36+
+sudo zypper install --allow-unsigned-rpm ./markpaste-0.2.3-1.x86_64.rpm  # openSUSE Tumbleweed
 ```
 
 ### Ubuntu и Debian
 
-Возьмите пакет для своей версии (каждый подходит только к ней):
+Один пакет для Debian 12+ и Ubuntu 22.04+:
 
 ```bash
-sudo apt install ./markpaste_0.2.1-1.ubuntu26.04_amd64.deb   # Ubuntu 26.04
-sudo apt install ./markpaste_0.2.1-1.ubuntu24.04_amd64.deb   # Ubuntu 24.04
-sudo apt install ./markpaste_0.2.1-1.debian13_amd64.deb      # Debian 13
+sudo apt install ./markpaste_0.2.3-1_amd64.deb
 ```
 
-Глобальные клавиши через портал работают в GNOME 48+ и KDE Plasma; в Ubuntu 24.04 (GNOME 46) привяжите `markpaste --capture` и `markpaste --paste` в настройках клавиатуры GNOME. В Ubuntu 24.04 нет библиотеки layer-shell для Qt 6, поэтому на KDE там лента — обычное окно, и её кнопка вставки копирует набор (сочетание вставки работает как обычно).
+Глобальные клавиши через портал работают в GNOME 48+ и KDE Plasma; в более старом GNOME (в Ubuntu 24.04 — GNOME 46) привяжите `markpaste --capture` и `markpaste --paste` в настройках клавиатуры GNOME.
 
 ### Другие дистрибутивы Linux
 
-С версии 0.2.2 есть `markpaste-X.Y.Z-linux-x86_64.tar.gz`: одна программа для любого дистрибутива с glibc 2.35 и новее (Debian 12, Ubuntu 22.04, Fedora 36, Arch, openSUSE Tumbleweed и более новые). Qt у неё свой, поэтому обновления дистрибутива и Qt её не ломают. Распакуйте архив и запустите установщик:
+`markpaste-0.2.3-linux-x86_64.tar.gz` работает в любом дистрибутиве с glibc 2.35 и новее (Arch и подобные). Распакуйте архив и запустите установщик:
 
 ```bash
-tar xzf markpaste-X.Y.Z-linux-x86_64.tar.gz
-markpaste-X.Y.Z-linux-x86_64/install.sh            # в ~/.local; sudo … --system — в /usr/local
+tar xzf markpaste-0.2.3-linux-x86_64.tar.gz
+markpaste-0.2.3-linux-x86_64/install.sh            # в ~/.local; sudo … --system — в /usr/local
 ```
 
-Повторный запуск обновляет программу, `--uninstall` удаляет. Она выглядит по-своему, а не в системном стиле (Breeze), и ввод через fcitx в ней не работает (ibus работает). До 0.2.1 архив был сборкой для Fedora 44 и требовал системный Qt 6.11.
+Повторный запуск обновляет программу, `--uninstall` удаляет.
+
+### О сборках для Linux
+
+С версии 0.2.3 .rpm, .deb и архив — одна статическая сборка: Qt 6.12 у программы свой, а нужны ей только библиотеки, которые есть на любом рабочем столе, поэтому обновления дистрибутива и Qt её не ломают. Она выглядит по-своему, а не в системном стиле (Breeze), и ввод через fcitx в ней не работает (ibus работает). Пакет для одного дистрибутива с его системным Qt можно [собрать из исходников](docs/build.md#a-package-for-one-distribution-with-its-system-qt).
 
 ### Windows 10/11
 
@@ -290,7 +293,7 @@ cmake --build build --target dev-install-desktop   # .desktop-файл: он н�
 ./build/src/app/markpaste
 ```
 
-Пакеты (.rpm, .deb), кросс-сборка для Windows и проверки — [docs/build.md](docs/build.md), выпуск релиза — [docs/release.md](docs/release.md) (на английском).
+Пакеты для релиза (статическая сборка), пакет для одного дистрибутива с его системным Qt, кросс-сборка для Windows и проверки — [docs/build.md](docs/build.md), выпуск релиза — [docs/release.md](docs/release.md) (на английском).
 
 ## Документация
 

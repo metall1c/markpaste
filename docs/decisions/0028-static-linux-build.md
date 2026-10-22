@@ -1,6 +1,6 @@
 # 0028. A static Linux build with its own Qt: one archive for any distribution
 
-- Status: accepted (2026-10-22), at the user's request
+- Status: accepted (2026-10-22), at the user's request; the .deb and .rpm made from the static build the same day (0.2.3), also at the user's request
 - Spec items: section 11 (Linux packages with system Qt; AppImage and Flatpak in the second round), section 7 ("on Linux only system packages"), NFR-3
 
 ## Context
@@ -19,7 +19,9 @@ The user asked for a build that is as static as possible, with the newest Qt, at
 - **LayerShellQt**: only the static `LayerShellQtInterface`; `Window::get()` installs the shell integration itself, so the plugin and the QML part (it would need QtQml) are cut out of its CMake.
 - **The Qt translations** (`qtbase_ru.qm`) go into the resources: a static Qt has no translations directory on the user's machine. `main.cpp` looks in the Qt directory first, then in `:/i18n`.
 - **The archive**: `markpaste`, `install.sh`, `share/` (.desktop, icon, AppStream), `LICENSE`. `install.sh` installs into `~/.local` (`--system`: `/usr/local`) and writes the absolute `Exec` path into the .desktop file: KWin lets a program into ScreenShot2 only when `Exec` matches its executable. A running copy is quit and restarted (a replaced file breaks the KWin check, docs/problems.md 2026-10-20).
-- The `.tar.gz` of the Fedora build is no longer released; the .rpm and the .deb files stay as they are, with the system Qt.
+- The `.tar.gz` of the Fedora build is no longer released.
+- **The release .deb and .rpm are the static build too** (0.2.3): `build.sh` runs `cpack -G 'DEB;RPM'` in the same container. One package per format, without the release in its name: `markpaste_X.Y.Z-1_amd64.deb` (dpkg-shlibdeps on Debian 12 gives `libc6 (>= 2.35)`, `libdbus-1-3`, `libfontconfig1`, `libfreetype6`, `libgcc-s1`, `libstdc++6 (>= 12)`, `libwayland-client0`, `libwayland-cursor0`, `libxcb1`, `libxkbcommon0`, `libxkbcommon-x11-0`, package names that did not change in Debian 12–13 and Ubuntu 22.04–26.04) and `markpaste-X.Y.Z-1.x86_64.rpm` (rpm's automatic soname dependencies, no `.fc44` dist tag: `CPACK_RPM_PACKAGE_RELEASE_DIST` is off for a static Qt; rpmbuild comes from Debian's `rpm` package). Both add `xdg-desktop-portal`.
+- **The system-Qt build stays**: the same CMake builds against a distribution Qt, `build-in-container.sh fedora:44|ubuntu:24.04|ubuntu:26.04|debian:13` makes per-release packages, and CI keeps building them as a check (Qt 6.4 minimum on Ubuntu 24.04) without releasing them (docs/build.md).
 
 ## Options considered
 
@@ -28,11 +30,11 @@ The user asked for a build that is as static as possible, with the newest Qt, at
 - **A fully static binary (static glibc).** Not possible in practice: NSS, `dlopen` of OpenSSL, GPU and input drivers need the dynamic loader.
 - **Building libxkbcommon, fontconfig, libwayland statically too.** They read system data (XKB keymaps, font configs, the compositor protocol), and libxcb's users must share one copy; linking them statically only adds version mismatch risks.
 - **Debian 11 or Ubuntu 22.04 as the base, for older glibc.** Qt 6.12 needs CMake 3.25 and a C++17/20 compiler; Debian 12 has them (CMake 3.31 is still taken from Kitware for ECM 6.31). Older systems are out of the spec's range anyway.
-- **Making the .deb and .rpm from the static binary too** (one package per format for all releases). Possible with the same image; not done yet: it is the user's call whether the main platform (Fedora KDE) should lose the system Qt integration (Breeze style, KDE platform theme, fcitx).
+- **Keeping the per-release system-Qt .deb and .rpm as the release packages.** They break with every Qt update of the distribution (the private API), and five release jobs had to be kept in step. The user chose the static packages, accepting the loss of the Breeze style and fcitx on Fedora KDE as well.
 
 ## Consequences
 
-- The binary is 29 MB, the archive 12 MB (NFR-3 speaks about packages without a bundled Qt; this archive is an addition to them).
+- The binary is 29 MB; the archive, the .deb and the .rpm are 12 MB each. This is above NFR-3 (packages without a bundled Qt up to 5 MB): the bundled Qt is the point of the build.
 - Breeze and other system styles and the KDE platform theme are not loaded: the program has its own style anyway (ADR 0019), file dialogs go through the portal theme. fcitx input does not work (its Qt plugin is not built); ibus works.
 - Qt security fixes reach users only with a new Markpaste release; the Qt version is bumped in the Dockerfile.
 - The image build (Qt from source) takes 6 minutes on 16 cores, about 30 minutes on a GitHub runner, on every CI run (no layer cache yet).

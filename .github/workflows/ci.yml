@@ -19,11 +19,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # fedora:44: the main platform, .rpm and .tar.gz; ubuntu:24.04: .deb with Qt 6.4,
-        # which also checks that no newer Qt API is used; one .deb per release (they do not
-        # install across releases); windows: the MinGW cross-build; static: its own static Qt,
-        # the .tar.gz for any distribution (ADR 0028, builds Qt first: ~30 min)
-        target: ['fedora:44', 'ubuntu:24.04', 'ubuntu:26.04', 'debian:13', 'windows', 'static']
+        # static: the release Linux packages, one .deb, one .rpm and the .tar.gz for all
+        # distributions, with a static Qt (ADR 0028; builds Qt first: ~30 min); windows: the
+        # MinGW cross-build. The distribution targets build against the system Qt as a check
+        # (ubuntu:24.04 has Qt 6.4, the API minimum); their packages are not released.
+        target: ['static', 'windows', 'fedora:44', 'ubuntu:24.04', 'ubuntu:26.04', 'debian:13']
     steps:
       - uses: actions/checkout@v4
       - name: Build, test and package in a container
@@ -32,7 +32,9 @@ jobs:
         run: tools/package/build-in-container.sh '${{ matrix.target }}'
       - name: Artifact name
         id: name
-        run: echo "value=packages-$(echo '${{ matrix.target }}' | tr ':.' '--')" >> "$GITHUB_OUTPUT"
+        run: |
+          case '${{ matrix.target }}' in static|windows) kind=packages ;; *) kind=distro ;; esac
+          echo "value=$kind-$(echo '${{ matrix.target }}' | tr ':.' '--')" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.name.outputs.value }}

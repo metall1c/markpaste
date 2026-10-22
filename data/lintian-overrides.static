@@ -1,0 +1,5 @@
+# The static build carries its own Qt with the libraries it bundles (docs/decisions/0028-static-linux-build.md)
+markpaste: embedded-library libjpeg [usr/bin/markpaste]
+markpaste: embedded-library zlib [usr/bin/markpaste]
+# A package outside the Debian archive: there is no bug to close
+markpaste: initial-upload-closes-no-bugs [usr/share/doc/markpaste/changelog.Debian.gz:1]

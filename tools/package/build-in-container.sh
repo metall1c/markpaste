@@ -1,11 +1,12 @@
 #!/bin/sh
-# Builds the release packages in a clean container, so that each Linux package is linked
-# against its distribution's Qt (docs/build.md, "Release packages in containers").
+# Builds packages in a clean container (docs/build.md). The release Linux packages are the static
+# build (target static, ADR 0028); the distribution targets link the system Qt of that release
+# and are a check in CI (docs/build.md, "A package for one distribution with its system Qt").
 #   tools/package/build-in-container.sh fedora:44      # → dist/*.rpm
 #   tools/package/build-in-container.sh ubuntu:24.04   # → dist/*.ubuntu24.04_amd64.deb (Qt 6.4: also checks the API minimum)
 #   tools/package/build-in-container.sh ubuntu:26.04   # → dist/*.ubuntu26.04_amd64.deb; debian:13 the same way
 #   tools/package/build-in-container.sh windows        # → dist/*.zip, dist/*-setup.exe (MinGW on fedora:44)
-#   tools/package/build-in-container.sh static         # → dist/*-linux-x86_64.tar.gz: own static Qt, any distribution (ADR 0028)
+#   tools/package/build-in-container.sh static         # → dist/: one .deb, one .rpm, .tar.gz: own static Qt, any distribution
 # The sources are mounted read-only; the core and UI tests run before packaging (Linux).
 # CONTAINER_ENGINE=docker|podman picks the engine (by default podman, then docker).
 set -eu

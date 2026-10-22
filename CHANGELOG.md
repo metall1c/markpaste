@@ -2,11 +2,16 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [Semantic Versioning](https://semver.org/). Before 0.2.0 the project was developed privately; versions 0.1.x were internal builds.
 
-## [Unreleased]
+## [0.2.3] — 2026-10-22
+
+The static build: the Linux program now carries its own Qt 6.12.
 
 ### Linux
 
-- A new archive for any distribution, `markpaste-X.Y.Z-linux-x86_64.tar.gz`: the program carries its own Qt 6.12, needs only libraries every desktop has, and keeps working after distribution and Qt updates. `install.sh` inside installs it into `~/.local` (or `/usr/local`) with the menu entry. It replaces the archive built on Fedora, which needed Qt 6.11.
+- **One .deb and one .rpm for all distributions** instead of a package per release: `markpaste_0.2.3-1_amd64.deb` for Debian 12+ and Ubuntu 22.04+, `markpaste-0.2.3-1.x86_64.rpm` for Fedora, openSUSE Tumbleweed and the like. They need only libraries every desktop has and keep working after distribution and Qt updates.
+- A new archive for any distribution with glibc 2.35+, `markpaste-0.2.3-linux-x86_64.tar.gz`: `install.sh` inside installs it into `~/.local` (or `/usr/local`) with the menu entry. It replaces the archive built on Fedora, which needed Qt 6.11.
+- The program uses its own look instead of the system style (Breeze); fcitx input does not work in it (ibus does). A package with the system Qt can still be built from source (docs/build.md).
+- Ubuntu 24.04 with KDE: the program brings its own LayerShellQt, so the strip and the capture overlay should be layer-shell windows there too (not checked).
 
 ## [0.2.1] — 2026-10-22
 
@@ -80,5 +85,6 @@ The first public release.
 - On Ubuntu 24.04 there is no Qt 6 LayerShellQt: on KDE there the strip is an ordinary window, and its paste button copies the set instead of pasting it (the paste hotkey works).
 - KDE shows a "Remote control session started" notification on every paste (the portal's own notification).
 
+[0.2.3]: https://github.com/metall1c/markpaste/releases/tag/v0.2.3
 [0.2.1]: https://github.com/metall1c/markpaste/releases/tag/v0.2.1
 [0.2.0]: https://github.com/metall1c/markpaste/releases/tag/v0.2.0

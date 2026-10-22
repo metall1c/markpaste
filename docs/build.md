@@ -22,32 +22,58 @@ cmake --build build --target dev-install-desktop   # required, see below
 
 `libxkbcommon-devel` is needed for the virtual-keyboard-v1 keymap (Sway, Hyprland). `qt6-qtsvg-devel` is for the UI icons (since 2026-10-20, [ADR 0019](decisions/0019-ui-style.md)); on Debian/Ubuntu it is `libqt6svg6-dev`. `spdlog-devel` and `python3-dbusmock` are installed but not used yet: logs go through `QLoggingCategory`, and there are no portal tests in CI yet.
 
-## The .rpm package (and .tar.gz)
+## A package for one distribution with its system Qt
 
-Checked on 2026-10-19 on Fedora 44: CPack 4.3.0, rpm-build 6.0.2.
+The release packages are the static build since 0.2.3 (see "The release packages: the static build" below). A package linked against the distribution's own Qt is still built from the same sources, for example for a distribution repository or to get the system style (Breeze) and fcitx input. Such a package runs only with the Qt it was built with (since 0.2.1 the private Qt API ties it to the exact minor version, ADR 0028), so build it on the release it is for, and rebuild it when the distribution updates Qt.
+
+The quickest way is a clean container of that release (Docker or Podman), see "Distribution packages in containers" below:
+
+```bash
+tools/package/build-in-container.sh fedora:44      # or ubuntu:24.04, ubuntu:26.04, debian:13
+```
+
+On the system itself:
+
+**Fedora** (checked on 2026-10-19 on Fedora 44: CPack 4.3.0, rpm-build 6.0.2); the build dependencies are in "Fedora 44" above:
 
 ```bash
 sudo dnf install -y rpm-build
 cmake -S . -B build-pkg -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release \
       -DMARKPASTE_BUILD_TESTS=OFF -DMARKPASTE_BUILD_TOOLS=OFF
 cmake --build build-pkg --target package
-# → build-pkg/markpaste-<version>-1.fc44.x86_64.rpm, build-pkg/markpaste-<version>-Linux.tar.gz
+# → build-pkg/markpaste-<version>-1.fc44.x86_64.rpm (and a .tar.gz of the same files)
 sudo dnf install ./build-pkg/markpaste-<version>-1.fc44.x86_64.rpm
 ```
+
+**Debian and Ubuntu** (Debian 13, Ubuntu 26.04; on Ubuntu 24.04 leave out `liblayershellqtinterface-dev`, it is the Qt 5 one there):
+
+```bash
+sudo apt install g++ cmake ninja-build pkg-config dpkg-dev file \
+  qt6-base-dev qt6-base-private-dev qt6-wayland-dev qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools \
+  qt6-svg-dev libgl-dev libwayland-dev wayland-protocols libxkbcommon-dev liblayershellqtinterface-dev \
+  libgtest-dev libgmock-dev libxcb1-dev libxcb-xtest0-dev libxcb-keysyms1-dev libxtst-dev
+cmake -S . -B build-pkg -G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release \
+      -DMARKPASTE_BUILD_TESTS=OFF -DMARKPASTE_BUILD_TOOLS=OFF -DCPACK_DEBIAN_PACKAGE_RELEASE=1~debian13
+cmake --build build-pkg --target package
+# → build-pkg/markpaste_<version>-1~debian13_amd64.deb
+sudo apt install ./build-pkg/markpaste_<version>-1~debian13_amd64.deb
+```
+
+Debian 12 is too old for the system-Qt build: its wayland-protocols 1.31 has no `ext-data-control-v1` (the static image installs 1.47 for that reason). There use the static build.
 
 - **`-DCMAKE_INSTALL_PREFIX=/usr` is required.** The `Exec` path of the .desktop file is absolute and comes from the install prefix: KWin lets a program into ScreenShot2 only if it matches the process executable. With the default prefix (`/usr/local`) the package would install the program into `/usr/local/bin`.
 - The package contains `/usr/bin/markpaste`, the `.desktop` file, the SVG icon (`hicolor/scalable`), the AppStream metainfo and LICENSE. Translations are built into the program.
 - rpm finds the library dependencies (Qt 6, libwayland-client, LayerShellQt) by itself from the linked `.so` files; only `xdg-desktop-portal` is added by hand. LayerShellQt becomes a required dependency if it was present at build time.
 - The package is tied to the Qt version of the build (`libQt6Core.so.6(Qt_6.11)`): build the rpm for Fedora 44 on Fedora 44.
 - Check: `rpmlint build-pkg/*.rpm`: 0 errors, one warning (no man page); `desktop-file-validate`, `appstreamcli validate --no-net`: no remarks.
-- **.deb** is enabled automatically if `dpkg-shlibdeps` is present (build on Ubuntu/Debian). On Fedora only rpm and tar.gz are built. For a release the .deb is built in an Ubuntu 24.04 container, see "Release packages in containers" below.
+- **.deb** is enabled automatically if `dpkg-shlibdeps` is present (build on Ubuntu/Debian). On Fedora only rpm and tar.gz are built.
 - **The new-version check** (ADR 0014, ADR 0024) uses `MARKPASTE_UPDATE_URL` (by default the GitHub API for the latest release of `MARKPASTE_GITHUB_REPO`, `metall1c/markpaste`). Distro builds that update their own way use `-DMARKPASTE_UPDATE_URL=` (empty): no check. The page in the notification is `MARKPASTE_RELEASES_URL`.
 - **Old build directories keep the old URLs.** The URL variables are CMake cache entries; after they changed (GitLab → GitHub, 2026-10-21) an existing build directory still has the old ones. Reset them: `cmake -U 'MARKPASTE_*URL' -U MARKPASTE_GITHUB_REPO <build dir>`.
 - **For the developer:** `~/.local/share/applications/su._525.Markpaste.desktop` from `dev-install-desktop` wins over the system one from the package (the user directory is searched first) and points to `build/`. To check an installed package, delete this file (and the icon in `~/.local/share/icons/hicolor/scalable/apps/`).
 
-## Release packages in containers
+## Distribution packages in containers
 
-The release builds the Linux packages in clean containers so that each package matches its distribution's Qt (`tools/package/build-in-container.sh`, docs/release.md). Docker or Podman is needed.
+`tools/package/build-in-container.sh` builds a system-Qt package for one release in a clean container of it. Up to 0.2.2 these were the release packages; now the CI builds them as a check (the system Qt build and the Qt 6.4 minimum on Ubuntu 24.04) and does not release them (docs/release.md). Docker or Podman is needed.
 
 ```bash
 tools/package/build-in-container.sh fedora:44      # → dist/: .rpm
@@ -66,12 +92,13 @@ tools/package/build-in-container.sh static         # → dist/: markpaste-<versi
 - The Fedora image is used with `--disablerepo="*openh264*"`: during the 0.2.0 build a mirror of the Cisco openh264 repository failed ("All mirrors were tried"), and nothing from it is needed.
 - Debian packaging details required by lintian: a man page (`data/markpaste.1` → `markpaste.1.gz`), a DEP-5 `copyright` file (`data/copyright.in`), `changelog.Debian.gz` for a package with a Debian revision (`changelog.gz` otherwise), no `CPACK_DEBIAN_PACKAGE_DESCRIPTION` (CPack builds the synopsis from the summary itself). Checks: docs/release.md.
 
-## The static build (one archive for all distributions)
+## The release packages: the static build
 
-ADR 0028. The image `tools/static/Dockerfile` (Debian 12) builds a static Qt 6.12 and LayerShellQt into `/opt/qt`; `tools/static/build.sh` builds Markpaste with it, runs the tests and packs the archive.
+ADR 0028. The image `tools/static/Dockerfile` (Debian 12) builds a static Qt 6.12 and LayerShellQt into `/opt/qt`; `tools/static/build.sh` builds Markpaste with it, runs the tests and packs one .deb (Debian 12+, Ubuntu 22.04+), one .rpm (Fedora, openSUSE) and the .tar.gz with `install.sh`.
 
 ```bash
-tools/static/build.sh                         # → dist/markpaste-<version>-linux-x86_64.tar.gz, build/static/markpaste
+tools/static/build.sh                         # → dist/: markpaste_<version>-1_amd64.deb, markpaste-<version>-1.x86_64.rpm,
+                                              #   markpaste-<version>-linux-x86_64.tar.gz; build/static/markpaste
 tools/package/build-in-container.sh static    # the same, as the CI target
 docker build -t markpaste-static tools/static # rebuild the image (Qt version: ARG QT_VERSION)
 ```

@@ -75,8 +75,8 @@ On 2026-10-20 the shot window and the strip were redone after an approved mock-u
 
 | What | Status |
 | --- | --- |
-| .rpm and .deb packages (CPack) | ✅ — 0.2.0: .rpm for Fedora 44, .deb for Ubuntu 24.04, Ubuntu 26.04 and Debian 13, built in containers; each installs in a clean container of its release, lintian clean, rpmlint 0/0 (docs/release.md). Not checked on a live desktop of those systems except Fedora 44 KDE |
-| An archive for any distribution | ✅ — since 0.2.2: the static build with its own Qt 6.12 (ADR 0028), `install.sh`; checked on Ubuntu 26.04 GNOME (the whole cycle) and in bare containers of six distributions (X11) |
+| .rpm and .deb packages (CPack) | ✅ — since 0.2.3 from the static build (below); with the system Qt still buildable per release and built in CI as a check. 0.2.0: .rpm for Fedora 44, .deb for Ubuntu 24.04, Ubuntu 26.04 and Debian 13, built in containers; each installs in a clean container of its release, lintian clean, rpmlint 0/0 (docs/release.md). Not checked on a live desktop of those systems except Fedora 44 KDE |
+| The static build: one .deb, one .rpm, an archive for any distribution | ✅ — since 0.2.3 the release Linux packages (ADR 0028): Qt 6.12 inside, `install.sh` in the archive; checked on Ubuntu 26.04 GNOME (the whole cycle), on Fedora 44 KDE (daily use since 2026-10-22), in bare containers of six distributions (X11), package installs: see platform-matrix.md |
 | Installing the .desktop file, icon and metainfo with `cmake --install` | ✅ — the icon `data/icons/app.svg` repeats the one drawn in code |
 | Autostart (`~/.config/autostart`) | 🟡 — a checkbox in settings ("System" tab), the file is written and deleted (a test); logging in with autostart was not checked |
 | CI: build on Fedora 44 and Ubuntu 24.04, tests, portals via python-dbusmock | 🟡 — GitHub Actions: build, tests and packages for Fedora 44, Ubuntu 24.04/26.04, Debian 13, the static build and the Windows cross-build (`.github/workflows/ci.yml`); no portal tests |

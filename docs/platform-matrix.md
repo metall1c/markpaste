@@ -169,15 +169,22 @@ Built with `tools/package/build-in-container.sh` (ADR 0025), checked in clean co
 | `markpaste_0.2.0-1.debian13_amd64.deb` | debian:13 (Qt 6.8, LayerShellQt 6.3) | Debian 13 | — | lintian clean |
 | `Markpaste-0.2.0-win64-setup.exe` | fedora:44, MinGW 16.2.1, Qt 6.11.2 | a clean Wine 11 prefix (`/S`) | — | installs into `%LOCALAPPDATA%\Programs\Markpaste`, the "Apps" entry has version 0.2.0 and the GitHub URL; the same toolchain as the build tested under Wine (core 71, UI 44, windows 11 tests) |
 
-## The static build (0.2.2, 2026-10-22)
+## The static build (0.2.2–0.2.3, 2026-10-22)
 
-`markpaste-0.2.2-linux-x86_64.tar.gz` from `tools/static/build.sh` (ADR 0028): Qt 6.12.0 static, built on Debian 12; needs `GLIBC_2.35` at most. Shared libraries: glibc, libstdc++, libwayland-client/cursor, libxcb, libxkbcommon(-x11), fontconfig, freetype, libdbus-1.
+`markpaste-0.2.2-linux-x86_64.tar.gz` (and since 0.2.3 the .deb and .rpm) from `tools/static/build.sh` (ADR 0028): Qt 6.12.0 static, built on Debian 12; needs `GLIBC_2.35` at most. Shared libraries: glibc, libstdc++, libwayland-client/cursor, libxcb, libxkbcommon(-x11), fontconfig, freetype, libdbus-1.
 
 | System | Session | Status | Note |
 | --- | --- | --- | --- |
 | Ubuntu 26.04 (the VM) | GNOME, Wayland | ✅ | The whole cycle: capture through the Screenshot portal (overlay in 713 ms), editor with the Adwaita decorations, a mark with a comment, paste into Text Editor through the Clipboard and RemoteDesktop portals, update check over HTTPS (OpenSSL loaded at run time). `install.sh`: install into `~/.local`, update with a running copy (quit and restart), `--uninstall` |
 | Fedora 44 KDE (the developer machine) | Plasma, Wayland | 🟡 | Starts: KWin ScreenShot2, GlobalShortcuts portal, ext-data-control-v1, the same keys. The screen was locked, the windows were not looked at |
 | Debian 12, Ubuntu 22.04, Ubuntu 24.04, Fedora 44, Arch, openSUSE Tumbleweed | bare containers, Xvfb (X11) | ✅ | Only the runtime libraries above installed: none missing, the program starts and grabs the X11 keys. Without libdbus-1 (a bare Fedora container) the build with run-time-loaded libdbus crashed in Qt's tray code; libdbus is linked now (docs/problems.md) |
+
+Package installs, 0.2.3 (clean containers, `markpaste --version` offscreen):
+
+| Package | Installs and starts on | Checks |
+| --- | --- | --- |
+| `markpaste_0.2.3-1_amd64.deb` | Debian 12, Debian 13, Ubuntu 22.04, Ubuntu 24.04, Ubuntu 26.04 (`apt install ./…deb`) | lintian clean with `usr/share/lintian/overrides/markpaste` (the libjpeg and zlib inside the static Qt) |
+| `markpaste-0.2.3-1.x86_64.rpm` | Fedora 43, Fedora 44 (`dnf install`), openSUSE Tumbleweed (`zypper in --allow-unsigned-rpm`) | rpmlint: 1 error `missing-call-to-setgroups-before-setuid`: QProcess's `ResetIds` code in the static Qt (`setuid(getuid())`), the program never calls it |
 
 ## Chat compatibility
 

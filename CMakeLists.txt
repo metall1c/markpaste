@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(Markpaste VERSION 0.2.2 LANGUAGES C CXX)
+project(Markpaste VERSION 0.2.3 LANGUAGES C CXX)
 
 # Name and ID live in one place: the project name is a working one (spec, section 14).
 # The ID never changes after a release: portal permissions depend on it.
@@ -189,6 +189,11 @@ if(MARKPASTE_LINUX)
     install(FILES ${CMAKE_BINARY_DIR}/data/${MARKPASTE_EXECUTABLE}.1.gz DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
     install(FILES ${CMAKE_BINARY_DIR}/data/copyright ${CMAKE_BINARY_DIR}/data/${MARKPASTE_CHANGELOG_NAME}.gz
             DESTINATION ${CMAKE_INSTALL_DOCDIR})
+    if(MARKPASTE_STATIC_QT)
+        # lintian: the bundled libjpeg and zlib are inside the static Qt on purpose (ADR 0028)
+        install(FILES data/lintian-overrides.static DESTINATION ${CMAKE_INSTALL_DATADIR}/lintian/overrides
+                RENAME ${MARKPASTE_EXECUTABLE})
+    endif()
 endif()
 
 if(WIN32)
@@ -232,7 +237,12 @@ if(MARKPASTE_RPMBUILD AND NOT WIN32)
     set(CPACK_RPM_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION})
     set(CPACK_RPM_PACKAGE_GROUP "Applications/Productivity")
     set(CPACK_RPM_PACKAGE_RELEASE 1)
-    set(CPACK_RPM_PACKAGE_RELEASE_DIST ON)
+    # The static build makes one .rpm for all rpm distributions: no dist tag (.fc44) in the name
+    if(MARKPASTE_STATIC_QT)
+        set(CPACK_RPM_PACKAGE_RELEASE_DIST OFF)
+    else()
+        set(CPACK_RPM_PACKAGE_RELEASE_DIST ON)
+    endif()
     set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
     # Portals: capture, hotkeys, Ctrl+V; without them the program runs in a reduced mode
     set(CPACK_RPM_PACKAGE_REQUIRES "xdg-desktop-portal")
@@ -247,6 +257,10 @@ if(MARKPASTE_RPMBUILD AND NOT WIN32)
         ${CMAKE_INSTALL_FULL_DATADIR}/doc
         ${CMAKE_INSTALL_FULL_MANDIR}
         ${CMAKE_INSTALL_FULL_MANDIR}/man1)
+    if(MARKPASTE_STATIC_QT)
+        # The lintian overrides are for the .deb only
+        set(CPACK_RPM_USER_FILELIST "%exclude ${CMAKE_INSTALL_FULL_DATADIR}/lintian")
+    endif()
 endif()
 
 if(MARKPASTE_DPKG_SHLIBDEPS AND NOT WIN32)

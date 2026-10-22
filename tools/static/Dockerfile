@@ -44,3 +44,6 @@ RUN sh /usr/local/bin/build-qt.sh kde && rm -rf /sources
 # many Wayland desktops (Ubuntu). Without the .so links the linker takes the .a archives.
 # libxcb.so.1 itself stays shared: libxkbcommon-x11 uses it too, two copies would clash.
 RUN cd /usr/lib/x86_64-linux-gnu && for l in libxcb-*.so; do rm "$l"; done && ls libxcb*.so
+
+# rpmbuild: the .rpm comes from the same static build as the .deb
+RUN apt-get update -q && apt-get install -y -q --no-install-recommends rpm && rm -rf /var/lib/apt/lists/*

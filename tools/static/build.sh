@@ -1,7 +1,8 @@
 #!/bin/sh
 # Builds Markpaste against the static Qt from tools/static/Dockerfile (ADR 0028), runs the tests
-# and packs the archive for any distribution:
-#   tools/static/build.sh   # → dist/markpaste-<version>-linux-x86_64.tar.gz, build/static/markpaste
+# and packs the archive and the packages for any distribution:
+#   tools/static/build.sh   # → dist/: markpaste-<version>-linux-x86_64.tar.gz, markpaste_<version>-1_amd64.deb,
+#                           #   markpaste-<version>-1.x86_64.rpm; build/static/markpaste
 # The image is built on first use (Qt from source: ~6 min on 16 cores, then cached by the engine).
 # CONTAINER_ENGINE=docker|podman picks the engine (by default podman, then docker).
 set -eu
@@ -20,7 +21,8 @@ image=${MARKPASTE_STATIC_IMAGE:-markpaste-static}
 
 "$engine" run --rm -v "$root:/src:ro,z" -v "$out:/out:z" -v "$dist:/dist:z" "$image" sh -ec "
     cmake -S /src -B /tmp/build -G Ninja -DCMAKE_PREFIX_PATH=/opt/qt -DCMAKE_INSTALL_PREFIX=/usr \
-        -DCMAKE_BUILD_TYPE=Release -DMARKPASTE_BUILD_TESTS=ON -DMARKPASTE_BUILD_TOOLS=OFF
+        -DCMAKE_BUILD_TYPE=Release -DMARKPASTE_BUILD_TESTS=ON -DMARKPASTE_BUILD_TOOLS=OFF \
+        -DCPACK_DEBIAN_PACKAGE_RELEASE=1
     cmake --build /tmp/build
     cd /tmp/build
     QT_QPA_PLATFORM=offscreen ./tests/markpaste_core_tests --gtest_brief=1
@@ -32,6 +34,9 @@ image=${MARKPASTE_STATIC_IMAGE:-markpaste-static}
     cp /tmp/stage/usr/share/icons/hicolor/scalable/apps/*.svg \$p/share/
     cp \$p/markpaste /out/markpaste
     tar -C /tmp -czf /dist/$name.tar.gz $name
-    chown $(id -u):$(id -g) /out/markpaste /dist/$name.tar.gz
+    # One .deb for Debian and Ubuntu, one .rpm for Fedora, openSUSE and the like
+    cpack -G 'DEB;RPM' > /dev/null
+    cp -v markpaste_*.deb markpaste-*.rpm /dist/
+    chown $(id -u):$(id -g) /out/markpaste /dist/$name.tar.gz /dist/markpaste_*.deb /dist/markpaste-*.rpm
 "
 echo "Archive: $dist/$name.tar.gz"

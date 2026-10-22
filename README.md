@@ -52,7 +52,7 @@ Open source, for Linux (KDE Plasma on Wayland first) and Windows 10/11. No netwo
 | Environment | Status |
 | --- | --- |
 | Fedora 44 KDE Plasma 6, Wayland | ✅ The main platform: checked in daily use |
-| Other KDE Plasma 6 distributions on Wayland | ✅ Expected to work the same (needs Qt 6.4+, xdg-desktop-portal) |
+| Other KDE Plasma 6 distributions on Wayland | ✅ Expected to work the same (needs xdg-desktop-portal) |
 | Sway, Hyprland | 🟡 Sequential paste works in tests; bind `markpaste --capture` in the compositor config (Sway has no global shortcuts portal) |
 | GNOME 48+ on Wayland | 🟡 Checked on Ubuntu 26.04 (GNOME, Wayland): capture, marks, sequential paste, "Copy set", drag-and-drop. See [On GNOME](#on-gnome) for the differences |
 | X11 (KDE, Xfce…) | 🟡 Global hotkeys and paste work in tests (Xvfb); not checked in a real X11 session |
@@ -65,34 +65,37 @@ Chats checked so far: Claude Code (in a terminal), ChatGPT and Claude in a brows
 
 Download the packages from the [latest release](https://github.com/metall1c/markpaste/releases/latest).
 
-### Fedora 44
+### Fedora, openSUSE and other rpm distributions
 
 ```bash
-sudo dnf install ./markpaste-0.2.1-1.fc44.x86_64.rpm
+sudo dnf install ./markpaste-0.2.3-1.x86_64.rpm                        # Fedora 36+
+sudo zypper install --allow-unsigned-rpm ./markpaste-0.2.3-1.x86_64.rpm  # openSUSE Tumbleweed
 ```
 
 ### Ubuntu and Debian
 
-Take the package for your release (each one fits only its release):
+One package for Debian 12+ and Ubuntu 22.04+:
 
 ```bash
-sudo apt install ./markpaste_0.2.1-1.ubuntu26.04_amd64.deb   # Ubuntu 26.04
-sudo apt install ./markpaste_0.2.1-1.ubuntu24.04_amd64.deb   # Ubuntu 24.04
-sudo apt install ./markpaste_0.2.1-1.debian13_amd64.deb      # Debian 13
+sudo apt install ./markpaste_0.2.3-1_amd64.deb
 ```
 
-Global shortcuts through the portal need GNOME 48+ or KDE Plasma; on Ubuntu 24.04 (GNOME 46) bind `markpaste --capture` and `markpaste --paste` in the GNOME keyboard settings. Ubuntu 24.04 has no Qt 6 layer-shell library, so on KDE there the strip is an ordinary window and its paste button copies the set (the paste hotkey works as usual).
+Global shortcuts through the portal need GNOME 48+ or KDE Plasma; on older GNOME (Ubuntu 24.04 has GNOME 46) bind `markpaste --capture` and `markpaste --paste` in the GNOME keyboard settings.
 
 ### Other Linux distributions
 
-Since 0.2.2 there is `markpaste-X.Y.Z-linux-x86_64.tar.gz`: one program for any distribution with glibc 2.35 or newer (Debian 12, Ubuntu 22.04, Fedora 36, Arch, openSUSE Tumbleweed and later). It carries its own Qt, so distribution and Qt updates do not break it. Unpack it and run the installer:
+`markpaste-0.2.3-linux-x86_64.tar.gz` runs on any distribution with glibc 2.35 or newer (Arch and the like). Unpack it and run the installer:
 
 ```bash
-tar xzf markpaste-X.Y.Z-linux-x86_64.tar.gz
-markpaste-X.Y.Z-linux-x86_64/install.sh            # into ~/.local; sudo … --system for /usr/local
+tar xzf markpaste-0.2.3-linux-x86_64.tar.gz
+markpaste-0.2.3-linux-x86_64/install.sh            # into ~/.local; sudo … --system for /usr/local
 ```
 
-Run it again to update, with `--uninstall` to remove. It uses its own look instead of the system style (Breeze), and fcitx input does not work in it (ibus does). Up to 0.2.1 the archive was the Fedora 44 build and needed the system Qt 6.11.
+Run it again to update, with `--uninstall` to remove.
+
+### About the Linux builds
+
+Since 0.2.3 the .rpm, the .deb and the archive are one static build: the program carries its own Qt 6.12 and needs only libraries every desktop has, so distribution and Qt updates do not break it. It uses its own look rather than the system style (Breeze), and fcitx input does not work in it (ibus does). A package for one distribution with its system Qt can be [built from source](docs/build.md#a-package-for-one-distribution-with-its-system-qt).
 
 ### Windows 10/11
 
@@ -290,7 +293,7 @@ cmake --build build --target dev-install-desktop   # the .desktop file: portals 
 ./build/src/app/markpaste
 ```
 
-Packages (.rpm, .deb), the Windows cross-build and checks: [docs/build.md](docs/build.md). Making a release: [docs/release.md](docs/release.md).
+The release packages (the static build), packages for one distribution with its system Qt, the Windows cross-build and checks: [docs/build.md](docs/build.md). Making a release: [docs/release.md](docs/release.md).
 
 ## Documentation
 
